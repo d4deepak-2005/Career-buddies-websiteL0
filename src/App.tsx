@@ -11,6 +11,7 @@ import {
 } from './types';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { AICareerAssistant } from './components/AICareerAssistant';
 
 // Screens
 import { HomeScreen } from './components/screens/HomeScreen';
@@ -472,6 +473,8 @@ export default function App() {
           setIsSmartMatchingOpen(true);
         }}
       />
+      
+<AICareerAssistant />
 
     </div>
   );
