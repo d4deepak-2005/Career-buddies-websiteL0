@@ -43,6 +43,7 @@ import { MentorProfileModal } from './components/modals/MentorProfileModal';
 import { BecomeMentorModal } from './components/modals/BecomeMentorModal';
 import { AuthModal } from './components/modals/AuthModal';
 import { ResetPasswordModal } from './components/modals/ResetPasswordModal';
+import { LinkAccountModal } from './components/modals/LinkAccountModal';
 import {
   CandidateProfile,
   candidateFetch,
@@ -219,6 +220,7 @@ export default function App() {
   // ---- Social sign-in return trip (server redirects back with #social=<one-time code>
   // on success, or ?auth_error=<code> on cancel/failure) ----
   const [socialAuthMessage, setSocialAuthMessage] = useState<string | null>(null);
+  const [linkCode, setLinkCode] = useState<string | null>(null);
 
   useEffect(() => {
     const cleanUrl = () =>
@@ -226,11 +228,16 @@ export default function App() {
 
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const code = hash.get('social');
+    const linkParam = hash.get('link');
     const params = new URLSearchParams(window.location.search);
     const errorCode = params.get('auth_error');
     const provider = params.get('auth_provider') || 'the provider';
 
-    if (code) {
+    if (linkParam) {
+      // An unverified provider email matched an existing account: ask the user to prove ownership.
+      cleanUrl();
+      setLinkCode(linkParam);
+    } else if (code) {
       cleanUrl();
       setAuthChecked(false);
       fetch('/api/auth/exchange', {
@@ -271,6 +278,9 @@ export default function App() {
         server_error: `${label} sign-in could not be completed. Please try again or use email/password.`,
         invalid_state: `${label} sign-in could not be completed (the request expired or was started in a different browser). Please try again.`,
         email_unverified_conflict: `An account with this email already exists, and ${label} could not confirm that you own it. Please log in with your email and password.`,
+        link_mismatch: `That ${label} sign-in belongs to a different CareerBuddies account, so nothing was linked. Please try again with the right account.`,
+        link_expired: `That link request expired. Please start again from the login screen.`,
+        identity_conflict: `This ${label} account is already connected to another CareerBuddies account.`,
         no_email: `${label} did not share an email address, which CareerBuddies needs to create your account. Please allow email access or sign up with email.`
       };
       setSocialAuthMessage(messages[errorCode] || unavailable);
@@ -730,6 +740,20 @@ export default function App() {
         startInForgot={startInForgot}
         onAuthenticate={handleAuthenticate}
       />
+
+      {linkCode && (
+        <LinkAccountModal
+          code={linkCode}
+          onClose={() => setLinkCode(null)}
+          onLinked={(body) => {
+            setLinkCode(null);
+            setCandidateToken(body.token, body.expiresAt);
+            setCandidate(body.candidate);
+            setActivePage('dashboard');
+            window.scrollTo({ top: 0 });
+          }}
+        />
+      )}
 
       {resetToken && (
         <ResetPasswordModal

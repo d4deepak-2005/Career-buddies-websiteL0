@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import express, { Request, Response } from 'express';
 import { Candidate } from '../models/Candidate.ts';
-import { hashPassword, readPayload, signPayload } from '../middleware/candidateAuth.ts';
+import { hashPassword, readPayload, signPayload, verifyPassword } from '../middleware/candidateAuth.ts';
 import { buildSession } from './candidate.ts';
 
 // Social sign-in (Google, LinkedIn, Microsoft, Facebook) via the OAuth 2.0
@@ -19,6 +19,20 @@ type ProviderId = 'google' | 'linkedin' | 'microsoft' | 'facebook';
 export class OAuthError extends Error {
   constructor(public code: string, message?: string) {
     super(message || code);
+  }
+}
+
+// The provider identity matches an existing account by email, but the provider did not
+// verify that email (Facebook never does). We must NOT merge silently — the person has to
+// prove they own the existing account first (see the /link routes below).
+export class LinkRequiredError extends OAuthError {
+  constructor(
+    public candidateId: string,
+    public canUsePassword: boolean,
+    public existingProviders: string[],
+    public profile: SocialProfile
+  ) {
+    super('email_unverified_conflict');
   }
 }
 
@@ -288,7 +302,14 @@ export async function resolveSocialLogin(provider: string, profile: SocialProfil
 
   if (existing) {
     // Never attach a login to an account on the strength of an email the provider hasn't verified.
-    if (!profile.emailVerified) throw new OAuthError('email_unverified_conflict');
+    if (!profile.emailVerified) {
+      throw new LinkRequiredError(
+        existing._id.toString(),
+        existing.hasPassword !== false,
+        (existing.identities || []).map((i: any) => i.provider),
+        profile
+      );
+    }
 
     existing.identities.push({ provider, subject: profile.subject });
     let notice: string | undefined;
@@ -328,6 +349,48 @@ function sweep() {
   for (const [k, v] of pending) if (v.exp < now) pending.delete(k);
 }
 
+// ---- Account-link confirmation (unverified provider email matches an existing account) ----
+interface PendingLink {
+  provider: string;
+  subject: string;
+  email: string;
+  candidateId: string;
+  canUsePassword: boolean;
+  existingProviders: string[];
+  attempts: number;
+  exp: number;
+}
+const pendingLinks = new Map<string, PendingLink>();
+const LINK_TTL_MS = 10 * 60 * 1000;
+const MAX_LINK_PASSWORD_ATTEMPTS = 5;
+
+function sweepLinks() {
+  const now = Date.now();
+  for (const [k, v] of pendingLinks) if (v.exp < now) pendingLinks.delete(k);
+}
+
+function getPendingLink(code: unknown): PendingLink | null {
+  if (typeof code !== 'string') return null;
+  const pl = pendingLinks.get(code);
+  if (!pl || pl.exp < Date.now()) {
+    pendingLinks.delete(code);
+    return null;
+  }
+  return pl;
+}
+
+// Adds the waiting provider identity to the (already-proven) account.
+async function attachPendingIdentity(pl: PendingLink): Promise<void> {
+  const owner = await Candidate.findOne({ identities: { $elemMatch: { provider: pl.provider, subject: pl.subject } } }).select('_id');
+  if (owner && owner._id.toString() !== pl.candidateId) throw new OAuthError('identity_conflict');
+  if (!owner) {
+    await Candidate.updateOne(
+      { _id: pl.candidateId },
+      { $push: { identities: { provider: pl.provider, subject: pl.subject } } }
+    );
+  }
+}
+
 router.get('/:provider/start', (req: Request, res: Response) => {
   const id = req.params.provider;
   const cfg = getProvider(id);
@@ -360,7 +423,9 @@ router.get('/:provider/start', (req: Request, res: Response) => {
   }
 
   // Signed, short-lived, httpOnly cookie ties the callback to THIS browser (CSRF / login fixation).
-  const cookie = signPayload({ p: id, s: state, n: nonce, v: verifier }, 10 * 60 * 1000);
+  // Optional: this sign-in is proving ownership of an account so a waiting link can complete.
+  const linkCode = typeof req.query.link === 'string' && getPendingLink(req.query.link) ? req.query.link : undefined;
+  const cookie = signPayload({ p: id, s: state, n: nonce, v: verifier, l: linkCode }, 10 * 60 * 1000);
   res.setHeader(
     'Set-Cookie',
     `${cookieName(id)}=${encodeURIComponent(cookie)}; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=600${isHttps(req) ? '; Secure' : ''}`
@@ -374,7 +439,7 @@ router.get('/:provider/callback', async (req: Request, res: Response) => {
   if (!cfg) return void res.status(404).end();
 
   // Single-use: clear the state cookie whatever happens next.
-  const stored = readPayload<{ p: string; s: string; n: string; v: string }>(parseCookies(req.headers.cookie)[cookieName(id)]);
+  const stored = readPayload<{ p: string; s: string; n: string; v: string; l?: string }>(parseCookies(req.headers.cookie)[cookieName(id)]);
   res.setHeader('Set-Cookie', `${cookieName(id)}=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`);
 
   try {
@@ -412,17 +477,93 @@ router.get('/:provider/callback', async (req: Request, res: Response) => {
     }
 
     const profile = await fetchProfile(id as ProviderId, cfg, tokens, { nonce: stored.n });
-    const { candidateId, notice } = await resolveSocialLogin(id, profile);
+    let candidateId: string;
+    let notice: string | undefined;
+
+    if (stored.l) {
+      // This sign-in exists only to confirm ownership for a waiting link. Never create accounts here.
+      const pl = getPendingLink(stored.l);
+      if (!pl) return failRedirect(res, id, 'link_expired');
+      const me = await Candidate.findOne({ identities: { $elemMatch: { provider: id, subject: profile.subject } } }).select('_id');
+      if (!me || me._id.toString() !== pl.candidateId) return failRedirect(res, id, 'link_mismatch');
+      await attachPendingIdentity(pl);
+      pendingLinks.delete(stored.l);
+      candidateId = pl.candidateId;
+    } else {
+      ({ candidateId, notice } = await resolveSocialLogin(id, profile));
+    }
 
     sweep();
     const oneTime = b64url(crypto.randomBytes(32));
     pending.set(oneTime, { candidateId, notice, exp: Date.now() + 60_000 });
     res.redirect(`/#social=${oneTime}`);
   } catch (error: any) {
+    if (error instanceof LinkRequiredError && (error.canUsePassword || error.existingProviders.length)) {
+      // Offer a proof-of-ownership step instead of a dead end. Nothing is linked yet.
+      sweepLinks();
+      const linkCode = b64url(crypto.randomBytes(32));
+      pendingLinks.set(linkCode, {
+        provider: id,
+        subject: error.profile.subject,
+        email: error.profile.email,
+        candidateId: error.candidateId,
+        canUsePassword: error.canUsePassword,
+        existingProviders: error.existingProviders,
+        attempts: 0,
+        exp: Date.now() + LINK_TTL_MS,
+      });
+      return void res.redirect(`/#link=${linkCode}`);
+    }
     const code = error instanceof OAuthError ? error.code : 'server_error';
     console.error(`[OAuth:${id}] ${code}${error?.message && error.message !== code ? ` - ${error.message}` : ''}`);
     failRedirect(res, id, code);
   }
+});
+
+// What the "confirm it's you" dialog needs to show. Never reveals tokens or other accounts.
+router.post('/link/info', express.json(), (req: Request, res: Response) => {
+  const pl = getPendingLink(req.body?.code);
+  if (!pl) return void res.json({ success: true, valid: false });
+  const labels: Record<string, string> = { google: 'Google', linkedin: 'LinkedIn', microsoft: 'Microsoft', facebook: 'Facebook' };
+  res.json({
+    success: true,
+    valid: true,
+    provider: labels[pl.provider] || pl.provider,
+    email: pl.email,
+    canUsePassword: pl.canUsePassword,
+    // Only providers that are configured here and already linked to that account.
+    confirmWith: pl.existingProviders
+      .filter((p) => p !== pl.provider && !!getProvider(p)?.clientId && !!getProvider(p)?.clientSecret)
+      .map((p) => ({ id: p, label: labels[p] || p })),
+  });
+});
+
+// Confirm ownership with the CareerBuddies password, then link the provider and sign in.
+router.post('/link', express.json(), async (req: Request, res: Response) => {
+  const code = typeof req.body?.code === 'string' ? req.body.code : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  const pl = getPendingLink(code);
+  if (!pl) return void res.status(400).json({ success: false, error: 'This link request has expired. Please sign in with Facebook again.' });
+  if (!pl.canUsePassword) return void res.status(400).json({ success: false, error: 'Please confirm with the sign-in method you used to create your account.' });
+
+  pl.attempts += 1;
+  if (pl.attempts > MAX_LINK_PASSWORD_ATTEMPTS) {
+    pendingLinks.delete(code);
+    return void res.status(429).json({ success: false, error: 'Too many attempts. Please start again.' });
+  }
+
+  const owner = await Candidate.findById(pl.candidateId).select('+passwordHash');
+  if (!owner || !password || !verifyPassword(password, owner.passwordHash)) {
+    return void res.status(401).json({ success: false, error: 'Incorrect password.' });
+  }
+
+  try {
+    await attachPendingIdentity(pl);
+  } catch {
+    return void res.status(409).json({ success: false, error: 'This account could not be linked. Please contact support.' });
+  }
+  pendingLinks.delete(code);
+  res.json(await buildSession(pl.candidateId));
 });
 
 // The site trades the one-time code (from the URL fragment) for a normal session.
