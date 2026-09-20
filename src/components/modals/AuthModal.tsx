@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Lock, Mail, User, ShieldCheck, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, Lock, Mail, User, ShieldCheck, ArrowRight, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import { BrandLogo } from '../BrandLogo';
 
 interface AuthModalProps {
@@ -36,6 +36,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  // Social sign-in problems (provider unavailable / cancelled / failed) are shown as a
+  // compact note under the provider buttons, not as a big banner inside the form.
+  const [socialError, setSocialError] = useState<string | null>(null);
+  const socialErrorRef = useRef<HTMLDivElement>(null);
 
   // Sync mode when initialMode changes
   React.useEffect(() => {
@@ -44,14 +48,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
     setForgot(!!startInForgot && isOpen);
     setForgotSent(false);
+    setSocialError(null);
   }, [initialMode, isOpen]);
+
+  // Switching Log In / Sign Up (or into the reset form) clears the note.
+  React.useEffect(() => {
+    setSocialError(null);
+  }, [mode, forgot]);
 
   React.useEffect(() => {
     if (isOpen && externalError) {
       setMessage(null);
-      setError(externalError);
+      setError(null);
+      setSocialError(externalError);
     }
   }, [isOpen, externalError]);
+
+  // The provider buttons sit at the bottom of the scrollable form; bring the note into view.
+  React.useEffect(() => {
+    if (socialError) socialErrorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [socialError]);
 
   if (!isOpen) return null;
 
@@ -60,6 +76,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
     setError(null);
     setMessage(null);
+    setSocialError(null);
     const failure = await onAuthenticate(mode, { name, email, password, accountType: userRole });
     setLoading(false);
     if (failure) {
@@ -73,6 +90,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Real OAuth: the server starts the provider's sign-in and brings the user back
   // to the site signed in (see /api/auth/:provider/start).
   const handleSocialLogin = (provider: 'google' | 'linkedin' | 'microsoft' | 'facebook') => {
+    setSocialError(null); // a fresh attempt clears any previous note
     setError(null);
     setMessage(null);
     setLoading(true);
@@ -361,6 +379,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>Facebook</span>
               </button>
             </div>
+
+            {socialError && (
+              <div
+                ref={socialErrorRef}
+                role="alert"
+                className="flex items-start gap-1.5 text-[11px] leading-snug font-semibold text-[#b3261e]"
+              >
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                <span>{socialError}</span>
+              </div>
+            )}
           </form>
           )}
 

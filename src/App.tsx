@@ -258,7 +258,7 @@ export default function App() {
     } else if (errorCode) {
       cleanUrl();
       const label = ({ google: 'Google', linkedin: 'LinkedIn', microsoft: 'Microsoft', facebook: 'Facebook' } as Record<string, string>)[provider] || 'Social';
-      const unavailable = `${label} login is temporarily unavailable. Please try again later or use email/password.`;
+      const unavailable = `${label} login is temporarily unavailable. Please use email/password.`;
       const messages: Record<string, string> = {
         cancelled: `${label} sign-in was cancelled. You can try again or use email/password.`,
         not_configured: unavailable,
