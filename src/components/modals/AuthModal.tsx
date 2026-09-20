@@ -6,14 +6,18 @@ interface AuthModalProps {
   isOpen: boolean;
   initialMode?: 'login' | 'signup';
   onClose: () => void;
-  onSuccess: (userEmail: string) => void;
+  // Performs the real signup/login; resolves to an error message, or null on success.
+  onAuthenticate: (
+    mode: 'login' | 'signup',
+    data: { name: string; email: string; password: string; accountType: 'mentee' | 'mentor' }
+  ) => Promise<string | null>;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   initialMode = 'login',
   onClose,
-  onSuccess
+  onAuthenticate
 }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [userRole, setUserRole] = useState<'mentee' | 'mentor'>('mentee');
@@ -23,31 +27,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Sync mode when initialMode changes
   React.useEffect(() => {
     setMode(initialMode);
     setMessage(null);
+    setError(null);
   }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      onSuccess(email || 'user@careerbuddies.in');
-      onClose();
-    }, 600);
+    setError(null);
+    setMessage(null);
+    const failure = await onAuthenticate(mode, { name, email, password, accountType: userRole });
+    setLoading(false);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    setPassword('');
+    onClose();
+  };
+
+  const handleSocialUnavailable = () => {
+    setMessage(null);
+    setError('Social sign-in is not available yet. Please continue with your email and password.');
   };
 
   const handleForgotPassword = () => {
-    if (!email) {
-      setMessage('Please enter your work email above to receive a password reset link.');
-    } else {
-      setMessage(`A password reset link has been dispatched to ${email}.`);
-    }
+    setError(null);
+    setMessage('Self-service password reset is not available yet. Please contact CareerBuddies support to reset your password.');
   };
 
   return (
@@ -139,6 +152,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 mt-1">
             {mode === 'signup' && (
               <div>
@@ -152,7 +171,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Rahul Sharma"
+                    placeholder="Your full name"
                     className="w-full pl-9 pr-3 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
                   />
                 </div>
@@ -170,7 +189,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="rahul.sharma@example.com"
+                  placeholder="you@example.com"
                   className="w-full pl-9 pr-3 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
                 />
               </div>
@@ -196,6 +215,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  minLength={mode === 'signup' ? 8 : undefined}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -239,14 +259,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* Google */}
               <button
                 type="button"
-                onClick={() => {
-                  setLoading(true);
-                  setTimeout(() => {
-                    setLoading(false);
-                    onSuccess('google.user@gmail.com');
-                    onClose();
-                  }, 500);
-                }}
+                onClick={handleSocialUnavailable}
                 className="py-2 px-2.5 rounded-xl border border-[#cbdaff] bg-white hover:bg-[#f1f3ff] text-xs font-bold text-[#061b3b] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -261,14 +274,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* LinkedIn */}
               <button
                 type="button"
-                onClick={() => {
-                  setLoading(true);
-                  setTimeout(() => {
-                    setLoading(false);
-                    onSuccess('linkedin.candidate@linkedin.com');
-                    onClose();
-                  }, 500);
-                }}
+                onClick={handleSocialUnavailable}
                 className="py-2 px-2.5 rounded-xl border border-[#cbdaff] bg-white hover:bg-[#f1f3ff] text-xs font-bold text-[#061b3b] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4 fill-[#0A66C2]" viewBox="0 0 24 24">
@@ -280,14 +286,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* Outlook / Microsoft */}
               <button
                 type="button"
-                onClick={() => {
-                  setLoading(true);
-                  setTimeout(() => {
-                    setLoading(false);
-                    onSuccess('outlook.user@outlook.com');
-                    onClose();
-                  }, 500);
-                }}
+                onClick={handleSocialUnavailable}
                 className="py-2 px-2.5 rounded-xl border border-[#cbdaff] bg-white hover:bg-[#f1f3ff] text-xs font-bold text-[#061b3b] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -302,14 +301,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* Facebook */}
               <button
                 type="button"
-                onClick={() => {
-                  setLoading(true);
-                  setTimeout(() => {
-                    setLoading(false);
-                    onSuccess('facebook.user@facebook.com');
-                    onClose();
-                  }, 500);
-                }}
+                onClick={handleSocialUnavailable}
                 className="py-2 px-2.5 rounded-xl border border-[#cbdaff] bg-white hover:bg-[#f1f3ff] text-xs font-bold text-[#061b3b] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4 fill-[#1877F2]" viewBox="0 0 24 24">

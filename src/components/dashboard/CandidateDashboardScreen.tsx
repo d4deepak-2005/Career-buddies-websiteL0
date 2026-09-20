@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { CandidateProfile, candidateFetch, setCandidateToken } from '../../utils/candidateAuth';
 import { PageView } from '../../types';
 import { DEFAULT_SITE_CONFIG } from '../../config/siteConfig';
 import { PageBottomNav } from '../common/PageBottomNav';
@@ -34,50 +35,137 @@ import {
 
 interface CandidateDashboardScreenProps {
   setActivePage: (page: PageView) => void;
-  userEmail?: string;
+  candidate: CandidateProfile;
+  onCandidateUpdate: (candidate: CandidateProfile) => void;
+  onLogout: () => void;
 }
 
-type DashboardTab = 
-  | 'overview' 
-  | 'profile' 
-  | 'plan' 
-  | 'payments' 
-  | 'invoices' 
-  | 'enquiries' 
-  | 'webinars' 
-  | 'sessions' 
-  | 'learning' 
-  | 'notifications' 
+type DashboardTab =
+  | 'overview'
+  | 'profile'
+  | 'plan'
+  | 'payments'
+  | 'invoices'
+  | 'enquiries'
+  | 'webinars'
+  | 'sessions'
+  | 'learning'
+  | 'notifications'
   | 'support'
   | 'settings';
 
+interface PaymentRecord {
+  id: string;
+  itemType: string;
+  itemName: string;
+  status: string;
+  amount: number | null;
+  currency: string;
+  createdAt: string;
+}
+
+interface EnquiryRecord {
+  id: string;
+  createdAt: string;
+  subject: string;
+  category: string;
+  status: string;
+  resolved: boolean;
+}
+
+interface WebinarRecord {
+  id: string;
+  title: string;
+  speaker: string;
+  date: string;
+  time: string;
+  description: string;
+  link: string;
+  amount: number | null;
+}
+
+const NOT_AVAILABLE = 'Not available yet';
+const COMPLETE_PROFILE = 'Complete your profile to see this';
+
+const formatINR = (amount: number | null) =>
+  amount === null ? NOT_AVAILABLE : `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+const formatDate = (iso: string) =>
+  iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  succeeded: 'Paid & Verified',
+  created: 'Payment Pending',
+  processing: 'Payment Processing',
+  failed: 'Payment Failed',
+  cancelled: 'Cancelled',
+};
+
+const EmptyState: React.FC<{ title: string; hint?: string }> = ({ title, hint }) => (
+  <div className="p-8 rounded-2xl bg-[#f9f9ff] border border-dashed border-[#cbdaff] text-center">
+    <p className="text-sm font-black text-[#061b3b]">{title}</p>
+    {hint && <p className="text-xs text-[#434652] mt-1">{hint}</p>}
+  </div>
+);
+
 export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> = ({
   setActivePage,
-  userEmail = 'rahul.sharma@techcorp.com'
+  candidate,
+  onCandidateUpdate,
+  onLogout
 }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
-  
-  // Profile State
-  const [candidateProfile, setCandidateProfile] = useState({
-    firstName: 'Rahul',
-    lastName: 'Sharma',
-    email: userEmail,
-    mobile: '+91 98112 34567',
-    alternateNumber: '+91 98223 99881',
-    alternateEmail: 'rahul.personal@gmail.com',
-    currentDesignation: 'Senior Software Engineer (L5)',
-    currentCompany: 'FinTech Solutions Pvt Ltd',
-    totalExperience: '6 Years (Senior Level)',
-    targetRole: 'Staff Software Engineer / Engineering Lead',
-    linkedinUrl: 'https://linkedin.com/in/rahul-sharma-dev',
-    portfolioUrl: 'https://github.com/rahul-sharma',
-    joinedDate: 'August 14, 2026',
-    bio: 'Backend & distributed systems engineer looking to level up to Staff Engineer at high-scale tech firms.'
+
+  // Profile: the source of truth is the authenticated candidate saved in MongoDB.
+  const candidateProfile = candidate;
+  const profileToForm = (c: CandidateProfile) => ({
+    firstName: c.firstName,
+    lastName: c.lastName,
+    mobile: c.mobile,
+    alternateNumber: c.alternateNumber,
+    alternateEmail: c.alternateEmail,
+    currentDesignation: c.currentDesignation,
+    totalExperience: c.totalExperience,
+    targetRole: c.targetRole,
+    linkedinUrl: c.linkedinUrl,
+    portfolioUrl: c.portfolioUrl,
+    bio: c.bio
   });
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editForm, setEditForm] = useState({ ...candidateProfile });
+  const [editForm, setEditForm] = useState(() => profileToForm(candidate));
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Records that belong to this candidate (payments, enquiries, paid webinars).
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [enquiries, setEnquiries] = useState<EnquiryRecord[]>([]);
+  const [webinarsList, setWebinarsList] = useState<WebinarRecord[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    candidateFetch('/api/candidate/dashboard')
+      .then(async (res) => {
+        if (res.status === 401) {
+          onLogout();
+          return;
+        }
+        if (!res.ok) throw new Error('Request failed');
+        const body = await res.json();
+        if (cancelled) return;
+        setPayments(body.payments || []);
+        setEnquiries(body.enquiries || []);
+        setWebinarsList(body.webinars || []);
+      })
+      .catch(() => !cancelled && setDataError(true))
+      .finally(() => !cancelled && setDataLoading(false));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidate.id]);
 
   // Selected Invoice Modal State
   const [viewingInvoice, setViewingInvoice] = useState<{
@@ -98,6 +186,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
   const [enquiryCategory, setEnquiryCategory] = useState('Career Plan & Milestones');
   const [enquiryMessage, setEnquiryMessage] = useState('');
   const [enquirySuccess, setEnquirySuccess] = useState(false);
+  const [enquiryError, setEnquiryError] = useState<string | null>(null);
 
   // Security / Settings State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -105,187 +194,66 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [whatsappAlerts, setWhatsappAlerts] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
 
-  // Notifications State
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'notif-1',
-      title: 'Upcoming 1:1 Personalized Master Session',
-      description: 'Scheduled with Vikramaditya Sen (Staff Architect @ Stripe) on Wednesday at 06:30 PM IST.',
-      time: '2 hours ago',
-      category: 'session',
-      read: false
-    },
-    {
-      id: 'notif-2',
-      title: 'ATS Resume Overhaul Draft Ready for Review',
-      description: 'Dedicated Profile Team has uploaded your Phase 1 optimized resume and GitHub story.',
-      time: '1 day ago',
-      category: 'profile',
-      read: false
-    },
-    {
-      id: 'notif-3',
-      title: 'Tax Invoice Generated: INV-2026-8812',
-      description: 'GST invoice for ₹14,999 (Career Transition & Switch Track) is available for download.',
-      time: '2 days ago',
-      category: 'billing',
-      read: true
-    },
-    {
-      id: 'notif-4',
-      title: 'Upcoming Live Webinar Reminder (₹199 Pass)',
-      description: 'High-Scale System Design Masterclass starts this Saturday at 05:00 PM IST.',
-      time: '3 days ago',
-      category: 'webinar',
-      read: true
-    }
-  ]);
+  // No notification records exist yet — nothing is invented.
+  const notifications: { id: string; title: string; description: string; time: string; read: boolean }[] = [];
+  // No session, learning-material, invoice or advisor-assignment records exist yet.
+  const masterSessionsList: any[] = [];
+  const documentsList: any[] = [];
+  const invoicesList: any[] = [];
 
-  // Enquiries List State
-  const [enquiries, setEnquiries] = useState([
-    {
-      id: 'ENQ-8921',
-      date: 'Aug 24, 2026',
-      subject: 'Clarification regarding System Design Mock Schedule',
-      category: 'Master Sessions',
-      status: 'Resolved',
-      advisor: 'Anand Verma (Senior Advisor)',
-      response: 'Your mock session with Vikramaditya has been scheduled for Wednesday 6:30 PM IST. Join link is active in your dashboard.'
-    },
-    {
-      id: 'ENQ-8890',
-      date: 'Aug 18, 2026',
-      subject: 'GST Invoice requirement for Corporate Reimbursement',
-      category: 'Billing & Invoices',
-      status: 'Resolved',
-      advisor: 'Billing Operations Desk',
-      response: 'Your tax invoice INV-2026-8812 contains full SAC Code 998311 with 18% GST itemized. You can download the PDF anytime.'
-    }
-  ]);
+  // ---- Values derived from the candidate's real records ----
+  const fullName = `${candidateProfile.firstName} ${candidateProfile.lastName}`.trim();
+  const initials = `${candidateProfile.firstName[0] || ''}${candidateProfile.lastName[0] || ''}`.toUpperCase();
+  const joinedDate = formatDate(candidateProfile.joinedAt);
 
-  // Registered & Upcoming Webinars
-  const webinarsList = [
-    {
-      id: 'web-101',
-      title: 'High-Scale System Design & Microservices Architecture',
-      instructor: 'Vikramaditya Sen',
-      role: 'Staff Architect @ Stripe (Ex-Google)',
-      date: 'Saturday, Aug 30, 2026',
-      time: '05:00 PM - 06:30 PM IST',
-      status: 'Registered • Confirmed',
-      price: '₹199 (Entry Pass Paid)',
-      zoomLink: 'https://meet.google.com/cb-web-8821',
-      description: '90-minute live masterclass breaking down real-world distributed architectures, rate limiting, and CAP theorem trade-offs.'
-    },
-    {
-      id: 'web-102',
-      title: 'Cracking Staff & Principal Engineer Behavioral & Leadership Loops',
-      instructor: 'Priya Sundaram',
-      role: 'VP of Engineering @ Swiggy',
-      date: 'Sunday, Sep 07, 2026',
-      time: '11:00 AM - 12:30 PM IST',
-      status: 'Upcoming Open Webinar',
-      price: '₹199 Entry Pass',
-      zoomLink: 'https://meet.google.com/cb-web-9104',
-      description: 'Frameworks to demonstrate technical leadership, cross-functional conflict resolution, and architectural vision.'
-    }
+  const completionFields = [
+    candidateProfile.mobile,
+    candidateProfile.currentDesignation,
+    candidateProfile.totalExperience,
+    candidateProfile.targetRole,
+    candidateProfile.linkedinUrl,
+    candidateProfile.portfolioUrl,
+    candidateProfile.bio
   ];
+  // name + email are always present after sign-up (2 of 9)
+  const completionPct = Math.round(((completionFields.filter(Boolean).length + 2) / (completionFields.length + 2)) * 100);
 
-  // Master Sessions Data
-  const masterSessionsList = [
-    {
-      id: 'ms-1',
-      title: 'Staff Architect Technical Assessment & System Deep-Dive',
-      mentor: 'Vikramaditya Sen',
-      mentorRole: 'Staff Architect @ Stripe (14+ Yrs Exp)',
-      date: 'Wednesday, Sep 03, 2026',
-      time: '06:30 PM - 07:30 PM IST',
-      duration: '60 Minutes',
-      status: 'Upcoming Confirmed',
-      meetLink: 'https://meet.google.com/cb-mst-9942',
-      agenda: 'Review of candidate distributed key-value store architecture design, caching patterns, and L6 leveling rubric.'
-    },
-    {
-      id: 'ms-2',
-      title: 'Career Diagnostic & Transition Roadmap Strategy',
-      mentor: 'Aditya Kashyap',
-      mentorRole: 'Engineering Manager @ Meta (Ex-Uber)',
-      date: 'Aug 19, 2026',
-      time: '07:00 PM - 08:00 PM IST',
-      duration: '60 Minutes',
-      status: 'Completed',
-      meetLink: 'https://meet.google.com/cb-mst-8810',
-      agenda: 'Gap analysis between Senior (L5) and Staff (L6) roles. Identified core areas: System Design depth & Org-wide impact narrative.'
-    }
-  ];
+  const paidPayments = payments.filter((p) => p.status === 'succeeded');
+  const totalPaid = paidPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const planPayment = paidPayments.find((p) => p.itemType === 'plan' || p.itemType === 'programme');
+  const hasWebinarPass = paidPayments.some((p) => p.itemType === 'webinar');
+  const isEnrolled = !!planPayment;
 
-  // Documents & Learning Materials
-  const documentsList = [
-    {
-      id: 'doc-1',
-      title: 'CareerBuddies_ATS_Optimized_Resume_v2.pdf',
-      category: 'ATS Profile Deliverable',
-      size: '1.2 MB',
-      date: 'Aug 22, 2026',
-      type: 'Deliverable'
-    },
-    {
-      id: 'doc-2',
-      title: 'Staff_Level_System_Design_Architecture_Cheatsheet.pdf',
-      category: 'Learning Resources',
-      size: '3.8 MB',
-      date: 'Aug 16, 2026',
-      type: 'Notes'
-    },
-    {
-      id: 'doc-3',
-      title: 'Offer_Negotiation_&_ESOP_Benchmarking_Playbook.pdf',
-      category: 'Career Guides',
-      size: '2.1 MB',
-      date: 'Aug 15, 2026',
-      type: 'Playbook'
-    },
-    {
-      id: 'doc-4',
-      title: 'Distributed_Systems_Design_Masterclass_Deck.pdf',
-      category: 'Webinar Slides',
-      size: '5.4 MB',
-      date: 'Aug 12, 2026',
-      type: 'Notes'
-    }
-  ];
+  const paymentsList = payments.map((p) => ({
+    id: p.id,
+    date: formatDate(p.createdAt),
+    item: p.itemName || 'CareerBuddies purchase',
+    total: formatINR(p.amount),
+    status: PAYMENT_STATUS_LABEL[p.status] || p.status,
+    paid: p.status === 'succeeded'
+  }));
 
-  // Payments List
-  const paymentsList = [
-    {
-      id: 'pay_Nq98124Klm09',
-      date: 'Aug 14, 2026',
-      item: 'Career Transition & Switch Track (3 Months)',
-      amount: '₹12,711.02',
-      tax: '₹2,287.98 (18% GST)',
-      total: '₹14,999',
-      paymentMode: 'UPI (Google Pay / HDFC Bank)',
-      status: 'Paid & Verified',
-      invoiceNo: 'INV-2026-8812',
-      sacCode: '998311 - Management & Career Consulting Services'
-    },
-    {
-      id: 'pay_WebPass99812',
-      date: 'Aug 10, 2026',
-      item: 'Live System Design Masterclass (Entry Pass)',
-      amount: '₹168.64',
-      tax: '₹30.36 (18% GST)',
-      total: '₹199',
-      paymentMode: 'Credit Card (Visa)',
-      status: 'Paid & Verified',
-      invoiceNo: 'INV-2026-8740',
-      sacCode: '998311 - Educational Workshop'
-    }
-  ];
+  // 7-stage journey, derived only from what the records actually show.
+  const hasEnquiry = enquiries.length > 0;
+  const advisorEngaged = enquiries.some((e) => e.status !== 'Under Review');
+  const journeyDone = [hasWebinarPass, hasEnquiry, advisorEngaged, isEnrolled, false, false, false];
+  const activeStageIdx = journeyDone.findIndex((d) => !d);
+  const journeySteps = [
+    { stage: 'Step 1', title: 'Live Mentor-Led Webinar (₹199 Entry)', desc: hasWebinarPass ? 'You have registered for a live webinar.' : 'Register for a live webinar to begin your journey.' },
+    { stage: 'Step 2', title: 'Expressed Interest & Profile Diagnosis', desc: hasEnquiry ? 'Your enquiry has been shared with CareerBuddies advisors.' : 'Share your goals with our advisors to get started.' },
+    { stage: 'Step 3', title: 'Advisor Requirements Discussion', desc: advisorEngaged ? 'An advisor has picked up your enquiry.' : 'Your advisor will discuss your requirements with you.' },
+    { stage: 'Step 4', title: 'Plan Selection & Enrolment', desc: isEnrolled ? `Enrolled in ${planPayment!.itemName}.` : 'Choose and enrol in the plan that fits your goals.' },
+    { stage: 'Step 5', title: 'Dedicated Team Works on Profile', desc: 'Your dedicated team works on your profile after enrolment.' },
+    { stage: 'Step 6', title: 'Personalized Master Session', desc: 'A 1:1 master session is scheduled once your profile work is underway.' },
+    { stage: 'Step 7', title: '90-Day Execution & Mock Interview Sprints', desc: 'Structured weekly milestones, mock loops, and salary negotiation support.' }
+  ].map((step, idx) => ({
+    ...step,
+    status: journeyDone[idx] ? 'completed' : idx === activeStageIdx ? 'active' : 'upcoming'
+  }));
 
   // Navigation Items
   const navItems = [
@@ -303,36 +271,62 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
     { id: 'settings', label: 'Account Settings', icon: Lock }
   ];
 
-  const handleProfileSave = (e: React.FormEvent) => {
+  const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCandidateProfile({ ...editForm });
-    setIsEditingProfile(false);
-    setProfileSaveSuccess(true);
-    setTimeout(() => setProfileSaveSuccess(false), 4000);
+    setProfileError(null);
+    try {
+      const res = await candidateFetch('/api/candidate/me', {
+        method: 'PUT',
+        body: JSON.stringify(editForm)
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        onLogout();
+        return;
+      }
+      if (!res.ok || !body.success) {
+        setProfileError(body.error || 'Could not save your profile. Please try again.');
+        return;
+      }
+      onCandidateUpdate(body.candidate);
+      setIsEditingProfile(false);
+      setProfileSaveSuccess(true);
+      setTimeout(() => setProfileSaveSuccess(false), 4000);
+    } catch {
+      setProfileError('Could not save your profile. Please check your connection and try again.');
+    }
   };
 
-  const handleEnquirySubmit = (e: React.FormEvent) => {
+  const handleEnquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!enquirySubject.trim() || !enquiryMessage.trim()) return;
+    setEnquiryError(null);
 
-    const newEnq = {
-      id: `ENQ-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: 'Just now',
-      subject: enquirySubject,
-      category: enquiryCategory,
-      status: 'Under Review',
-      advisor: 'CareerBuddies Advisor Support Desk',
-      response: 'Your query has been assigned to Senior Advisor Anand Verma. You will receive an update shortly.'
-    };
-
-    setEnquiries([newEnq, ...enquiries]);
-    setEnquirySubject('');
-    setEnquiryMessage('');
-    setEnquirySuccess(true);
-    setTimeout(() => setEnquirySuccess(false), 4000);
+    try {
+      const res = await candidateFetch('/api/candidate/enquiries', {
+        method: 'POST',
+        body: JSON.stringify({ subject: enquirySubject, category: enquiryCategory, message: enquiryMessage })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        onLogout();
+        return;
+      }
+      if (!res.ok || !body.success) {
+        setEnquiryError(body.error || 'Could not send your enquiry. Please try again.');
+        return;
+      }
+      setEnquiries([body.enquiry, ...enquiries]);
+      setEnquirySubject('');
+      setEnquiryMessage('');
+      setEnquirySuccess(true);
+      setTimeout(() => setEnquirySuccess(false), 4000);
+    } catch {
+      setEnquiryError('Could not send your enquiry. Please check your connection and try again.');
+    }
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword || newPassword !== confirmPassword) {
       setPasswordError('Please ensure all fields are filled and new passwords match.');
@@ -340,16 +334,33 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
       return;
     }
     setPasswordError(null);
-    setPasswordSuccess(true);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => setPasswordSuccess(false), 4000);
+
+    try {
+      const res = await candidateFetch('/api/candidate/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) {
+        setPasswordError(body.error || 'Could not update your password.');
+        setTimeout(() => setPasswordError(null), 5000);
+        return;
+      }
+      setCandidateToken(body.token, body.expiresAt);
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(false), 4000);
+    } catch {
+      setPasswordError('Could not update your password. Please try again.');
+      setTimeout(() => setPasswordError(null), 5000);
+    }
   };
 
   const handleDownloadDoc = (docTitle: string) => {
     const element = document.createElement('a');
-    const file = new Blob([`CareerBuddies Candidate Official Deliverable: ${docTitle}\nCandidate: ${candidateProfile.firstName} ${candidateProfile.lastName}\nEmail: ${candidateProfile.email}\nDate: ${new Date().toLocaleDateString()}\n\nOfficial CareerBuddies Record: Samhita Spicewood West Block, 6th Main, GM Palya, CV Raman Nagar, Bengaluru, Karnataka - 560075`], { type: 'text/plain' });
+    const file = new Blob([`CareerBuddies Candidate Official Deliverable: ${docTitle}\nCandidate: ${fullName}\nEmail: ${candidateProfile.email}\nDate: ${new Date().toLocaleDateString()}\n\nOfficial CareerBuddies Record: Samhita Spicewood West Block, 6th Main, GM Palya, CV Raman Nagar, Bengaluru, Karnataka - 560075`], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = docTitle;
     document.body.appendChild(element);
@@ -365,22 +376,22 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
         <div className="max-w-[1280px] mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl font-black text-[#79fd8d] shrink-0 shadow-inner">
-              {candidateProfile.firstName[0]}{candidateProfile.lastName[0]}
+              {initials}
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="px-2.5 py-0.5 rounded-full bg-[#79fd8d]/20 text-[#79fd8d] text-[10px] font-black uppercase tracking-wider border border-[#79fd8d]/30">
-                  Enrolled Candidate • Active
+                  {isEnrolled ? 'Enrolled Candidate • Active' : 'Candidate Account • Active'}
                 </span>
                 <span className="text-xs text-[#dae2ff] font-medium hidden sm:inline">
-                  Member since {candidateProfile.joinedDate}
+                  Member since {joinedDate}
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black font-['Plus_Jakarta_Sans',sans-serif]">
                 Welcome back, {candidateProfile.firstName}!
               </h1>
               <p className="text-xs sm:text-sm text-[#dae2ff] mt-0.5">
-                {candidateProfile.currentDesignation} • Target: <strong className="text-white">{candidateProfile.targetRole}</strong>
+                {candidateProfile.currentDesignation || COMPLETE_PROFILE} • Target: <strong className="text-white">{candidateProfile.targetRole || COMPLETE_PROFILE}</strong>
               </p>
             </div>
           </div>
@@ -447,18 +458,18 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                 <div>
                   <div className="flex items-center justify-between text-xs text-[#747783] mb-2 font-bold">
                     <span>Profile Status</span>
-                    <span className="text-[#006e29] font-black">85% Complete</span>
+                    <span className="text-[#006e29] font-black">{completionPct}% Complete</span>
                   </div>
                   <h3 className="text-lg font-black text-[#061b3b]">ATS Profile Optimization</h3>
                   <div className="w-full bg-[#e0e8ff] h-2 rounded-full mt-3 overflow-hidden">
-                    <div className="bg-[#006e29] h-full rounded-full" style={{ width: '85%' }} />
+                    <div className="bg-[#006e29] h-full rounded-full" style={{ width: `${completionPct}%` }} />
                   </div>
                 </div>
                 <button
                   onClick={() => setActiveTab('profile')}
                   className="mt-4 text-xs font-bold text-[#002869] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Complete Remaining 15%</span>
+                  <span>{completionPct >= 100 ? 'Review Your Profile' : `Complete Remaining ${100 - completionPct}%`}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -469,11 +480,15 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   <div className="flex items-center justify-between text-xs text-[#747783] mb-2 font-bold">
                     <span>Enrolled Plan</span>
                     <span className="px-2 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[10px] font-black">
-                      3-Month Track
+                      {isEnrolled ? 'Enrolled' : 'Not enrolled'}
                     </span>
                   </div>
-                  <h3 className="text-lg font-black text-[#061b3b]">Career Transition & Switch</h3>
-                  <p className="text-xs text-[#434652] mt-1">Dedicated profile team active</p>
+                  <h3 className="text-lg font-black text-[#061b3b]">
+                    {isEnrolled ? planPayment!.itemName : 'No plan enrolled yet'}
+                  </h3>
+                  <p className="text-xs text-[#434652] mt-1">
+                    {isEnrolled ? 'Your plan is active' : 'Your enrolled plan will appear here'}
+                  </p>
                 </div>
                 <button
                   onClick={() => setActiveTab('plan')}
@@ -490,17 +505,21 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   <div className="flex items-center justify-between text-xs text-[#747783] mb-2 font-bold">
                     <span>Payment Status</span>
                     <span className="px-2 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-[10px] font-black">
-                      Paid & Verified
+                      {paidPayments.length > 0 ? 'Paid & Verified' : 'No payments yet'}
                     </span>
                   </div>
-                  <h3 className="text-lg font-black text-[#061b3b]">₹14,999 Total Paid</h3>
-                  <p className="text-xs text-[#434652] mt-1">Invoice #INV-2026-8812</p>
+                  <h3 className="text-lg font-black text-[#061b3b]">
+                    {paidPayments.length > 0 ? `${formatINR(totalPaid)} Total Paid` : NOT_AVAILABLE}
+                  </h3>
+                  <p className="text-xs text-[#434652] mt-1">
+                    {paidPayments.length > 0 ? `${paidPayments.length} verified payment${paidPayments.length > 1 ? 's' : ''}` : 'Your payments will appear here'}
+                  </p>
                 </div>
                 <button
                   onClick={() => setActiveTab('invoices')}
                   className="mt-4 text-xs font-bold text-[#002869] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>View Tax Invoice</span>
+                  <span>View Invoices</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -510,16 +529,16 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                 <div>
                   <div className="flex items-center justify-between text-xs text-[#747783] mb-2 font-bold">
                     <span>Next Milestone</span>
-                    <span className="text-[#002869] font-black">Wednesday</span>
+                    <span className="text-[#002869] font-black">{NOT_AVAILABLE}</span>
                   </div>
                   <h3 className="text-lg font-black text-[#061b3b]">Personalized Master Session</h3>
-                  <p className="text-xs text-[#434652] mt-1">with Staff Architect Vikramaditya</p>
+                  <p className="text-xs text-[#434652] mt-1">No session scheduled yet</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('sessions')}
                   className="mt-4 text-xs font-bold text-[#006e29] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Join Call Link & Agenda</span>
+                  <span>View Master Sessions</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -541,20 +560,12 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                     </p>
                   </div>
                   <span className="px-3 py-1 rounded-full bg-[#e8f5e9] text-[#1b5e20] text-xs font-bold border border-[#a5d6a7]">
-                    Stage 5 in Progress
+                    {activeStageIdx === -1 ? 'All Stages Complete' : `Stage ${activeStageIdx + 1} in Progress`}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-3.5 pt-2">
-                  {[
-                    { stage: 'Step 1', title: 'Live Mentor-Led Webinar (₹199 Entry)', desc: 'Attended 90-min High-Scale System Design masterclass.', status: 'completed' },
-                    { stage: 'Step 2', title: 'Expressed Interest & Profile Diagnosis', desc: 'Diagnostic profile intake submitted to CareerBuddies advisors.', status: 'completed' },
-                    { stage: 'Step 3', title: 'Advisor Requirements Discussion', desc: 'Consultation with Senior Advisor Anand Verma completed.', status: 'completed' },
-                    { stage: 'Step 4', title: 'Plan Selection & Enrolment', desc: 'Enrolled in 3-Month Career Transition & Switch Track.', status: 'completed' },
-                    { stage: 'Step 5', title: 'Dedicated Team Works on Profile', desc: 'ATS resume optimization, LinkedIn overhaul, and GitHub narrative in progress.', status: 'active' },
-                    { stage: 'Step 6', title: 'Personalized Master Session', desc: 'Upcoming scheduled deep-dive with domain Staff Architect next week.', status: 'upcoming' },
-                    { stage: 'Step 7', title: '90-Day Execution & Mock Interview Sprints', desc: 'Structured weekly milestones, mock loops, and salary negotiation support.', status: 'upcoming' }
-                  ].map((item, idx) => (
+                  {journeySteps.map((item, idx) => (
                     <div 
                       key={idx}
                       className={`p-3.5 rounded-2xl border flex items-start gap-3.5 transition-all ${
@@ -606,61 +617,25 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                     <span>Important Activities</span>
                   </h3>
 
-                  <div className="flex flex-col gap-3">
-                    <div className="p-3.5 rounded-2xl bg-[#f9f9ff] border border-[#e0e8ff]">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-[#002869] mb-1">
-                        <span>Wednesday • 06:30 PM IST</span>
-                        <span className="px-2 py-0.5 bg-[#79fd8d]/30 text-[#00531d] rounded-full text-[10px]">
-                          Master Session
-                        </span>
-                      </div>
-                      <h4 className="text-xs font-bold text-[#061b3b]">
-                        Personalized Session with Vikramaditya Sen
-                      </h4>
-                      <p className="text-[11px] text-[#747783] mt-0.5">
-                        Topic: Distributed Systems & Staff Level Rubrics
-                      </p>
-                      <a
-                        href="https://meet.google.com/cb-mst-9942"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-black text-white bg-[#002869] hover:bg-[#0b3d91] px-3.5 py-1.5 rounded-xl transition-all"
-                      >
-                        <Video className="w-3.5 h-3.5 text-[#79fd8d]" />
-                        <span>Join Video Room</span>
-                      </a>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-[#f9f9ff] border border-[#e0e8ff]">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-[#006e29] mb-1">
-                        <span>Thursday • 04:00 PM IST</span>
-                        <span className="px-2 py-0.5 bg-[#dae2ff] text-[#001947] rounded-full text-[10px]">
-                          Profile Overhaul
-                        </span>
-                      </div>
-                      <h4 className="text-xs font-bold text-[#061b3b]">
-                        LinkedIn Narrative & Pitch Deck Review
-                      </h4>
-                      <p className="text-[11px] text-[#747783] mt-0.5">
-                        Delivered directly by Dedicated Profile Team
-                      </p>
-                    </div>
-                  </div>
+                  <EmptyState
+                    title="No upcoming activities"
+                    hint="Sessions and deliverables scheduled for you will appear here."
+                  />
                 </div>
 
                 {/* Assigned Career Advisor Card */}
                 <div className="bg-[#f1f3ff] rounded-3xl p-6 border border-[#cbdaff] flex flex-col gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-full bg-[#002869] text-white flex items-center justify-center font-bold">
-                      AV
+                      <User className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-[#061b3b]">Anand Verma</h4>
-                      <p className="text-[11px] text-[#434652]">Senior Career Advisor • CareerBuddies</p>
+                      <h4 className="text-xs font-black text-[#061b3b]">Advisor not assigned yet</h4>
+                      <p className="text-[11px] text-[#434652]">Your career advisor will appear here</p>
                     </div>
                   </div>
                   <p className="text-xs text-[#434652] leading-relaxed">
-                    Have questions about your plan, resume iterations, or upcoming master session? Message your advisor directly.
+                    Have questions about your plan, profile or upcoming sessions? Message the CareerBuddies advisor desk directly.
                   </p>
                   <a
                     href={DEFAULT_SITE_CONFIG.whatsappLink}
@@ -669,7 +644,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                     className="w-full py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp Advisor ({DEFAULT_SITE_CONFIG.primaryWhatsApp})</span>
+                    <span>WhatsApp Advisor Desk ({DEFAULT_SITE_CONFIG.primaryWhatsApp})</span>
                   </a>
                 </div>
 
@@ -694,7 +669,11 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                 </p>
               </div>
               <button
-                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                onClick={() => {
+                  setEditForm(profileToForm(candidate));
+                  setProfileError(null);
+                  setIsEditingProfile(!isEditingProfile);
+                }}
                 className="px-4 py-2 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Edit3 className="w-3.5 h-3.5" />
@@ -705,7 +684,13 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
             {profileSaveSuccess && (
               <div className="p-4 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-2xl flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Candidate profile updated successfully! The dedicated profile engineering team has been notified.</span>
+                <span>Candidate profile updated successfully!</span>
+              </div>
+            )}
+
+            {profileError && (
+              <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-2xl">
+                {profileError}
               </div>
             )}
 
@@ -736,10 +721,10 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   <label className="block text-xs font-black text-[#061b3b] mb-1">Email Address *</label>
                   <input
                     type="email"
-                    required
-                    value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
+                    value={candidateProfile.email}
+                    readOnly
+                    disabled
+                    className="w-full px-3.5 py-2.5 bg-[#f1f3ff] border border-[#cbdaff] rounded-xl text-xs text-[#747783]"
                   />
                 </div>
                 <div>
@@ -777,6 +762,16 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                     required
                     value={editForm.currentDesignation}
                     onChange={(e) => setEditForm({ ...editForm, currentDesignation: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-[#061b3b] mb-1">Target Role *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.targetRole}
+                    onChange={(e) => setEditForm({ ...editForm, targetRole: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
                   />
                 </div>
@@ -840,7 +835,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                 <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
                   <span className="text-[#747783] block text-[11px] font-semibold">Full Name</span>
                   <strong className="text-sm font-black text-[#061b3b] block mt-0.5">
-                    {candidateProfile.firstName} {candidateProfile.lastName}
+                    {fullName}
                   </strong>
                 </div>
 
@@ -854,7 +849,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                 <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
                   <span className="text-[#747783] block text-[11px] font-semibold">Primary Contact Mobile</span>
                   <strong className="text-xs font-bold text-[#061b3b] block mt-0.5">
-                    {candidateProfile.mobile}
+                    {candidateProfile.mobile || 'Not Provided'}
                   </strong>
                 </div>
 
@@ -875,45 +870,60 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                 <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
                   <span className="text-[#747783] block text-[11px] font-semibold">Current Role & Level</span>
                   <strong className="text-xs font-bold text-[#061b3b] block mt-0.5">
-                    {candidateProfile.currentDesignation}
+                    {candidateProfile.currentDesignation || 'Not Provided'}
+                  </strong>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
+                  <span className="text-[#747783] block text-[11px] font-semibold">Target Role</span>
+                  <strong className="text-xs font-bold text-[#061b3b] block mt-0.5">
+                    {candidateProfile.targetRole || 'Not Provided'}
                   </strong>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
                   <span className="text-[#747783] block text-[11px] font-semibold">Total Work Experience</span>
                   <strong className="text-xs font-bold text-[#061b3b] block mt-0.5">
-                    {candidateProfile.totalExperience}
+                    {candidateProfile.totalExperience || 'Not Provided'}
                   </strong>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
                   <span className="text-[#747783] block text-[11px] font-semibold">LinkedIn Profile URL</span>
-                  <a
-                    href={candidateProfile.linkedinUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs font-bold text-[#002869] hover:underline block mt-0.5 truncate"
-                  >
-                    {candidateProfile.linkedinUrl}
-                  </a>
+                  {candidateProfile.linkedinUrl ? (
+                    <a
+                      href={candidateProfile.linkedinUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-bold text-[#002869] hover:underline block mt-0.5 truncate"
+                    >
+                      {candidateProfile.linkedinUrl}
+                    </a>
+                  ) : (
+                    <span className="text-xs font-medium text-[#434652] block mt-0.5">Not Provided</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
                   <span className="text-[#747783] block text-[11px] font-semibold">Portfolio / Code Repositories</span>
-                  <a
-                    href={candidateProfile.portfolioUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs font-bold text-[#002869] hover:underline block mt-0.5 truncate"
-                  >
-                    {candidateProfile.portfolioUrl}
-                  </a>
+                  {candidateProfile.portfolioUrl ? (
+                    <a
+                      href={candidateProfile.portfolioUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-bold text-[#002869] hover:underline block mt-0.5 truncate"
+                    >
+                      {candidateProfile.portfolioUrl}
+                    </a>
+                  ) : (
+                    <span className="text-xs font-medium text-[#434652] block mt-0.5">Not Provided</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] md:col-span-2 lg:col-span-3">
                   <span className="text-[#747783] block text-[11px] font-semibold">Candidate Target Narrative & Bio</span>
                   <p className="text-xs text-[#434652] mt-1 leading-relaxed">
-                    {candidateProfile.bio}
+                    {candidateProfile.bio || COMPLETE_PROFILE}
                   </p>
                 </div>
               </div>
@@ -935,10 +945,20 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   Comprehensive scope of your active CareerBuddies plan, deliverables, and progress.
                 </p>
               </div>
-              <span className="px-3.5 py-1.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-xs font-black">
-                Active • 3-Month Plan
-              </span>
+              {isEnrolled && (
+                <span className="px-3.5 py-1.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-xs font-black">
+                  Active
+                </span>
+              )}
             </div>
+
+            {!isEnrolled ? (
+              <EmptyState
+                title="You are not enrolled in a plan yet"
+                hint="Once you enrol, your plan, its deliverables and milestones will appear here."
+              />
+            ) : (
+            <>
 
             {/* Plan Highlight Card */}
             <div className="p-6 rounded-3xl bg-[#002869] text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -947,17 +967,17 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   Selected Programme Track
                 </span>
                 <h4 className="text-2xl font-black mt-1 font-['Plus_Jakarta_Sans',sans-serif]">
-                  Career Transition & Switch Track
+                  {planPayment?.itemName}
                 </h4>
                 <p className="text-xs sm:text-sm text-[#dae2ff] mt-1 max-w-xl">
-                  Intensive 3-month roadmap for senior engineers switching tech stacks or transitioning into Staff Architect roles at top-tier product firms.
+                  Enrolled on {formatDate(planPayment?.createdAt || '')}.
                 </p>
               </div>
 
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center shrink-0">
                 <span className="text-xs text-[#dae2ff] block">Total Investment</span>
-                <span className="text-2xl font-black text-white block">₹14,999</span>
-                <span className="text-[10px] text-[#79fd8d] font-bold">Paid & Fully Verified</span>
+                <span className="text-2xl font-black text-white block">{formatINR(planPayment?.amount ?? null)}</span>
+                <span className="text-[10px] text-[#79fd8d] font-bold">Paid & Verified</span>
               </div>
             </div>
 
@@ -966,51 +986,13 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               <h4 className="text-base font-black text-[#061b3b] mb-3">
                 Included Services & Plan Deliverables
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { title: 'ATS Resume Overhaul', desc: 'Custom rewritten resume tuned for Tier-1 ATS algorithms.', status: 'In Progress (v2)' },
-                  { title: 'LinkedIn Executive Story', desc: 'Headline, About section, and featured achievements rewrite.', status: 'Delivered' },
-                  { title: 'Personalized Master Sessions', desc: '1:1 technical deep dives with Staff & Principal Architects.', status: '1 of 2 Completed' },
-                  { title: 'System Design Architecture Review', desc: 'Mock architectural sprint tailored to high-scale backends.', status: 'Scheduled' },
-                  { title: 'Dedicated Advisor Channel', desc: 'Continuous WhatsApp guidance with Senior Advisor Anand Verma.', status: 'Active 24/7' },
-                  { title: 'Offer & Compensation Strategy', desc: 'Benchmarking and salary negotiation framework.', status: 'Final Month' }
-                ].map((item, idx) => (
-                  <div key={idx} className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-black text-[#061b3b]">{item.title}</span>
-                        <CheckCircle2 className="w-4 h-4 text-[#006e29]" />
-                      </div>
-                      <p className="text-xs text-[#434652]">{item.desc}</p>
-                    </div>
-                    <span className="mt-3 text-[11px] font-bold text-[#002869] bg-[#e8edff] px-2.5 py-1 rounded-lg w-fit">
-                      {item.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <EmptyState
+                title="Deliverables not available yet"
+                hint="Your advisor will share your plan deliverables and next steps here."
+              />
             </div>
-
-            {/* Next Milestones */}
-            <div className="p-5 rounded-2xl bg-[#f1f8e9] border border-[#c8e6c9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h5 className="text-xs font-black uppercase text-[#006e29] tracking-wider">
-                  Important Immediate Next Steps
-                </h5>
-                <p className="text-xs font-bold text-[#061b3b] mt-1">
-                  1. Review Phase 1 ATS Resume draft by Thursday 4 PM.
-                </p>
-                <p className="text-xs text-[#434652]">
-                  2. Attend 1:1 Master Session with Vikramaditya Sen on Wednesday.
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveTab('support')}
-                className="px-4 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl shrink-0 cursor-pointer shadow-xs"
-              >
-                Discuss with Advisor
-              </button>
-            </div>
+            </>
+            )}
           </div>
         )}
 
@@ -1037,10 +1019,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4">Transaction Ref</th>
                     <th className="py-3 px-4">Programme / Item</th>
-                    <th className="py-3 px-4">Taxable</th>
-                    <th className="py-3 px-4">GST (18%)</th>
                     <th className="py-3 px-4">Total Amount</th>
-                    <th className="py-3 px-4">Mode</th>
                     <th className="py-3 px-4">Status</th>
                   </tr>
                 </thead>
@@ -1050,12 +1029,9 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                       <td className="py-3.5 px-4 font-medium text-[#061b3b]">{pay.date}</td>
                       <td className="py-3.5 px-4 font-mono text-[#002869] font-bold">{pay.id}</td>
                       <td className="py-3.5 px-4 font-bold text-[#061b3b]">{pay.item}</td>
-                      <td className="py-3.5 px-4 text-[#434652]">{pay.amount}</td>
-                      <td className="py-3.5 px-4 text-[#006e29]">{pay.tax}</td>
                       <td className="py-3.5 px-4 font-black text-[#061b3b] text-sm">{pay.total}</td>
-                      <td className="py-3.5 px-4 text-[#434652]">{pay.paymentMode}</td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] font-bold text-[10px]">
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${pay.paid ? 'bg-[#79fd8d]/30 text-[#00531d]' : 'bg-amber-100 text-amber-800'}`}>
                           {pay.status}
                         </span>
                       </td>
@@ -1063,6 +1039,14 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   ))}
                 </tbody>
               </table>
+              {paymentsList.length === 0 && (
+                <div className="mt-4">
+                  <EmptyState
+                    title={dataLoading ? 'Loading your payments…' : dataError ? 'Could not load your payments' : 'No payments yet'}
+                    hint={dataLoading || dataError ? undefined : 'Payments you make on CareerBuddies will appear here.'}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1084,7 +1068,13 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
             </div>
 
             <div className="flex flex-col gap-4">
-              {paymentsList.map((inv) => (
+              {invoicesList.length === 0 && (
+                <EmptyState
+                  title="No invoices yet"
+                  hint="Tax invoices issued for your payments will appear here."
+                />
+              )}
+              {invoicesList.map((inv) => (
                 <div key={inv.invoiceNo} className="p-5 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -1143,10 +1133,16 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                 Submit New Enquiry / Ticket to Career Advisor
               </h4>
 
+              {enquiryError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl">
+                  {enquiryError}
+                </div>
+              )}
+
               {enquirySuccess && (
                 <div className="p-3 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-xl flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Enquiry ticket created! An advisor will reply within 2 hours.</span>
+                  <span>Enquiry sent! The CareerBuddies team will get back to you.</span>
                 </div>
               )}
 
@@ -1202,27 +1198,30 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
 
             {/* Enquiries Log */}
             <div className="flex flex-col gap-3.5">
+              {enquiries.length === 0 && (
+                <EmptyState
+                  title={dataLoading ? 'Loading your enquiries…' : dataError ? 'Could not load your enquiries' : 'No enquiries yet'}
+                  hint={dataLoading || dataError ? undefined : 'Enquiries you submit will appear here.'}
+                />
+              )}
               {enquiries.map((enq) => (
                 <div key={enq.id} className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-[#002869]">{enq.id}</span>
+                      <span className="font-mono text-xs font-bold text-[#002869]">ENQ-{enq.id.slice(-6).toUpperCase()}</span>
                       <span className="text-[10px] px-2 py-0.5 bg-[#dae2ff] text-[#001947] rounded-full font-bold">
                         {enq.category}
                       </span>
                     </div>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                      enq.status === 'Resolved' ? 'bg-[#79fd8d]/30 text-[#00531d]' : 'bg-amber-100 text-amber-800'
+                      enq.resolved ? 'bg-[#79fd8d]/30 text-[#00531d]' : 'bg-amber-100 text-amber-800'
                     }`}>
                       {enq.status}
                     </span>
                   </div>
 
                   <h4 className="text-xs font-bold text-[#061b3b]">{enq.subject}</h4>
-                  <p className="text-[11px] text-[#434652] bg-white p-2.5 rounded-xl border border-[#e0e8ff]">
-                    <strong>{enq.advisor}:</strong> {enq.response}
-                  </p>
-                  <span className="text-[10px] text-[#747783]">{enq.date}</span>
+                  <span className="text-[10px] text-[#747783]">{formatDate(enq.createdAt)}</span>
                 </div>
               ))}
             </div>
@@ -1252,48 +1251,65 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               </button>
             </div>
 
+            {webinarsList.length === 0 && (
+              <EmptyState
+                title={dataLoading ? 'Loading your webinars…' : 'No webinar registrations yet'}
+                hint={dataLoading ? undefined : 'Webinars you register for will appear here. Public webinars are listed under Browse All Webinars.'}
+              />
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {webinarsList.map((web) => (
                 <div key={web.id} className="p-6 rounded-3xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col justify-between gap-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="px-2.5 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-[10px] font-black">
-                        {web.status}
+                        Registered • Confirmed
                       </span>
                       <span className="text-xs font-mono font-bold text-[#002869]">
-                        {web.price}
+                        {formatINR(web.amount)} Paid
                       </span>
                     </div>
                     <h4 className="text-base font-black text-[#061b3b]">
                       {web.title}
                     </h4>
-                    <p className="text-xs text-[#002869] font-bold mt-1">
-                      Instructor: {web.instructor} ({web.role})
-                    </p>
+                    {web.speaker && (
+                      <p className="text-xs text-[#002869] font-bold mt-1">
+                        Instructor: {web.speaker}
+                      </p>
+                    )}
                     <p className="text-xs text-[#434652] mt-2 leading-relaxed">
                       {web.description}
                     </p>
 
-                    <div className="mt-3 p-3 bg-white rounded-xl border border-[#e0e8ff] text-xs">
-                      <div className="flex items-center gap-2 text-[#061b3b] font-bold">
-                        <Calendar className="w-3.5 h-3.5 text-[#002869]" />
-                        <span>{web.date}</span>
+                    {(web.date || web.time) && (
+                      <div className="mt-3 p-3 bg-white rounded-xl border border-[#e0e8ff] text-xs">
+                        <div className="flex items-center gap-2 text-[#061b3b] font-bold">
+                          <Calendar className="w-3.5 h-3.5 text-[#002869]" />
+                          <span>{web.date || NOT_AVAILABLE}</span>
+                        </div>
+                        <div className="text-[#747783] text-[11px] mt-0.5">
+                          {web.time}
+                        </div>
                       </div>
-                      <div className="text-[#747783] text-[11px] mt-0.5">
-                        {web.time}
-                      </div>
-                    </div>
+                    )}
                   </div>
 
-                  <a
-                    href={web.zoomLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-3 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black text-center shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
-                  >
-                    <Video className="w-4 h-4 text-[#79fd8d]" />
-                    <span>Join Live Webinar Room</span>
-                  </a>
+                  {web.link ? (
+                    <a
+                      href={web.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-3 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black text-center shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    >
+                      <Video className="w-4 h-4 text-[#79fd8d]" />
+                      <span>Join Live Webinar Room</span>
+                    </a>
+                  ) : (
+                    <span className="w-full py-3 rounded-xl bg-[#e8edff] text-[#002869] text-xs font-black text-center">
+                      Join link will be shared before the webinar
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -1315,6 +1331,13 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                 </p>
               </div>
             </div>
+
+            {masterSessionsList.length === 0 && (
+              <EmptyState
+                title="No master sessions scheduled yet"
+                hint="Your upcoming and completed 1:1 sessions will appear here once they are scheduled for you."
+              />
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {masterSessionsList.map((sess) => (
@@ -1401,6 +1424,13 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               </div>
             </div>
 
+            {documentsList.length === 0 && (
+              <EmptyState
+                title="No learning materials yet"
+                hint="Deliverables and study material shared with you will appear here."
+              />
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
               {documentsList.map((doc) => (
                 <div key={doc.id} className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex items-center justify-between gap-3">
@@ -1445,13 +1475,14 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   Stay updated on session reminders, profile deliverables, and invoice releases.
                 </p>
               </div>
-              <button
-                onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
-                className="text-xs font-bold text-[#002869] hover:underline cursor-pointer"
-              >
-                Mark all as read
-              </button>
             </div>
+
+            {notifications.length === 0 && (
+              <EmptyState
+                title="No notifications yet"
+                hint="Session reminders and programme updates will appear here."
+              />
+            )}
 
             <div className="flex flex-col gap-3">
               {notifications.map((notif) => (

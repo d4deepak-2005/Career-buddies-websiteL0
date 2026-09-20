@@ -25,6 +25,9 @@ interface NavbarProps {
   onOpenLogin: () => void;
   onOpenSignup: () => void;
   onOpenUserDashboard: () => void;
+  // Logged-in candidate's first name (undefined = logged out) and logout handler.
+  candidateName?: string;
+  onLogout?: () => void;
   bookedCount?: number;
   // Site Settings singleton, fetched once in App.tsx. Undefined/null while
   // loading or unavailable — every usage below falls back to today's content.
@@ -38,6 +41,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenLogin,
   onOpenSignup,
   onOpenUserDashboard,
+  candidateName,
+  onLogout,
   bookedCount = 0,
   siteSettings
 }) => {
@@ -296,11 +301,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Combined Login / Sign Up Button */}
           <button
             id="nav-auth-btn"
-            onClick={onOpenLogin}
+            onClick={candidateName ? onLogout : onOpenLogin}
             className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#002869] hover:bg-[#0b3d91] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md active:scale-95 transition-all cursor-pointer whitespace-nowrap"
-            title="Sign in or create a CareerBuddies account"
+            title={candidateName ? `Signed in as ${candidateName} — click to log out` : 'Sign in or create a CareerBuddies account'}
           >
-            <span>Login / Sign Up</span>
+            <span>{candidateName ? 'Logout' : 'Login / Sign Up'}</span>
           </button>
 
           {/* User Account / Bookings Dashboard Button */}
@@ -446,12 +451,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 id="mobile-nav-auth-btn"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  onOpenLogin();
+                  if (candidateName) onLogout?.();
+                  else onOpenLogin();
                 }}
                 className="w-full py-3 bg-[#002869] text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer"
               >
                 <User className="w-3.5 h-3.5 text-[#79fd8d]" />
-                <span>Login / Sign Up</span>
+                <span>{candidateName ? 'Logout' : 'Login / Sign Up'}</span>
               </button>
 
               <button

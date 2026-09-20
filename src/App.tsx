@@ -42,6 +42,13 @@ import { BookingModal } from './components/modals/BookingModal';
 import { MentorProfileModal } from './components/modals/MentorProfileModal';
 import { BecomeMentorModal } from './components/modals/BecomeMentorModal';
 import { AuthModal } from './components/modals/AuthModal';
+import {
+  CandidateProfile,
+  candidateFetch,
+  clearCandidateToken,
+  getCandidateToken,
+  setCandidateToken
+} from './utils/candidateAuth';
 import { UserDashboardDrawer } from './components/modals/UserDashboardDrawer';
 import { CounsellingModal } from './components/modals/CounsellingModal';
 import { ServiceDetailModal } from './components/modals/ServiceDetailModal';
@@ -93,22 +100,7 @@ export default function App() {
   const [selectedArticle, setSelectedArticle] = useState<ResourceArticle | null>(null);
 
   // Booked Sessions State
-  const [bookedSessions, setBookedSessions] = useState<BookedSession[]>([
-    {
-      id: 'sess-init-1',
-      mentorId: 'm1',
-      mentorName: 'Elena Rostova',
-      mentorTitle: 'Staff Software Engineer @ Google',
-      mentorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
-      date: 'Tomorrow, Aug 28',
-      timeSlot: '02:00 PM - 02:45 PM',
-      topic: 'System Design & Promotion Leveling Diagnostic',
-      notes: 'Reviewing distributed database architecture and promo document',
-      status: 'confirmed',
-      meetLink: 'https://meet.google.com/cb-demo-session',
-      createdAt: new Date().toISOString()
-    }
-  ]);
+  const [bookedSessions, setBookedSessions] = useState<BookedSession[]>([]);
 
   // Webinar Registrations state
   const [webinarRegistrations, setWebinarRegistrations] = useState<WebinarRegistration[]>([]);
@@ -120,8 +112,63 @@ export default function App() {
   const [selectedLeaderSlug, setSelectedLeaderSlug] = useState<string>('nishant-sharma');
   const [previousNavPage, setPreviousNavPage] = useState<PageView>('about-us');
 
-  // Current Logged-in Candidate Email
-  const [currentUserEmail, setCurrentUserEmail] = useState<string>('rahul.sharma@techcorp.com');
+  // Logged-in candidate (null = logged out). Restored from the stored session
+  // token on load; the server decides who the token belongs to.
+  const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
+  const [authChecked, setAuthChecked] = useState<boolean>(() => !getCandidateToken());
+
+  useEffect(() => {
+    if (!getCandidateToken()) {
+      setAuthChecked(true);
+      return;
+    }
+    candidateFetch('/api/candidate/me')
+      .then(async (res) => {
+        if (res.ok) {
+          setCandidate((await res.json()).candidate);
+        } else if (res.status === 401) {
+          clearCandidateToken();
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAuthChecked(true));
+  }, []);
+
+  const handleAuthenticate = async (
+    mode: 'login' | 'signup',
+    data: { name: string; email: string; password: string; accountType: 'mentee' | 'mentor' }
+  ): Promise<string | null> => {
+    try {
+      const res = await fetch(`/api/candidate/${mode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) {
+        return body.error || 'Something went wrong. Please try again.';
+      }
+      setCandidateToken(body.token, body.expiresAt);
+      setCandidate(body.candidate);
+      setActivePage('dashboard');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return null;
+    } catch {
+      return 'Could not reach the server. Please check your connection and try again.';
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await candidateFetch('/api/candidate/logout', { method: 'POST' });
+    } catch {
+      // token is cleared locally regardless
+    }
+    clearCandidateToken();
+    setCandidate(null);
+    setActivePage('home');
+    window.scrollTo({ top: 0 });
+  };
 
   // Handlers
   const handleSelectLeader = (slug: string) => {
@@ -202,9 +249,15 @@ export default function App() {
         onOpenLogin={handleOpenLogin}
         onOpenSignup={handleOpenSignup}
         onOpenUserDashboard={() => {
+          if (!candidate) {
+            handleOpenLogin();
+            return;
+          }
           setActivePage('dashboard');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        candidateName={candidate?.firstName}
+        onLogout={handleLogout}
         onOpenCounselling={(planTitle) => handleOpenCounsellingWithPlan(planTitle)}
         bookedCount={bookedSessions.length}
       />
@@ -375,11 +428,34 @@ export default function App() {
         )}
 
         {/* 18. CANDIDATE DASHBOARD SCREEN */}
-        {activePage === 'dashboard' && (
+        {activePage === 'dashboard' && candidate && (
           <CandidateDashboardScreen
+            key={candidate.id}
             setActivePage={setActivePage}
-            userEmail={currentUserEmail}
+            candidate={candidate}
+            onCandidateUpdate={setCandidate}
+            onLogout={handleLogout}
           />
+        )}
+        {activePage === 'dashboard' && !candidate && (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-4 text-center">
+            {authChecked ? (
+              <>
+                <h2 className="text-xl font-black text-[#061b3b]">Please log in to view your Candidate Area</h2>
+                <p className="text-sm text-[#434652] max-w-md">
+                  Sign in or create an account to see your profile, plan, payments and sessions.
+                </p>
+                <button
+                  onClick={handleOpenLogin}
+                  className="px-5 py-2.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl cursor-pointer"
+                >
+                  Login / Sign Up
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-[#434652]">Loading your account…</p>
+            )}
+          </div>
         )}
 
       </main>
@@ -486,11 +562,7 @@ export default function App() {
         isOpen={isAuthOpen}
         initialMode={authMode}
         onClose={() => setIsAuthOpen(false)}
-        onSuccess={(email) => {
-          setCurrentUserEmail(email);
-          setActivePage('dashboard');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onAuthenticate={handleAuthenticate}
       />
 
       {/* User Dashboard & Bookings Drawer */}
