@@ -4,8 +4,10 @@
 // with a very different shape (tall/portrait uploads) stays `contain` so nothing
 // important is ever cut off. The image file itself is never modified.
 export function focalPoint(key: string): string {
-  // Nishant's photo is 3:2 with him right of centre — keep his face/shoulders centred.
-  if (key.toLowerCase().includes('nishant')) return '64% 30%';
+  // Nishant's photo is 3:2 (the others are 4:3) with him right of centre. In the shared
+  // 4:3 frame only ~11% of its width must be trimmed; 25% keeps the mug, logo, face and
+  // whole upper body, and trims just the plant edge on the left and the shelf on the right.
+  if (key.toLowerCase().includes('nishant')) return '25% 30%';
   return '50% 30%';
 }
 
