@@ -15,6 +15,12 @@ const candidateSchema = new mongoose.Schema(
       type: [{ provider: { type: String, required: true }, subject: { type: String, required: true }, _id: false }],
       default: [],
     },
+    // False for accounts created through / linked to a social provider that have no password of their own.
+    hasPassword: { type: Boolean, default: true },
+    // Password reset: only a SHA-256 hash of the emailed token is stored; single-use, short-lived.
+    resetTokenHash: { type: String, select: false },
+    resetTokenExpires: { type: Date, select: false },
+    resetRequestedAt: { type: Date, select: false },
     accountType: { type: String, enum: ['mentee', 'mentor'], default: 'mentee' },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, default: '', trim: true },

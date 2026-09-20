@@ -299,6 +299,7 @@ export async function resolveSocialLogin(provider: string, profile: SocialProfil
       existing.passwordHash = hashPassword(crypto.randomBytes(32).toString('hex'));
       existing.tokenVersion = (existing.tokenVersion ?? 0) + 1;
       existing.emailVerified = true;
+      existing.hasPassword = false;
       notice = 'linked_password_cleared';
     }
     await existing.save();
@@ -311,6 +312,7 @@ export async function resolveSocialLogin(provider: string, profile: SocialProfil
     // Social-only accounts get an unguessable password nobody knows.
     passwordHash: hashPassword(crypto.randomBytes(32).toString('hex')),
     emailVerified: profile.emailVerified,
+    hasPassword: false,
     identities: [{ provider, subject: profile.subject }],
     firstName: profile.firstName || profile.email.split('@')[0],
     lastName: profile.lastName || '',

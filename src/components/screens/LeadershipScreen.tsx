@@ -1,3 +1,4 @@
+import { chooseFit, focalPoint } from '../../utils/portraitFit';
 import React, { useState } from 'react';
 import { 
   Users, 
@@ -67,7 +68,15 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
                   <img
                     src={leader.avatar}
                     alt={`${leader.name} - ${leader.role}`}
-                    className="w-full h-full object-contain object-center transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+                    style={{ objectFit: 'contain', objectPosition: 'center center' }}
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      if (chooseFit(img) === 'cover') {
+                        img.style.objectFit = 'cover';
+                        img.style.objectPosition = focalPoint(leader.name);
+                      }
+                    }}
                     loading="eager"
                     decoding="async"
                     referrerPolicy="no-referrer"
@@ -150,7 +159,8 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
                   <img
                     src={activeLeader.avatar}
                     alt={activeLeader.name}
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover object-top border-2 border-[#002869]"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-[#002869]"
+                    style={{ objectPosition: activeLeader.name.toLowerCase().includes('nishant') ? '88% 12%' : 'center top' }}
                   />
                   <div>
                     <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#002869] text-[10px] font-black uppercase tracking-wider">

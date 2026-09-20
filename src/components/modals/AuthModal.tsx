@@ -8,6 +8,8 @@ interface AuthModalProps {
   onClose: () => void;
   // Error/notice from a social sign-in attempt (cancelled, failed, not configured...).
   externalError?: string | null;
+  // Open straight on the Forgot Password form.
+  startInForgot?: boolean;
   // Performs the real signup/login; resolves to an error message, or null on success.
   onAuthenticate: (
     mode: 'login' | 'signup',
@@ -20,6 +22,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'login',
   onClose,
   externalError,
+  startInForgot,
   onAuthenticate
 }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
@@ -31,12 +34,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [forgot, setForgot] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   // Sync mode when initialMode changes
   React.useEffect(() => {
     setMode(initialMode);
     setMessage(null);
     setError(null);
+    setForgot(!!startInForgot && isOpen);
+    setForgotSent(false);
   }, [initialMode, isOpen]);
 
   React.useEffect(() => {
@@ -74,7 +81,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleForgotPassword = () => {
     setError(null);
-    setMessage('Self-service password reset is not available yet. Please contact CareerBuddies support to reset your password.');
+    setMessage(null);
+    setForgotSent(false);
+    setForgot(true);
+  };
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/candidate/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) {
+        setError(body.error || 'Something went wrong. Please try again.');
+      } else {
+        setForgotSent(true);
+      }
+    } catch {
+      setError('Could not reach the server. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -91,7 +123,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               className="brightness-200"
             />
             <h3 className="font-black text-sm tracking-tight">
-              {mode === 'login' ? 'Account Sign In' : 'Create New Account'}
+              {forgot ? 'Reset Your Password' : mode === 'login' ? 'Account Sign In' : 'Create New Account'}
             </h3>
           </div>
           <button 
@@ -102,6 +134,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </div>
 
+{!forgot && (<>
         {/* Mode Selector Tabs (Log In vs Sign Up) */}
         <div className="grid grid-cols-2 p-1.5 bg-[#f1f3ff] border-b border-[#cbdaff]">
           <button
@@ -133,10 +166,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             Sign Up
           </button>
         </div>
+</>)}
 
         {/* Form Body */}
         <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-4">
           
+{!forgot && (<>
           {/* Role selector */}
           <div className="flex bg-[#f1f3ff] p-1 rounded-2xl border border-[#cbdaff]/70">
             <button
@@ -158,6 +193,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               I am an Advisor / Expert
             </button>
           </div>
+</>)}
 
           {message && (
             <div className="p-3 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-xl flex items-center gap-2">
@@ -172,6 +208,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
+          {!forgot && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 mt-1">
             {mode === 'signup' && (
               <div>
@@ -325,7 +362,64 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             </div>
           </form>
+          )}
 
+          {forgot && (
+            <div className="flex flex-col gap-3.5 mt-1">
+              {forgotSent ? (
+                <div className="p-4 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-xl flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>If an account exists for {email}, we have sent instructions to reset your password. Please check your inbox (and spam folder). The link expires in 30 minutes.</span>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotSubmit} className="flex flex-col gap-3.5">
+                  <p className="text-xs text-[#434652] leading-relaxed">
+                    Enter the email address you signed up with and we will send you a link to choose a new password.
+                  </p>
+                  <div>
+                    <label className="block text-xs font-black text-[#061b3b] mb-1">Email Address</label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="w-full pl-9 pr-3 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-60"
+                  >
+                    <span>{loading ? 'Sending...' : 'Send Reset Link'}</span>
+                    {!loading && <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />}
+                  </button>
+                  <p className="text-[11px] text-[#747783] leading-relaxed">
+                    Signed up with Google, LinkedIn, Microsoft or Facebook? You don't have a password - just use that button on the sign-in screen.
+                  </p>
+                </form>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setForgot(false);
+                  setForgotSent(false);
+                  setError(null);
+                }}
+                className="text-xs text-[#002869] font-black hover:underline cursor-pointer self-center"
+              >
+                Back to Sign In
+              </button>
+            </div>
+          )}
+
+
+
+{!forgot && (<>
           {/* Switch Mode Toggle */}
           <div className="text-center pt-3 border-t border-[#cbdaff]/70 text-xs text-[#434652]">
             {mode === 'login' ? (
@@ -350,6 +444,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </p>
             )}
           </div>
+</>)}
 
         </div>
 

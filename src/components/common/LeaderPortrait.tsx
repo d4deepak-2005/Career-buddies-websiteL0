@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Award } from 'lucide-react';
+import { chooseFit, focalPoint } from '../../utils/portraitFit';
 
 interface LeaderPortraitProps {
   slug: string;
@@ -34,10 +35,12 @@ export const LeaderPortrait: React.FC<LeaderPortraitProps> = ({
 
   const [currentSrc, setCurrentSrc] = useState<string>(getInitialSrc);
   const [attemptCount, setAttemptCount] = useState<number>(0);
+  const [fit, setFit] = useState<'cover' | 'contain'>('contain');
 
   useEffect(() => {
     setCurrentSrc(getInitialSrc());
     setAttemptCount(0);
+    setFit('contain');
   }, [slug, imageSrc]);
 
   const handleImageError = () => {
@@ -64,13 +67,14 @@ export const LeaderPortrait: React.FC<LeaderPortraitProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'contain',
-          objectPosition: 'center center',
+          objectFit: fit,
+          objectPosition: fit === 'cover' ? focalPoint(`${slug} ${name}`) : 'center center',
           display: 'block'
         }}
         loading="eager"
         decoding="async"
         referrerPolicy="no-referrer"
+        onLoad={(e) => setFit(chooseFit(e.currentTarget))}
         onError={handleImageError}
       />
 

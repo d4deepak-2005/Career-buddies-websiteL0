@@ -1,8 +1,10 @@
+import crypto from 'crypto';
 import express, { Request, Response } from 'express';
 import { Candidate } from '../models/Candidate.ts';
 import { Lead } from '../models/Lead.ts';
 import { Payment } from '../models/Payment.ts';
 import { Webinar } from '../models/Webinar.ts';
+import { passwordResetEmail, sendMail, socialOnlyEmail } from '../services/mailer.ts';
 import {
   createCandidateToken,
   hashPassword,
@@ -172,6 +174,133 @@ router.post('/change-password', requireCandidateAuth, async (req: Request, res: 
   await candidate.save();
   // Other sessions are now revoked; hand this browser a fresh token.
   await issueSession(res, candidate._id.toString());
+});
+
+// ---------------------------------------------------------------------------
+// Forgot / reset password (email + password accounts)
+// ---------------------------------------------------------------------------
+const RESET_TTL_MINUTES = 30;
+const RESET_COOLDOWN_MS = 60 * 1000;
+const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
+
+// The reset link points at our own site. Never build it from an arbitrary Host
+// header (password-reset poisoning): use PUBLIC_BASE_URL, or accept only
+// localhost / trycloudflare test origins.
+function trustedBaseUrl(req: Request): string | null {
+  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, '');
+  const proto = String(req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
+  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) || /^[a-z0-9-]+\.trycloudflare\.com$/.test(host)) {
+    return `${proto}://${host}`;
+  }
+  return null;
+}
+
+function passwordProblem(password: string, email?: string): string | null {
+  if (password.length < 8) return 'Password must be at least 8 characters.';
+  if (password.length > 200) return 'Password is too long.';
+  if (/^(.)\1+$/.test(password)) return 'Please choose a less predictable password.';
+  if (email && password.toLowerCase() === email.toLowerCase()) return 'Password cannot be the same as your email.';
+  return null;
+}
+
+const resetAttempts = new Map<string, { count: number; reset: number }>();
+function resetRateLimited(req: Request, res: Response, max: number): boolean {
+  const key = `${req.path}|${req.ip || 'unknown'}`;
+  const now = Date.now();
+  const e = resetAttempts.get(key);
+  if (!e || now > e.reset) {
+    resetAttempts.set(key, { count: 1, reset: now + 15 * 60 * 1000 });
+    return false;
+  }
+  e.count += 1;
+  if (e.count > max) {
+    res.status(429).json({ success: false, error: 'Too many attempts. Please try again in a few minutes.' });
+    return true;
+  }
+  return false;
+}
+
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  if (resetRateLimited(req, res, 10)) return;
+
+  const email = str(req.body?.email, 200).toLowerCase();
+  if (!EMAIL_RE.test(email)) {
+    return void res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
+  }
+
+  // Same answer whether or not the account exists; the work happens after replying
+  // so response time doesn't reveal it either.
+  res.json({
+    success: true,
+    message: 'If an account exists for that email, we have sent instructions to reset your password.',
+  });
+
+  const baseUrl = trustedBaseUrl(req);
+  try {
+    const candidate = await Candidate.findOne({ email }).select('+resetRequestedAt');
+    if (!candidate) return;
+    if (!baseUrl) {
+      console.warn('[PasswordReset] No trusted site URL (set PUBLIC_BASE_URL); email not sent.');
+      return;
+    }
+
+    if (candidate.hasPassword === false) {
+      // Social-only account: no password to reset. Tell the owner (by email) how to sign in.
+      const labels: Record<string, string> = { google: 'Google', linkedin: 'LinkedIn', microsoft: 'Microsoft', facebook: 'Facebook' };
+      const providers = (candidate.identities || []).map((i: any) => labels[i.provider] || i.provider);
+      await sendMail({ to: candidate.email, ...socialOnlyEmail(baseUrl, providers) });
+      return;
+    }
+
+    if (candidate.resetRequestedAt && Date.now() - candidate.resetRequestedAt.getTime() < RESET_COOLDOWN_MS) return;
+
+    const token = crypto.randomBytes(32).toString('base64url');
+    candidate.resetTokenHash = hashToken(token); // only the hash is stored
+    candidate.resetTokenExpires = new Date(Date.now() + RESET_TTL_MINUTES * 60 * 1000);
+    candidate.resetRequestedAt = new Date();
+    await candidate.save();
+
+    const link = `${baseUrl}/reset-password?token=${token}`;
+    await sendMail({ to: candidate.email, ...passwordResetEmail(baseUrl, link, RESET_TTL_MINUTES) });
+  } catch (error: any) {
+    console.error('[PasswordReset] Could not process request:', error?.message || error);
+  }
+});
+
+async function findByResetToken(token: unknown) {
+  if (typeof token !== 'string' || token.length < 20 || token.length > 200) return null;
+  return Candidate.findOne({
+    resetTokenHash: hashToken(token),
+    resetTokenExpires: { $gt: new Date() },
+  }).select('+resetTokenHash +resetTokenExpires +tokenVersion');
+}
+
+router.post('/reset-password/check', async (req: Request, res: Response) => {
+  if (resetRateLimited(req, res, 30)) return;
+  res.json({ success: true, valid: !!(await findByResetToken(req.body?.token)) });
+});
+
+router.post('/reset-password', async (req: Request, res: Response) => {
+  if (resetRateLimited(req, res, 15)) return;
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+
+  const candidate = await findByResetToken(req.body?.token);
+  if (!candidate) {
+    return void res.status(400).json({ success: false, error: 'This reset link is invalid or has expired. Please request a new one.' });
+  }
+  const problem = passwordProblem(password, candidate.email);
+  if (problem) return void res.status(400).json({ success: false, error: problem });
+
+  candidate.passwordHash = hashPassword(password);
+  candidate.hasPassword = true;
+  candidate.emailVerified = true; // they just proved they own the mailbox
+  candidate.tokenVersion = (candidate.tokenVersion ?? 0) + 1; // sign out every existing session
+  candidate.resetTokenHash = undefined; // single use
+  candidate.resetTokenExpires = undefined;
+  await candidate.save();
+
+  res.json({ success: true, message: 'Your password has been reset successfully.' });
 });
 
 const LEAD_STATUS_LABEL: Record<string, string> = {

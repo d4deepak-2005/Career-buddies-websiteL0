@@ -42,6 +42,7 @@ import { BookingModal } from './components/modals/BookingModal';
 import { MentorProfileModal } from './components/modals/MentorProfileModal';
 import { BecomeMentorModal } from './components/modals/BecomeMentorModal';
 import { AuthModal } from './components/modals/AuthModal';
+import { ResetPasswordModal } from './components/modals/ResetPasswordModal';
 import {
   CandidateProfile,
   candidateFetch,
@@ -257,18 +258,33 @@ export default function App() {
     } else if (errorCode) {
       cleanUrl();
       const label = ({ google: 'Google', linkedin: 'LinkedIn', microsoft: 'Microsoft', facebook: 'Facebook' } as Record<string, string>)[provider] || 'Social';
+      const unavailable = `${label} login is temporarily unavailable. Please try again later or use email/password.`;
       const messages: Record<string, string> = {
-        cancelled: `${label} sign-in was cancelled. You can try again or use email and password.`,
-        not_configured: `${label} sign-in is not available yet - it has not been configured on this site. Please use email and password.`,
-        invalid_state: `${label} sign-in could not be verified (the request expired or did not start on this browser). Please try again.`,
+        cancelled: `${label} sign-in was cancelled. You can try again or use email/password.`,
+        not_configured: unavailable,
+        provider_error: unavailable,
+        invalid_state: `${label} sign-in could not be completed (the request expired or was started in a different browser). Please try again.`,
         email_unverified_conflict: `An account with this email already exists, and ${label} could not confirm that you own it. Please log in with your email and password.`,
         no_email: `${label} did not share an email address, which CareerBuddies needs to create your account. Please allow email access or sign up with email.`
       };
-      setSocialAuthMessage(messages[errorCode] || `${label} sign-in failed. Please try again or use email and password.`);
+      setSocialAuthMessage(messages[errorCode] || unavailable);
       setAuthMode('login');
       setIsAuthOpen(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Password reset link (/reset-password?token=...) ----
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [startInForgot, setStartInForgot] = useState(false);
+
+  useEffect(() => {
+    if (window.location.pathname === '/reset-password') {
+      const token = new URLSearchParams(window.location.search).get('token');
+      // Take the token out of the address bar straight away.
+      window.history.replaceState(window.history.state, '', '/');
+      if (token) setResetToken(token);
+    }
   }, []);
 
   const handleAuthenticate = async (
@@ -331,6 +347,7 @@ export default function App() {
   };
 
   const handleOpenLogin = () => {
+    setStartInForgot(false);
     setAuthMode('login');
     setIsAuthOpen(true);
   };
@@ -701,10 +718,31 @@ export default function App() {
         onClose={() => {
           setIsAuthOpen(false);
           setSocialAuthMessage(null);
+          setStartInForgot(false);
         }}
         externalError={socialAuthMessage}
+        startInForgot={startInForgot}
         onAuthenticate={handleAuthenticate}
       />
+
+      {resetToken && (
+        <ResetPasswordModal
+          token={resetToken}
+          onClose={() => setResetToken(null)}
+          onSignIn={() => {
+            setResetToken(null);
+            setStartInForgot(false);
+            setAuthMode('login');
+            setIsAuthOpen(true);
+          }}
+          onRequestNewLink={() => {
+            setResetToken(null);
+            setStartInForgot(true);
+            setAuthMode('login');
+            setIsAuthOpen(true);
+          }}
+        />
+      )}
 
       {/* User Dashboard & Bookings Drawer */}
       <UserDashboardDrawer
