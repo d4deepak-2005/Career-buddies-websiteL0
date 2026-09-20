@@ -145,9 +145,9 @@ Thank you!`;
                 <div className="relative inline-flex items-center">
                   {/* Organic seamless white fade that dissolves smoothly into the dark navy footer background */}
                   <div
-                    className="absolute -inset-y-2 -left-3 -right-8 pointer-events-none rounded-l-2xl"
+                    className="absolute -inset-y-2 -left-3 -right-10 pointer-events-none rounded-l-2xl"
                     style={{
-                      background: 'linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 42%, rgba(255,255,255,0.8) 58%, rgba(255,255,255,0.4) 75%, rgba(255,255,255,0.1) 88%, rgba(255,255,255,0) 100%)',
+                      background: 'linear-gradient(90deg, #ffffff 0%, #ffffff calc(100% - 28px), rgba(255,255,255,0) 100%)',
                       WebkitMaskImage: 'radial-gradient(ellipse 110% 130% at 38% 50%, rgba(0,0,0,1) 60%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0) 100%)',
                       maskImage: 'radial-gradient(ellipse 110% 130% at 38% 50%, rgba(0,0,0,1) 60%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0) 100%)'
                     }}
