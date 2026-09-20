@@ -19,6 +19,9 @@ export type PageView =
   | 'login'
   | 'signup'
   | 'admin'
+  | 'privacy'
+  | 'terms'
+  | 'refund'
   | 'leads-dashboard';
 
 export type Category = 
@@ -103,7 +106,7 @@ export interface ProgrammeItem {
   enrolledCount: number;
   capacity: number;
   isPopular?: boolean;
-  dodoProductId?: string; // Dodo Payments product (set via CMS) enabling online payment
+  onlinePayment?: boolean; // true when online payment is enabled for this item in the CMS
 }
 
 export interface CareerStageOption {
@@ -236,7 +239,7 @@ export interface WebinarItem {
   recordingIncluded: boolean;
   certificateProvided: boolean;
   badge?: string;
-  dodoProductId?: string; // Dodo Payments product (set via CMS) enabling online payment
+  onlinePayment?: boolean; // true when online payment is enabled for this item in the CMS
 }
 
 export interface WebinarRegistration {
@@ -309,7 +312,7 @@ export interface PlanItem {
   bestFor: string;
   badge?: string;
   features: PlanFeature[];
-  dodoProductId?: string; // Dodo Payments product (set via CMS) enabling online payment
+  onlinePayment?: boolean; // true when online payment is enabled for this item in the CMS
 }
 
 export interface ResourceCategory {

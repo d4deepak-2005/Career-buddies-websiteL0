@@ -280,16 +280,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <p className="text-[11px] text-[#434652] mt-0.5">Bengaluru Office & WhatsApp</p>
                 </button>
 
-                <div className="pt-2 border-t border-gray-100 mt-1">
-                  <button
-                    id="more-admin-btn"
-                    onClick={() => handleNav('admin')}
-                    className="w-full text-left p-2 rounded-xl text-xs font-bold text-[#002869] hover:bg-[#dae2ff] flex items-center gap-1.5 cursor-pointer transition-colors"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Admin Workspace</span>
-                  </button>
-                </div>
               </div>
             )}
           </div>

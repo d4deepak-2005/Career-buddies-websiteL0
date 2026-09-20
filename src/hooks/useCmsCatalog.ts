@@ -43,7 +43,7 @@ export function useProgrammes(): ProgrammeItem[] {
       enrolledCount: 0,
       capacity: 0,
       isPopular: !!p.featured,
-      dodoProductId: p.dodoProductId || undefined,
+      onlinePayment: !!p.onlinePayment,
     }));
   }, [items]);
 }
@@ -77,7 +77,7 @@ export function useWebinars(): WebinarItem[] {
       status: w.status || 'upcoming',
       recordingIncluded: w.recordingIncluded !== false,
       certificateProvided: w.certificateProvided !== false,
-      dodoProductId: w.dodoProductId || undefined,
+      onlinePayment: !!w.onlinePayment,
     }));
   }, [items]);
 }
@@ -145,7 +145,7 @@ export function usePlans(): PlanItem[] {
       supportType: p.supportType || '',
       bestFor: p.bestFor || '',
       badge: p.badge || undefined,
-      dodoProductId: p.dodoProductId || undefined,
+      onlinePayment: !!p.onlinePayment,
       features: (p.features || []).map((f: any) => ({
         title: f.title || '',
         included: f.included !== false,

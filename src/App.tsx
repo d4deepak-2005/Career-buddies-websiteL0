@@ -28,6 +28,7 @@ import { ResourcesScreen } from './components/screens/ResourcesScreen';
 import { MentorsScreen } from './components/screens/MentorsScreen';
 import { AboutUsScreen } from './components/screens/AboutUsScreen';
 import { ContactScreen } from './components/screens/ContactScreen';
+import { LegalScreen } from './components/screens/LegalScreen';
 import { CounsellingScreen } from './components/screens/CounsellingScreen';
 import { LeadsDashboardScreen } from './components/screens/LeadsDashboardScreen';
 import { CareerCheckInScreen } from './components/screens/CareerCheckInScreen';
@@ -80,7 +81,14 @@ export default function App() {
   }, [siteSettings]);
 
   // Navigation Page State
-  const [activePage, setActivePage] = useState<PageView>('home');
+  // A few pages can be opened directly / survive a refresh through the URL hash
+  // (legal pages, and the admin workspace, which stays behind its own login).
+  const HASH_PAGES: Record<string, PageView> = { '#privacy': 'privacy', '#terms': 'terms', '#refund': 'refund', '#admin': 'admin' };
+  const pageUrl = (page: PageView) => {
+    const hash = Object.keys(HASH_PAGES).find((h) => HASH_PAGES[h] === page) || '';
+    return window.location.pathname + window.location.search + hash;
+  };
+  const [activePage, setActivePage] = useState<PageView>(() => HASH_PAGES[window.location.hash] || 'home');
 
   // Modals State
   const [isSmartMatchingOpen, setIsSmartMatchingOpen] = useState(false);
@@ -168,13 +176,24 @@ export default function App() {
     };
   }, []);
 
+  // Typing/pasting a #privacy, #terms, #refund or #admin address into an already-open tab.
+  useEffect(() => {
+    const onHashChange = () => {
+      const page = HASH_PAGES[window.location.hash];
+      if (page) setActivePage(page);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
   useLayoutEffect(() => {
     if (prevNavKey.current === null) {
       // First render: describe the current history entry.
       currentEntryId.current = newEntryId();
       window.history.replaceState(
         { ...(window.history.state || {}), cbPage: activePage, cbLeader: selectedLeaderSlug, cbId: currentEntryId.current },
-        ''
+        '',
+        pageUrl(activePage)
       );
     } else if (prevNavKey.current !== navKey) {
       if (restoreScrollTo.current !== null) {
@@ -187,7 +206,8 @@ export default function App() {
         currentEntryId.current = newEntryId();
         window.history.pushState(
           { cbPage: activePage, cbLeader: selectedLeaderSlug, cbId: currentEntryId.current },
-          ''
+          '',
+          pageUrl(activePage)
         );
         instantScroll(0);
       }
@@ -562,6 +582,11 @@ export default function App() {
             setActivePage={setActivePage}
             siteSettings={siteSettings}
           />
+        )}
+
+        {/* LEGAL PAGES */}
+        {(activePage === 'privacy' || activePage === 'terms' || activePage === 'refund') && (
+          <LegalScreen kind={activePage} setActivePage={setActivePage} />
         )}
 
         {/* 14. COUNSELLING DEDICATED SCREEN */}

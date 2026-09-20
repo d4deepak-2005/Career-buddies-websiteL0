@@ -5,6 +5,7 @@ import { Lead } from '../models/Lead.ts';
 import { Payment } from '../models/Payment.ts';
 import { Webinar } from '../models/Webinar.ts';
 import { passwordResetEmail, sendMail, socialOnlyEmail } from '../services/mailer.ts';
+import { getPublicBaseUrl } from '../config/baseUrl.ts';
 import { createRateLimiter } from '../middleware/rateLimit.ts';
 import {
   createCandidateToken,
@@ -80,8 +81,9 @@ router.post('/signup', signupLimiter.middleware, async (req: Request, res: Respo
 
     if (!name) return void res.status(400).json({ success: false, error: 'Please enter your full name.' });
     if (!EMAIL_RE.test(email)) return void res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
-    if (password.length < 8 || password.length > 200) {
-      return void res.status(400).json({ success: false, error: 'Password must be at least 8 characters.' });
+    const passwordIssue = passwordProblem(password, email);
+    if (passwordIssue) {
+      return void res.status(400).json({ success: false, error: passwordIssue });
     }
     if (await Candidate.exists({ email })) {
       return void res.status(409).json({ success: false, error: 'An account with this email already exists. Please log in.' });
@@ -176,8 +178,9 @@ router.post('/change-password', requireCandidateAuth, async (req: Request, res: 
   if (!candidate || !verifyPassword(current, candidate.passwordHash)) {
     return void res.status(400).json({ success: false, error: 'Current password is incorrect.' });
   }
-  if (next.length < 8 || next.length > 200) {
-    return void res.status(400).json({ success: false, error: 'New password must be at least 8 characters.' });
+  const passwordIssue = passwordProblem(next, candidate.email);
+  if (passwordIssue) {
+    return void res.status(400).json({ success: false, error: passwordIssue });
   }
 
   candidate.passwordHash = hashPassword(next);
@@ -196,14 +199,9 @@ const hashToken = (token: string) => crypto.createHash('sha256').update(token).d
 
 // The reset link points at our own site. It is NEVER built from request headers
 // (Host / X-Forwarded-Host are attacker-controlled: password-reset poisoning).
-// Use PUBLIC_BASE_URL; only local development falls back to localhost.
+// Uses the shared trusted base URL (PUBLIC_BASE_URL); only local development falls back to localhost.
 function trustedBaseUrl(req: Request): string | null {
-  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, '');
-  const host = String(req.headers.host || '').toLowerCase();
-  if (process.env.NODE_ENV !== 'production' && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) {
-    return `http://${host}`;
-  }
-  return null;
+  return getPublicBaseUrl(req);
 }
 
 function passwordProblem(password: string, email?: string): string | null {

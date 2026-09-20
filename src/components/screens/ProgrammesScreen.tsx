@@ -334,7 +334,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <span>Apply for Programme</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />
                   </button>
-                  {programme.dodoProductId && (
+                  {programme.onlinePayment && (
                     <button
                       onClick={() => setPayProgramme(programme)}
                       className="px-6 py-3 bg-white border border-[#006e29] text-[#006e29] hover:bg-[#f0faf3] text-xs font-black rounded-xl transition-all cursor-pointer"

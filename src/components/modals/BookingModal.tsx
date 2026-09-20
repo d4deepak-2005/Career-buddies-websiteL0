@@ -192,7 +192,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           <div className="flex items-center gap-2.5">
             <Calendar className="w-5 h-5 text-[#dae2ff]" />
             <h3 className="font-bold text-base font-['Plus_Jakarta_Sans',sans-serif]">
-              {isSuccess ? 'Session Confirmed!' : `Book Master Session with ${mentor.name}`}
+              {isSuccess ? 'Session Request Submitted' : `Book Master Session with ${mentor.name}`}
             </h3>
           </div>
           <button 
@@ -210,9 +210,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
-            <h4 className="text-xl font-bold text-[#061b3b]">You're Scheduled, {firstName}!</h4>
+            <h4 className="text-xl font-bold text-[#061b3b]">Request received, {firstName}!</h4>
             <p className="text-xs text-[#434652] max-w-md">
-              A calendar invite and preparation agenda have been added to your CareerBuddies dashboard and sent to <strong>{email}</strong>.
+              Your request has been submitted successfully. Our team will contact you to confirm the session.
             </p>
 
             {/* Session Card */}
@@ -231,7 +231,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-[#cbdaff]/60">
                 <div>
-                  <span className="text-[#747783] block">Date & Time</span>
+                  <span className="text-[#747783] block">Requested Date & Time</span>
                   <span className="font-bold text-[#061b3b]">{createdSession.date}</span>
                   <span className="text-[#434652] block">{createdSession.timeSlot}</span>
                 </div>
@@ -241,20 +241,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[#cbdaff]/60 flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#cbdaff]/60">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#002869]">
-                  <Video className="w-4 h-4 text-[#006e29]" />
-                  <span>Google Meet Video Link</span>
-                </div>
-                <a 
-                  href={createdSession.meetLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-bold text-[#002869] bg-[#dae2ff] px-2.5 py-1 rounded-lg hover:bg-[#cbdaff]"
-                >
-                  Open Link
-                </a>
-              </div>
             </div>
 
             <div className="w-full flex items-center justify-between text-xs text-[#006e29] bg-[#79fd8d]/20 px-3.5 py-2 rounded-xl font-medium">

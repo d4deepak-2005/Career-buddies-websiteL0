@@ -194,9 +194,6 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [whatsappAlerts, setWhatsappAlerts] = useState(true);
-  const [emailAlerts, setEmailAlerts] = useState(true);
 
   // No notification records exist yet — nothing is invented.
   const notifications: { id: string; title: string; description: string; time: string; read: boolean }[] = [];
@@ -1666,49 +1663,20 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   </h4>
 
                   <div className="flex flex-col gap-4 text-xs">
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#e0e8ff]">
-                      <div>
-                        <strong className="text-[#061b3b] block">WhatsApp Session Reminders</strong>
-                        <span className="text-[#747783] text-[11px]">Receive 1-hour session alerts on WhatsApp</span>
+                    {[
+                      { title: 'WhatsApp Session Reminders', note: 'Session reminders are not available yet.' },
+                      { title: 'Email Invoice & Deliverable Updates', note: 'Email updates are not available yet.' },
+                      { title: 'Two-Factor Authentication (2FA)', note: 'Two-factor authentication is not available yet. Your account is protected by your password only.' },
+                    ].map((item) => (
+                      <div key={item.title} className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white border border-[#e0e8ff]">
+                        <div>
+                          <strong className="text-[#061b3b] block">{item.title}</strong>
+                          <span className="text-[#747783] text-[11px]">{item.note}</span>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-black uppercase tracking-wide text-[#747783] bg-[#f1f3ff] border border-[#cbdaff] rounded-full px-2 py-0.5">Not available</span>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={whatsappAlerts}
-                        onChange={(e) => setWhatsappAlerts(e.target.checked)}
-                        className="w-4 h-4 text-[#006e29] rounded cursor-pointer"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#e0e8ff]">
-                      <div>
-                        <strong className="text-[#061b3b] block">Email Invoice & Deliverable Updates</strong>
-                        <span className="text-[#747783] text-[11px]">PDF copies sent to your email address</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={emailAlerts}
-                        onChange={(e) => setEmailAlerts(e.target.checked)}
-                        className="w-4 h-4 text-[#006e29] rounded cursor-pointer"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#e0e8ff]">
-                      <div>
-                        <strong className="text-[#061b3b] block">Two-Factor Authentication (2FA)</strong>
-                        <span className="text-[#747783] text-[11px]">SMS OTP verification on candidate login</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={twoFactorEnabled}
-                        onChange={(e) => setTwoFactorEnabled(e.target.checked)}
-                        className="w-4 h-4 text-[#006e29] rounded cursor-pointer"
-                      />
-                    </div>
+                    ))}
                   </div>
-                </div>
-
-                <div className="p-3 bg-[#e8edff] rounded-2xl border border-[#cbdaff] text-xs text-[#002869]">
-                  <strong>Official Registered Entity:</strong> CareerBuddies Private Limited. All profile data is encrypted under IT Act, 2000 guidelines.
                 </div>
               </div>
 

@@ -27,7 +27,7 @@ Other commands:
 | Command | Purpose |
 |---|---|
 | `npm run lint` | TypeScript type-check (`tsc --noEmit`) |
-| `npm run build` | Build frontend (`dist/`) and bundle server (`dist/server.cjs`) |
+| `npm run build` | Build frontend (`dist/client/`) and bundle server (`dist/server.cjs`) |
 | `npm run start` | Run the production build (`node dist/server.cjs`) |
 
 ## Environment variables
@@ -41,7 +41,10 @@ Real values live only in your private `.env` / hosting dashboard. `.env.example`
 | `ADMIN_PASSWORD` | yes | Admin Workspace password |
 | `ADMIN_SESSION_SECRET` | yes | Separate random secret (32+ chars) that signs admin sessions. Never reuse the password. Changing it logs every admin out. |
 | `TRUST_PROXY_HOPS` | optional | Number of reverse proxies in front of the app (default 1 in production) so rate limits see real client IPs |
-| `APP_URL` | production | Public https URL; used for payment return/cancel URLs |
+| `PUBLIC_BASE_URL` | production | The one canonical public https origin. Used for password-reset links, OAuth callbacks and payment return URLs (never taken from request headers). `APP_URL` is a legacy alias honoured only if this is unset. Missing in production = those features fail safely. |
+| `CANDIDATE_SESSION_SECRET` | recommended | Signs candidate sessions (derived from `ADMIN_SESSION_SECRET` if unset) |
+| `GOOGLE_*`, `LINKEDIN_*`, `MICROSOFT_*`, `FACEBOOK_*` | optional | Social sign-in credentials (a provider is enabled only when both its ID and secret are set) |
+| `SMTP_*`, `EMAIL_FROM` | for reset emails | SMTP settings for password-reset email |
 | `DODO_PAYMENTS_API_KEY` | for payments | Dodo secret API key |
 | `DODO_PAYMENTS_WEBHOOK_KEY` | for payments | Dodo webhook signing secret (`whsec_...`) |
 | `DODO_PAYMENTS_ENVIRONMENT` | for payments | `test_mode` (default) or `live_mode` |
@@ -79,7 +82,7 @@ All asset paths are site-relative (`/logo.png`, `/assets/...`), so they work in 
 
 ## Dodo Payments
 
-Flow: browser → `POST /api/payments/checkout` → server creates a Dodo checkout session → browser redirects to Dodo's hosted page → Dodo redirects back to `APP_URL/?order=<ref>` → the page shows the status stored by the **verified webhook** (`POST /api/payments/webhook`).
+Flow: browser → `POST /api/payments/checkout` → server creates a Dodo checkout session → browser redirects to Dodo's hosted page → Dodo redirects back to `PUBLIC_BASE_URL/?order=<ref>` → the page shows the status stored by the **verified webhook** (`POST /api/payments/webhook`).
 
 - The price is defined by the Dodo **product**; the browser never sends an amount.
 - Webinars: uses the webinar's own `Dodo Payments Product ID` (Admin → Manage Webinars) or falls back to `DODO_PRODUCT_ID_WEBINAR`.
@@ -100,7 +103,7 @@ Flow: browser → `POST /api/payments/checkout` → server creates a Dodo checko
 
 1. Push the repository to GitHub and connect it on Render (Blueprint or manual).
 2. In the Render dashboard set every variable from the table above (secrets are `sync: false` and are never stored in Git).
-3. Use HTTPS (Render provides it) and set `APP_URL` to the public https URL.
+3. Use HTTPS (Render provides it) and set `PUBLIC_BASE_URL` to the public https URL.
 4. Register the Dodo webhook URL (see above) using that domain.
 5. After deploy, verify: homepage, header/logo, founder photos, admin login, CMS pages, AI assistant, a test-mode payment.
 

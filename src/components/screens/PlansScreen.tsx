@@ -190,7 +190,7 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
                     <span>{plan.isCustomPricing ? 'Connect with Our Sales Team' : `Choose ${plan.name}`}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
-                  {plan.dodoProductId && !plan.isCustomPricing && (
+                  {plan.onlinePayment && !plan.isCustomPricing && (
                     <button
                       onClick={() => setPayPlan(plan)}
                       className="w-full mt-2 py-2.5 rounded-xl font-black text-xs bg-white border border-[#006e29] text-[#006e29] hover:bg-[#f0faf3] transition-all cursor-pointer"

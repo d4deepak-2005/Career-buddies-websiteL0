@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 import { Candidate } from '../models/Candidate.ts';
 import { hashPassword, readPayload, signPayload, verifyPassword } from '../middleware/candidateAuth.ts';
 import { buildSession } from './candidate.ts';
+import { getPublicBaseUrl } from '../config/baseUrl.ts';
 
 // Social sign-in (Google, LinkedIn, Microsoft, Facebook) via the OAuth 2.0
 // authorization-code flow, done entirely on the server:
@@ -122,15 +123,10 @@ function getProvider(id: string): ProviderConfig | null {
 
 const b64url = (buf: Buffer) => buf.toString('base64url');
 
-function baseUrl(req: Request): string {
-  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, '');
-  const proto = String(req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
-  return `${proto}://${host}`;
-}
-
+// Callback URLs come only from the configured public base URL (never from request headers).
+const baseUrl = (req: Request): string | null => getPublicBaseUrl(req);
 const redirectUri = (req: Request, id: string) => `${baseUrl(req)}/api/auth/${id}/callback`;
-const isHttps = (req: Request) => baseUrl(req).startsWith('https://');
+const isHttps = (req: Request) => (baseUrl(req) || '').startsWith('https://');
 
 function parseCookies(header: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
@@ -396,7 +392,8 @@ router.get('/:provider/start', (req: Request, res: Response) => {
   const cfg = getProvider(id);
   if (!cfg) return void res.status(404).json({ success: false, error: 'Unknown provider.' });
 
-  if (!cfg.clientId || !cfg.clientSecret) {
+  if (!cfg.clientId || !cfg.clientSecret || !baseUrl(req)) {
+    if (!baseUrl(req)) console.error('[OAuth] PUBLIC_BASE_URL is not configured; sign-in is unavailable.');
     return failRedirect(res, id, 'not_configured');
   }
 
@@ -447,7 +444,7 @@ router.get('/:provider/callback', async (req: Request, res: Response) => {
     if (req.query.error) {
       return failRedirect(res, id, req.query.error === 'access_denied' || req.query.error === 'user_cancelled_login' || req.query.error === 'user_cancelled_authorize' ? 'cancelled' : 'provider_error');
     }
-    if (!cfg.clientId || !cfg.clientSecret) return failRedirect(res, id, 'not_configured');
+    if (!cfg.clientId || !cfg.clientSecret || !baseUrl(req)) return failRedirect(res, id, 'not_configured');
 
     const state = typeof req.query.state === 'string' ? req.query.state : '';
     const code = typeof req.query.code === 'string' ? req.query.code : '';

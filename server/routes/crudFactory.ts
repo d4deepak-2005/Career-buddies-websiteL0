@@ -10,6 +10,18 @@ import { requireAdminAuth } from '../middleware/adminAuth.ts';
 //   POST   /api/mentors/admin    admin-only, create
 //   PUT    /api/mentors/admin/:id admin-only, update
 //   DELETE /api/mentors/admin/:id admin-only, delete
+// Public responses never carry internal payment-provider identifiers. The frontend only
+// needs to know whether online payment is enabled for an item, so the provider product
+// id is replaced by a boolean. (Admin endpoints keep the raw field for editing.)
+function toPublic(doc: any) {
+  const obj = typeof doc?.toObject === 'function' ? doc.toObject() : { ...doc };
+  if ('dodoProductId' in obj) {
+    obj.onlinePayment = !!obj.dodoProductId;
+    delete obj.dodoProductId;
+  }
+  return obj;
+}
+
 export function createCrudRouter(model: Model<any>): Router {
   const router = express.Router();
 
@@ -18,7 +30,7 @@ export function createCrudRouter(model: Model<any>): Router {
       const items = await model
         .find({ visible: { $ne: false } })
         .sort({ displayOrder: 1, createdAt: 1 });
-      res.json({ success: true, items });
+      res.json({ success: true, items: items.map(toPublic) });
     } catch (error) {
       console.error(`Error fetching ${model.modelName} records:`, error);
       res.status(500).json({

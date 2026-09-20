@@ -6,6 +6,7 @@ import { Payment } from '../models/Payment.ts';
 import { Webinar } from '../models/Webinar.ts';
 import { Plan } from '../models/Plan.ts';
 import { Programme } from '../models/Programme.ts';
+import { getPublicBaseUrl } from '../config/baseUrl.ts';
 import { requireCandidateAuth } from '../middleware/candidateAuth.ts';
 import { requireAdminAuth } from '../middleware/adminAuth.ts';
 
@@ -27,24 +28,28 @@ function getClient(): DodoPayments | null {
   if (!apiKey) return null;
 
   if (!cachedClient) {
-    cachedClient = new DodoPayments({
-      bearerToken: apiKey,
-      environment:
-        process.env.DODO_PAYMENTS_ENVIRONMENT === 'live_mode'
-          ? 'live_mode'
-          : 'test_mode',
-      webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_KEY || null,
-    });
+    // A bad configuration must never crash the process: treat it as "not configured".
+    try {
+      cachedClient = new DodoPayments({
+        bearerToken: apiKey,
+        environment:
+          process.env.DODO_PAYMENTS_ENVIRONMENT === 'live_mode'
+            ? 'live_mode'
+            : 'test_mode',
+        webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_KEY || null,
+      });
+    } catch (error: any) {
+      console.error('[Dodo] Invalid payment configuration; payments are disabled.');
+      return null;
+    }
   }
 
   return cachedClient;
 }
 
-function getAppUrl(req: Request): string {
-  const configured = process.env.APP_URL;
-  if (configured) return configured.replace(/\/+$/, '');
-  // Only trust the request host in development; production must set APP_URL.
-  return `${req.protocol}://${req.get('host')}`;
+// Return/cancel URLs come only from the configured public base URL (never request headers).
+function getAppUrl(req: Request): string | null {
+  return getPublicBaseUrl(req);
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -105,6 +110,14 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
     const label = String(record?.title || record?.name || itemName || itemType).slice(0, 200);
     const orderRef = crypto.randomBytes(9).toString('hex');
     const appUrl = getAppUrl(req);
+    if (!appUrl) {
+      console.error('[Payments] PUBLIC_BASE_URL is not configured; checkout is unavailable.');
+      res.status(503).json({
+        success: false,
+        error: 'Online payments are temporarily unavailable. Please contact CareerBuddies.',
+      });
+      return;
+    }
 
     const payment = await Payment.create({
       orderRef,

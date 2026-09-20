@@ -42,6 +42,9 @@ export const PAGE_TITLES: Record<PageView, string> = {
   'login': 'Login',
   'signup': 'Sign Up',
   'admin': 'Admin Portal',
+  'privacy': 'Privacy Policy',
+  'terms': 'Terms & Conditions',
+  'refund': 'Refund / Cancellation Policy',
   'leads-dashboard': 'Leads Management',
   'dashboard': 'Candidate Dashboard'
 };

@@ -1048,17 +1048,18 @@ ${context}`,
 
 // ----------------- VITE MIDDLEWARE & SERVER START -----------------
 
-// Body-parser problems (malformed JSON, oversized bodies) on API routes get a
-// structured JSON error instead of the default HTML error page.
+// Any error raised on an API route becomes a structured JSON response (no HTML page,
+// no stack trace, no internal paths). Body-parser problems are client errors (400/413);
+// everything else is a generic 500.
 app.use((err: any, req: Request, res: Response, next: express.NextFunction) => {
-  if (req.path.startsWith('/api') && (err?.type === 'entity.parse.failed' || err?.type === 'entity.too.large' || err?.status === 400 || err?.status === 413)) {
-    res.status(err.status || 400).json({
-      success: false,
-      error: err.type === 'entity.too.large' ? 'Request is too large.' : 'Invalid request.',
-    });
-    return;
-  }
-  next(err);
+  if (!req.path.startsWith('/api') || res.headersSent) return next(err);
+  const tooLarge = err?.type === 'entity.too.large' || err?.status === 413;
+  const clientError = err?.type === 'entity.parse.failed' || err?.status === 400 || tooLarge;
+  if (!clientError) console.error('[API] Unhandled error:', err?.name || 'Error');
+  res.status(tooLarge ? 413 : clientError ? 400 : 500).json({
+    success: false,
+    error: tooLarge ? 'Request is too large.' : clientError ? 'Invalid request.' : 'Something went wrong. Please try again.',
+  });
 });
 
 // Unknown API paths get a JSON 404 (not the SPA page). Registered after every real route.

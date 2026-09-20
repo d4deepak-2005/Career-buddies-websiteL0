@@ -34,7 +34,7 @@ interface FooterProps {
 const SOCIAL_MEDIA_LINKS = [
   {
     name: 'LinkedIn',
-    url: 'https://www.linkedin.com/company/107530340/admin/dashboard/',
+    url: 'https://www.linkedin.com/company/107530340/',
     ariaLabel: 'Visit CareerBuddies LinkedIn profile',
     icon: (
       <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -54,7 +54,7 @@ const SOCIAL_MEDIA_LINKS = [
   },
   {
     name: 'Instagram',
-    url: 'https://www.instagram.com/careerbuddies01?igsi=MWliNndoOTR6dWExNA==',
+    url: 'https://www.instagram.com/careerbuddies01',
     ariaLabel: 'Visit CareerBuddies Instagram profile',
     icon: (
       <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -683,21 +683,14 @@ Thank you!`;
 
           {/* Legal / Policy Links + Admin Button - Aligned Right */}
           <div className="md:flex-1 flex items-center justify-center md:justify-end gap-4 font-bold flex-wrap">
-            <button onClick={() => handleNav('about-us')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
+            <button onClick={() => handleNav('privacy')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
               Privacy Policy
             </button>
-            <button onClick={() => handleNav('about-us')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
+            <button onClick={() => handleNav('terms')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
               Terms of Service
             </button>
-            <button onClick={() => handleNav('contact')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
+            <button onClick={() => handleNav('refund')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
               Refund Policy
-            </button>
-            <button 
-              onClick={() => handleNav('admin')} 
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/95 border border-white/40 text-[#002869] hover:bg-white hover:text-[#002869] shadow-xs hover:shadow-[0_2px_10px_rgba(0,0,0,0.18)] transition-all duration-200 cursor-pointer font-bold"
-            >
-              <ShieldCheck className="w-3 h-3" />
-              <span>Admin</span>
             </button>
           </div>
         </div>

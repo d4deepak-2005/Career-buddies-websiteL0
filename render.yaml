@@ -5,21 +5,64 @@ services:
     plan: free
     buildCommand: bun install && bun run build
     startCommand: bun run start
+    # Every `sync: false` value is a placeholder: set the real value in the Render
+    # dashboard. Never commit real secrets. All of these are SERVER-side only.
     envVars:
       - key: NODE_ENV
         value: production
-      - key: GEMINI_API_KEY
-        sync: false
+      # Render sits in front of the app as one proxy hop (real client IPs for rate limits).
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: MICROSOFT_TENANT
+        value: common
+      # Database
       - key: MONGODB_URI
         sync: false
+      # AI career assistant
       - key: NVIDIA_API_KEY
         sync: false
+      # Admin login + sessions (ADMIN_SESSION_SECRET: separate long random value, never the password)
       - key: ADMIN_PASSWORD
         sync: false
       - key: ADMIN_SESSION_SECRET
         sync: false
-      - key: APP_URL
+      # Candidate sessions (long random value)
+      - key: CANDIDATE_SESSION_SECRET
         sync: false
+      # Canonical public URL, e.g. https://www.example.com (reset links, OAuth callbacks, payment returns)
+      - key: PUBLIC_BASE_URL
+        sync: false
+      # Social sign-in (each provider works only when both of its values are set)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: LINKEDIN_CLIENT_ID
+        sync: false
+      - key: LINKEDIN_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_APP_ID
+        sync: false
+      - key: FACEBOOK_APP_SECRET
+        sync: false
+      # SMTP (password-reset emails)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      # Dodo Payments (leave unset to keep online payments disabled)
       - key: DODO_PAYMENTS_API_KEY
         sync: false
       - key: DODO_PAYMENTS_WEBHOOK_KEY
