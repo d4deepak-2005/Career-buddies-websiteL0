@@ -1,4 +1,4 @@
-import { chooseFit, focalPoint } from '../../utils/portraitFit';
+import { FittedPortraitImage } from '../common/FittedPortraitImage';
 import React, { useState } from 'react';
 import { 
   Users, 
@@ -65,21 +65,10 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
               <div>
                 {/* Real Photograph Container with object-position: center top */}
                 <div className="relative w-full aspect-[4/3] bg-[#e8edff] overflow-hidden">
-                  <img
+                  <FittedPortraitImage
                     src={leader.avatar}
                     alt={`${leader.name} - ${leader.role}`}
-                    className="w-full h-full transition-transform duration-500 group-hover:scale-105"
-                    style={{ objectFit: 'contain', objectPosition: 'center center' }}
-                    onLoad={(e) => {
-                      const img = e.currentTarget;
-                      if (chooseFit(img) === 'cover') {
-                        img.style.objectFit = 'cover';
-                        img.style.objectPosition = focalPoint(leader.name);
-                      }
-                    }}
-                    loading="eager"
-                    decoding="async"
-                    referrerPolicy="no-referrer"
+                    imgClassName="transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute top-4 left-4">
                     <span className="px-3 py-1 rounded-full bg-[#002869]/90 backdrop-blur-md text-white text-xs font-black tracking-wider uppercase shadow-xs">
