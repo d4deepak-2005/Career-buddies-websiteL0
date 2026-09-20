@@ -155,7 +155,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
                 title={currentLeader.title}
                 yearsOfExperience={currentLeader.yearsOfExperience}
                 imageSrc={currentLeader.image}
-                aspectRatio="aspect-[4/4.8]"
+                aspectRatio="aspect-[4/3]"
                 showBadges={true}
               />
             </div>

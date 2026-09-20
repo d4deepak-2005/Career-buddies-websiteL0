@@ -67,7 +67,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     'webinars', 
     'leadership', 
     'success-stories', 
-    'career-check-in', 
     'about-us', 
     'contact',
     'mentors',
@@ -76,13 +75,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#cbdaff]/70 shadow-[0_2px_14px_rgba(0,40,105,0.04)] transition-all">
-      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-6 py-1 sm:py-1.5 flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+      <div className="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-10 py-1 flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
         
         {/* Left Side: Prominent, Wide Official CareerBuddies Logo Presentation Area */}
         <div className="flex items-center shrink-0">
           <div 
             onClick={() => handleNav('home')}
-            className="group relative inline-flex items-center py-0.5 px-1.5 sm:px-2 rounded-2xl transition-all duration-200 cursor-pointer select-none bg-gradient-to-r from-transparent via-[#f4f7ff]/40 to-transparent hover:via-[#dae2ff]/25 border border-transparent hover:border-[#cbdaff]/40 hover:shadow-2xs active:scale-[0.99]"
+            className="group relative inline-flex items-center pr-1.5 sm:pr-2 rounded-2xl transition-all duration-200 cursor-pointer select-none bg-gradient-to-r from-transparent via-[#f4f7ff]/40 to-transparent hover:via-[#dae2ff]/25 border border-transparent hover:border-[#cbdaff]/40 hover:shadow-2xs active:scale-[0.99]"
             title="CareerBuddies - Home"
           >
             {/* Subtle soft backdrop ambient aura for premium prominence */}
@@ -99,12 +98,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Clean Core Navigation Items (Home | Services | Programmes | More ▼) */}
-        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1">
+        <nav className="hidden md:flex flex-1 justify-center items-center gap-0.5 lg:gap-1">
           {/* 1. Home */}
           <button
             id="nav-home-btn"
             onClick={() => handleNav('home')}
-            className={`px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
+            className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
               activePage === 'home'
                 ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
                 : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
@@ -120,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="nav-services-btn"
             onClick={() => handleNav('services')}
-            className={`px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
+            className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
               activePage === 'services'
                 ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
                 : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
@@ -136,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="nav-programmes-btn"
             onClick={() => handleNav('programmes')}
-            className={`px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
+            className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
               activePage === 'programmes'
                 ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
                 : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
@@ -148,12 +147,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
+          {/* 3b. Career Check-in (existing 'career-check-in' page) */}
+          <button
+            id="nav-career-checkin-btn"
+            onClick={() => handleNav('career-check-in')}
+            className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl hidden lg:flex items-center gap-1.5 whitespace-nowrap ${
+              activePage === 'career-check-in'
+                ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
+                : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
+            }`}
+          >
+            <span>Career Check-in</span>
+            {activePage === 'career-check-in' && (
+              <span className="w-1.5 h-1.5 rounded-full bg-[#002869]" />
+            )}
+          </button>
+
           {/* 4. More Dropdown (How CareerBuddies Works, Webinars, Stories, Leadership, etc.) */}
           <div className="relative" ref={exploreRef}>
             <button
               id="nav-more-dropdown-btn"
               onClick={() => setExploreOpen(!exploreOpen)}
-              className={`px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
+              className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
                 exploreOpen || isExploreActive
                   ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
                   : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'

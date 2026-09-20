@@ -60,12 +60,12 @@ export const LeaderPortrait: React.FC<LeaderPortraitProps> = ({
       <img
         src={currentSrc}
         alt={`${name} - ${title}`}
-        className="w-full h-full object-cover object-top transition-transform duration-700 hover:scale-105"
+        className="w-full h-full object-contain object-center transition-transform duration-700 hover:scale-105"
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center top',
+          objectFit: 'contain',
+          objectPosition: 'center center',
           display: 'block'
         }}
         loading="eager"

@@ -24,7 +24,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   // Responsive sizing presets with strictly locked aspect ratio (object-fit: contain)
   // Sized prominently so CareerBuddies name, staircase, and tagline directly below are broader and prominent
   const sizeClasses = {
-    header: 'h-12 sm:h-14 md:h-16 lg:h-[4.5rem] w-auto max-w-[120px] sm:max-w-[140px] md:max-w-[165px] lg:max-w-[190px]',
+    header: 'h-12 sm:h-14 md:h-16 lg:h-20 w-auto max-w-[130px] sm:max-w-[150px] md:max-w-[175px] lg:max-w-[215px]',
     footer: 'h-20 sm:h-24 md:h-28 lg:h-34 w-auto max-w-[280px] sm:max-w-[380px] md:max-w-[480px] lg:max-w-[560px]',
     sm: 'h-10 sm:h-12 md:h-14 sm:w-auto max-w-[160px] sm:max-w-[210px]',
     md: 'h-12 sm:h-15 md:h-18 w-auto max-w-[200px] sm:max-w-[280px] md:max-w-[320px]',

@@ -63,11 +63,11 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
             >
               <div>
                 {/* Real Photograph Container with object-position: center top */}
-                <div className="relative w-full aspect-[4/5] bg-[#e8edff] overflow-hidden">
+                <div className="relative w-full aspect-[4/3] bg-[#e8edff] overflow-hidden">
                   <img
                     src={leader.avatar}
                     alt={`${leader.name} - ${leader.role}`}
-                    className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-contain object-center transition-transform duration-500 group-hover:scale-105"
                     loading="eager"
                     decoding="async"
                     referrerPolicy="no-referrer"

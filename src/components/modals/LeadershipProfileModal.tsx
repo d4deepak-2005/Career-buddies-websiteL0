@@ -123,7 +123,7 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
                 title={founder.title || founder.role}
                 yearsOfExperience={founder.experienceYears ? `${founder.experienceYears}+ Yrs` : '10+ Yrs'}
                 imageSrc={founder.avatar}
-                aspectRatio="aspect-[4/4.8]"
+                aspectRatio="aspect-[4/3]"
                 showBadges={false}
               />
             </div>

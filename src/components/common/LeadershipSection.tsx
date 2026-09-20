@@ -144,7 +144,7 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
                   title={leader.title}
                   yearsOfExperience={leader.yearsOfExperience}
                   imageSrc={leader.image}
-                  aspectRatio="aspect-[4/4.8]"
+                  aspectRatio="aspect-[4/3]"
                   showBadges={true}
                 />
 
