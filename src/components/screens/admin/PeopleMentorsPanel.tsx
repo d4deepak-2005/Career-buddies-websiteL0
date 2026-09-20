@@ -34,24 +34,62 @@ const PERSON_EMPTY = {
 
 const MENTOR_FIELDS: FieldConfig[] = [
   { key: 'name', label: 'Name', type: 'text' },
-  { key: 'designation', label: 'Designation', type: 'text' },
+  { key: 'designation', label: 'Designation / Title', type: 'text' },
   { key: 'company', label: 'Company', type: 'text' },
-  { key: 'photoUrl', label: 'Photo URL', type: 'text' },
+  { key: 'companyColor', label: 'Company Brand Colour (hex)', type: 'text', placeholder: '#4285F4' },
+  {
+    key: 'category',
+    label: 'Category (drives the public filter)',
+    type: 'select',
+    options: ['Engineering', 'Product', 'Design', 'Data & AI', 'Marketing & Growth', 'Leadership'],
+  },
+  { key: 'photoUrl', label: 'Mentor Photo', type: 'image' },
   { key: 'experienceYears', label: 'Experience (years)', type: 'number' },
-  { key: 'bio', label: 'Profile / Bio', type: 'textarea' },
-  { key: 'expertise', label: 'Expertise', type: 'tags', placeholder: 'System Design, Leadership' },
-  { key: 'linkedIn', label: 'LinkedIn URL', type: 'text' },
+  { key: 'bio', label: 'Short Bio (shown on cards)', type: 'textarea' },
+  { key: 'longBio', label: 'Full Bio (shown in profile)', type: 'textarea' },
+  { key: 'expertise', label: 'Expertise / Skills', type: 'tags', placeholder: 'Go, Distributed Systems, Kubernetes' },
+  { key: 'topics', label: 'Session Topics', type: 'tags', placeholder: 'System Design, Mock Interviews' },
+  { key: 'pastCompanies', label: 'Past Companies', type: 'tags', placeholder: 'Lyft, Amazon' },
+  { key: 'linkedIn', label: 'LinkedIn / Profile URL', type: 'text' },
+  { key: 'rating', label: 'Rating (0-5)', type: 'number' },
+  { key: 'reviewCount', label: 'Number of Reviews', type: 'number' },
+  { key: 'sessionsCompleted', label: 'Sessions Completed', type: 'number' },
+  { key: 'hourlyRate', label: 'Price per Session (USD)', type: 'number' },
+  { key: 'availableNext', label: 'Next Available (text)', type: 'text', placeholder: 'Tomorrow, 2:00 PM' },
+  {
+    key: 'reviews',
+    label: 'Reviews',
+    type: 'json',
+    placeholder: '[{"id":"r1","author":"","role":"","rating":5,"date":"","comment":""}]',
+  },
+  { key: 'verified', label: 'Verified mentor badge', type: 'checkbox' },
+  { key: 'featured', label: 'Featured', type: 'checkbox' },
+  { key: 'superMentor', label: 'Super Mentor', type: 'checkbox' },
 ];
 
 const MENTOR_EMPTY = {
   name: '',
   designation: '',
   company: '',
+  companyColor: '',
+  category: 'Engineering',
   photoUrl: '',
   experienceYears: 0,
   bio: '',
+  longBio: '',
   expertise: [],
+  topics: [],
+  pastCompanies: [],
   linkedIn: '',
+  rating: 5,
+  reviewCount: 0,
+  sessionsCompleted: 0,
+  hourlyRate: 0,
+  availableNext: '',
+  reviews: [],
+  verified: true,
+  featured: false,
+  superMentor: false,
 };
 
 const SUB_TABS = ['Founder & Co-Founder', 'Leadership', 'Mentors'] as const;
@@ -130,6 +168,7 @@ export const PeopleMentorsPanel: React.FC = () => {
           emptyRecord={MENTOR_EMPTY}
           titleField="name"
           subtitleField="designation"
+          imageField="photoUrl"
         />
       )}
     </div>

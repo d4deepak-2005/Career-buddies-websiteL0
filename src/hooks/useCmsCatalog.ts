@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { usePublicCollection } from './usePublicCollection';
 import {
+  Mentor,
   ProgrammeItem,
   WebinarItem,
   TestimonialItem,
@@ -10,7 +11,7 @@ import {
 import { PROGRAMMES_CATALOGUE } from '../config/programmes';
 import { INITIAL_WEBINARS } from '../config/siteConfig';
 import { SUCCESS_STORIES } from '../config/testimonials';
-import { STRUCTURED_SERVICES, CAREER_PLANS } from '../data/mockData';
+import { STRUCTURED_SERVICES, CAREER_PLANS, MOCK_MENTORS } from '../data/mockData';
 
 // Each hook returns MongoDB-backed content mapped to the exact item shape the
 // existing screen already renders. If the collection is empty, still loading,
@@ -150,6 +151,37 @@ export function usePlans(): PlanItem[] {
         included: f.included !== false,
         detail: f.detail || undefined,
       })),
+    }));
+  }, [items]);
+}
+
+export function useMentors(): Mentor[] {
+  const { items } = usePublicCollection<any>('/api/mentors');
+  return useMemo(() => {
+    if (!items.length) return MOCK_MENTORS;
+    return items.map((m) => ({
+      id: m._id,
+      name: m.name || '',
+      title: m.designation || '',
+      company: m.company || '',
+      companyColor: m.companyColor || undefined,
+      avatar: m.photoUrl || '',
+      rating: m.rating ?? 5,
+      reviewCount: m.reviewCount ?? 0,
+      sessionsCompleted: m.sessionsCompleted ?? 0,
+      hourlyRate: m.hourlyRate ?? 0,
+      experienceYears: m.experienceYears ?? 0,
+      category: (m.category || 'Engineering') as Mentor['category'],
+      bio: m.bio || '',
+      longBio: m.longBio || m.bio || '',
+      topics: m.topics || [],
+      skills: m.expertise || [],
+      verified: m.verified !== false,
+      featured: !!m.featured,
+      superMentor: !!m.superMentor,
+      availableNext: m.availableNext || '',
+      pastCompanies: m.pastCompanies || [],
+      reviews: m.reviews || [],
     }));
   }, [items]);
 }

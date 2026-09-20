@@ -21,6 +21,7 @@ import { Testimonial } from './server/models/Testimonial.ts';
 import { Service } from './server/models/Service.ts';
 import { Plan } from './server/models/Plan.ts';
 import { paymentsRouter, paymentsWebhookHandler } from './server/routes/payments.ts';
+import mediaRouter from './server/routes/media.ts';
 
 dotenv.config();
 
@@ -760,6 +761,7 @@ app.use('/api/testimonials', createCrudRouter(Testimonial));
 app.use('/api/services', createCrudRouter(Service));
 app.use('/api/plans', createCrudRouter(Plan));
 app.use('/api/payments', paymentsRouter);
+app.use('/api/media', mediaRouter);
 
 // =====================================================
 // CAREERBUDDIES AI CAREER COUNSELLOR

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookedSession, Mentor } from '../../types';
-import { MOCK_MENTORS } from '../../data/mockData';
+import { useMentors } from '../../hooks/useCmsCatalog';
 import { 
   X, 
   Calendar, 
@@ -35,6 +35,8 @@ export const UserDashboardDrawer: React.FC<UserDashboardDrawerProps> = ({
   onStartMatching,
   onOpenFullDashboard
 }) => {
+  const MOCK_MENTORS = useMentors();
+
   if (!isOpen) return null;
 
   return (

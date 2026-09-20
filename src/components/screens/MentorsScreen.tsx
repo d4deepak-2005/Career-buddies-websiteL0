@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MOCK_MENTORS } from '../../data/mockData';
+import { useMentors } from '../../hooks/useCmsCatalog';
 import { Mentor, Category, PageView } from '../../types';
 import { 
   Search, 
@@ -41,6 +41,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
   onStartMatching,
   setActivePage
 }) => {
+  const MOCK_MENTORS = useMentors();
   const [selectedCategory, setSelectedCategory] = useState<Category>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCompany, setSelectedCompany] = useState<string>('All');
@@ -77,7 +78,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
       if (sortBy === 'sessions') return b.sessionsCompleted - a.sessionsCompleted;
       return 0;
     });
-  }, [selectedCategory, selectedCompany, searchQuery, sortBy]);
+  }, [selectedCategory, selectedCompany, searchQuery, sortBy, MOCK_MENTORS]);
 
   const uniqueCompanies = ['All', ...Array.from(new Set(MOCK_MENTORS.map(m => m.company)))];
 

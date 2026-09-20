@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MOCK_MENTORS } from '../../data/mockData';
+import { useMentors } from '../../hooks/useCmsCatalog';
 import { Mentor } from '../../types';
 import { 
   Sparkles, 
@@ -35,6 +35,8 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
   const [primaryGoal, setPrimaryGoal] = useState<string>('Promotion & Leveling');
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
 
+  const allMentors = useMentors();
+
   if (!isOpen) return null;
 
   const handleCalculate = () => {
@@ -51,7 +53,7 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
   };
 
   // Determine top 3 matches based on inputs
-  const matchedMentors = MOCK_MENTORS.slice(0, 3);
+  const matchedMentors = allMentors.slice(0, 3);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">

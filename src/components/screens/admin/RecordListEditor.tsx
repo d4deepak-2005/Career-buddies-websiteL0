@@ -13,11 +13,12 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { adminFetch } from '../../../utils/adminAuth';
+import { ImageUploadField } from './ImageUploadField';
 
 export interface FieldConfig {
   key: string;
   label: string;
-  type?: 'text' | 'textarea' | 'tags' | 'number' | 'select' | 'checkbox' | 'json';
+  type?: 'text' | 'textarea' | 'tags' | 'number' | 'select' | 'checkbox' | 'json' | 'image';
   options?: string[];
   placeholder?: string;
 }
@@ -33,6 +34,8 @@ interface RecordListEditorProps {
   // Only load/show records matching this filter (e.g. { role: 'founder' }).
   // New records are created pre-filled with these values too.
   filter?: Record<string, any>;
+  // Field holding an image URL — shown as a thumbnail on each record card.
+  imageField?: string;
 }
 
 const inputClass =
@@ -58,6 +61,7 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
   titleField = 'name',
   subtitleField,
   filter,
+  imageField,
 }) => {
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -292,6 +296,16 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
                   </div>
                 );
               }
+              if (field.type === 'image') {
+                return (
+                  <ImageUploadField
+                    key={field.key}
+                    label={field.label}
+                    value={form[field.key] || ''}
+                    onChange={(url) => updateField(field.key, url)}
+                  />
+                );
+              }
               if (field.type === 'checkbox') {
                 return (
                   <div key={field.key} className="flex items-end">
@@ -404,7 +418,14 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
               } flex flex-col gap-2`}
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                {imageField && (
+                  <div className="w-12 h-12 shrink-0 rounded-lg bg-[#f1f3ff] border border-[#cbdaff] overflow-hidden">
+                    {item[imageField] && (
+                      <img src={item[imageField]} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
                   <h5 className="font-bold text-sm text-[#061b3b] truncate">
                     {item[titleField]}
                   </h5>
