@@ -262,7 +262,13 @@ export default function App() {
       const messages: Record<string, string> = {
         cancelled: `${label} sign-in was cancelled. You can try again or use email/password.`,
         not_configured: unavailable,
-        provider_error: unavailable,
+        provider_error: `${label} could not complete the sign-in. Please try again or use email/password.`,
+        // Something failed after the provider redirected back (code exchange / identity check).
+        token_exchange_failed: `We couldn't verify your ${label} sign-in. Please try again or use email/password.`,
+        invalid_id_token: `We couldn't verify your ${label} sign-in. Please try again or use email/password.`,
+        profile_failed: `We couldn't read your ${label} profile. Please try again or use email/password.`,
+        jwks_unavailable: `${label} sign-in is having a temporary problem. Please try again in a moment.`,
+        server_error: `${label} sign-in could not be completed. Please try again or use email/password.`,
         invalid_state: `${label} sign-in could not be completed (the request expired or was started in a different browser). Please try again.`,
         email_unverified_conflict: `An account with this email already exists, and ${label} could not confirm that you own it. Please log in with your email and password.`,
         no_email: `${label} did not share an email address, which CareerBuddies needs to create your account. Please allow email access or sign up with email.`
