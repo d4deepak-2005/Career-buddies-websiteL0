@@ -18,6 +18,7 @@ import {
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
 import { SiteSettingsData, pickText } from '../../hooks/useSiteSettings';
+import { submitLead } from '../../utils/submitLead';
 
 interface ContactScreenProps {
   onLeadSubmitted?: () => void;
@@ -34,18 +35,17 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
   const [faqCategory, setFaqCategory] = useState<string>('all');
   
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState('');
   const [submittedEmail, setSubmittedEmail] = useState('');
 
   const handleFormSubmit = async (data: StandardCandidateFormData) => {
     setLoading(true);
+    setSubmitError(null);
 
     try {
-      await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await submitLead({
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
@@ -58,15 +58,12 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
           notes: data.additionalInfo,
           serviceInterested: 'Contact Us Inquiry',
           source: 'Contact Us Screen'
-        })
-      });
+        });
+      if (!result.ok) {
+        setSubmitError(result.error || 'We could not send your details. Please try again.');
+        return;
+      }
 
-      setSubmittedName(`${data.firstName} ${data.lastName}`);
-      setSubmittedEmail(data.email);
-      setFormSubmitted(true);
-      if (onLeadSubmitted) onLeadSubmitted();
-    } catch (err) {
-      console.error('Contact submission error:', err);
       setSubmittedName(`${data.firstName} ${data.lastName}`);
       setSubmittedEmail(data.email);
       setFormSubmitted(true);
@@ -156,6 +153,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
                 submitButtonColor="blue"
                 contextTag="contact"
                 onSubmit={handleFormSubmit}
+                submitError={submitError}
                 isLoading={loading}
               />
             )}

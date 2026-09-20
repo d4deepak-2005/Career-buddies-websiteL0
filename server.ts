@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import { connectDatabase } from './server/config/database.ts';
 import { Lead } from './server/models/Lead.ts';
 import {
@@ -24,11 +25,35 @@ import { paymentsRouter, paymentsWebhookHandler } from './server/routes/payments
 import mediaRouter from './server/routes/media.ts';
 import candidateRouter from './server/routes/candidate.ts';
 import oauthRouter from './server/routes/oauth.ts';
+import { createRateLimiter } from './server/middleware/rateLimit.ts';
+import { securityHeaders } from './server/middleware/securityHeaders.ts';
+import { validateLead } from './server/utils/leadValidation.ts';
 
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+
+// Behind a reverse proxy (Render, Cloudflare tunnel) every request reaches us from the
+// proxy's address. `trust proxy` = number of proxy hops we own, so req.ip becomes the
+// real client address (from the LAST hop's X-Forwarded-For entry) and a client cannot
+// spoof it by sending its own header. Override with TRUST_PROXY_HOPS if the hosting
+// setup has a different number of hops; 0 disables (direct connections / local dev).
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const TRUST_PROXY_HOPS =
+  process.env.TRUST_PROXY_HOPS !== undefined && process.env.TRUST_PROXY_HOPS !== ''
+    ? Math.max(0, Math.min(5, Number(process.env.TRUST_PROXY_HOPS) || 0))
+    : IS_PRODUCTION ? 1 : 0;
+app.set('trust proxy', TRUST_PROXY_HOPS);
+app.disable('x-powered-by');
+app.use(securityHeaders(IS_PRODUCTION));
+
+// Independent rate-limit buckets (never shared between endpoints).
+const leadsBurstLimiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 6, message: 'Too many submissions from your connection. Please wait a few minutes and try again.' });
+const leadsDailyLimiter = createRateLimiter({ windowMs: 24 * 60 * 60 * 1000, max: 25, message: 'Daily submission limit reached. Please contact us on WhatsApp instead.' });
+const aiBurstLimiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 20, message: 'You are sending messages too quickly. Please wait a few minutes and try again.' });
+const aiDailyLimiter = createRateLimiter({ windowMs: 24 * 60 * 60 * 1000, max: 200, message: 'Daily assistant limit reached. Please try again tomorrow.' });
+const adminLoginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many failed attempts. Please try again later.' });
+const PORT = Number(process.env.PORT) || 3000;
 
 // Dodo Payments webhook — needs the RAW body for signature verification,
 // so it is registered before the JSON body parser.
@@ -246,17 +271,12 @@ async function notifyWhatsAppAdmins(
 
 const VALID_STATUSES = ['new', 'contacted', 'scheduled', 'converted'];
 
-// 1. Health check
+// 1. Health check - status only; no business or database counts are exposed publicly.
 app.get(
   '/api/health',
-  async (req: Request, res: Response) => {
-    const totalLeads = await Lead.countDocuments();
-
-    res.json({
-      status: 'ok',
-      time: new Date().toISOString(),
-      totalLeads,
-    });
+  (req: Request, res: Response) => {
+    const dbUp = mongoose.connection.readyState === 1;
+    res.status(dbUp ? 200 : 503).json({ status: dbUp ? 'ok' : 'degraded' });
   }
 );
 
@@ -264,9 +284,26 @@ app.get(
 app.post(
   '/api/admin/login',
   (req: Request, res: Response) => {
-    const { password } = req.body as { password?: string };
+    const key = req.ip || 'unknown';
+
+    // Failed attempts are counted per client; once blocked, even the right password
+    // is refused until the window ends (no guess-through). Own bucket, separate from
+    // candidate login/signup.
+    if (adminLoginLimiter.isBlocked(key)) {
+      const wait = adminLoginLimiter.retryAfterSeconds(key);
+      res.setHeader('Retry-After', String(wait));
+      res.status(429).json({
+        success: false,
+        error: 'Too many failed attempts. Please try again later.',
+        retryAfterSeconds: wait,
+      });
+      return;
+    }
+
+    const { password } = (req.body || {}) as { password?: string };
 
     if (!verifyAdminPassword(password)) {
+      adminLoginLimiter.fail(key);
       res.status(401).json({
         success: false,
         error: 'Incorrect password.',
@@ -274,139 +311,112 @@ app.post(
       return;
     }
 
-    const { token, expiresAt } = createAdminToken();
-
-    res.json({
-      success: true,
-      token,
-      expiresAt,
-    });
+    try {
+      const { token, expiresAt } = createAdminToken();
+      adminLoginLimiter.reset(key);
+      res.json({
+        success: true,
+        token,
+        expiresAt,
+      });
+    } catch (error) {
+      // ADMIN_SESSION_SECRET missing/too short: fail closed.
+      console.error('[Admin] Session signing is not configured.');
+      res.status(503).json({
+        success: false,
+        error: 'Admin login is temporarily unavailable.',
+      });
+    }
   }
 );
 
-// 2. Create Lead (public — used by the site's lead-capture forms)
+// 2. Create Lead (public - used by the site's lead-capture forms)
+// Success is returned ONLY after the lead has really been stored. Invalid input is a
+// 400 with a structured error; a storage failure is a 500. Nothing is invented for
+// fields the visitor did not provide.
 app.post(
   '/api/leads',
+  leadsBurstLimiter.middleware,
+  leadsDailyLimiter.middleware,
   async (req: Request, res: Response) => {
+    const result = validateLead(req.body);
+
+    if (!result.ok) {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        fields: result.fields,
+      });
+      return;
+    }
+
+    const input = result.data as NonNullable<typeof result.data>;
+    const initialNotes: {
+      id: string;
+      text: string;
+      author: string;
+      createdAt: string;
+    }[] = [];
+
+    if (input.notes) {
+      initialNotes.push({
+        id: `note-${Date.now()}`,
+        text: input.notes,
+        author: 'System Intake',
+        createdAt: new Date().toISOString(),
+      });
+    }
+
     try {
-      const {
-        firstName,
-        lastName,
-        name,
-        mobile,
-        email,
-        currentRole,
-        experience,
-        industry,
-        requirement,
-        planInterest,
-        serviceInterested,
-        source,
-        notes,
-      } = req.body;
-
-      const resolvedFirstName =
-        firstName ||
-        (name ? name.split(' ')[0] : 'Career') ||
-        'Career';
-
-      const resolvedLastName =
-        lastName ||
-        (name && name.split(' ').length > 1
-          ? name.split(' ').slice(1).join(' ')
-          : '') ||
-        '';
-
-      // Normalizing phone format
-      let formattedMobile = mobile
-        ? String(mobile).trim()
-        : '+91 9310288270';
-
-      if (
-        !formattedMobile.startsWith('+') &&
-        formattedMobile.length === 10
-      ) {
-        formattedMobile = `+91 ${formattedMobile}`;
-      }
-
-      const resolvedRequirement =
-        requirement ||
-        serviceInterested ||
-        (typeof notes === 'string' ? notes : '') ||
-        'Free Career Counselling & Mentorship Guidance';
-
-      const initialNotes: {
-        id: string;
-        text: string;
-        author: string;
-        createdAt: string;
-      }[] = [];
-
-      if (
-        typeof notes === 'string' &&
-        notes.trim()
-      ) {
-        initialNotes.push({
-          id: `note-${Date.now()}`,
-          text: notes.trim(),
-          author: 'System Intake',
-          createdAt: new Date().toISOString(),
-        });
-      }
-
       const doc = await Lead.create({
-        firstName: resolvedFirstName,
-        lastName: resolvedLastName,
-        mobile: formattedMobile,
-        email: email
-          ? String(email).trim().toLowerCase()
-          : 'counselling@careerbuddies.in',
-        currentRole: currentRole
-          ? String(currentRole).trim()
-          : 'Professional',
-        experience: experience || 'Not specified',
-        industry: industry || 'Technology',
-        requirement: resolvedRequirement,
-        planInterest:
-          planInterest ||
-          serviceInterested ||
-          'General Counselling',
-        source: source || 'Website Intake',
+        firstName: input.firstName,
+        lastName: input.lastName,
+        mobile: input.mobile,
+        email: input.email,
+        currentRole: input.currentRole,
+        experience: input.experience,
+        industry: input.industry,
+        requirement: input.requirement,
+        planInterest: input.planInterest,
+        source: input.source,
+        alternateNumber: input.alternateNumber,
+        alternateEmail: input.alternateEmail,
+        linkedinUrl: input.linkedinUrl,
         status: 'new',
         notes: initialNotes,
       });
 
-      console.log(
-        `[MongoDB] Lead saved successfully: ${resolvedFirstName} ${resolvedLastName}`
-      );
+      // No personal details in the log line.
+      console.log(`[Lead] Saved new lead from "${input.source}".`);
 
-      const newLead = serializeLead(doc, await computeSerialNumber(doc));
-
-      // Dispatch notifications in background
-      notifyWhatsAppAdmins(newLead).catch(
-        (err) =>
-          console.log(
-            'WhatsApp notification notice:',
-            err
-          )
-      );
+      try {
+        const newLead = serializeLead(doc, await computeSerialNumber(doc));
+        // Notifications run in the background and never affect the response.
+        notifyWhatsAppAdmins(newLead).catch((err) =>
+          console.log('WhatsApp notification notice:', err?.message || 'failed')
+        );
+      } catch {
+        // The lead is already saved; a notification problem must not turn it into an error.
+      }
 
       res.status(201).json({
         success: true,
-        message:
-          'Thank you. Your details have been submitted successfully.',
-        lead: newLead,
+        message: 'Thank you. Your details have been submitted successfully.',
       });
-    } catch (error) {
-      console.error(
-        'Error creating lead:',
-        error
-      );
+    } catch (error: any) {
+      console.error('Error creating lead:', error?.name || 'error');
 
-      res.status(200).json({
-        success: true,
-        message:
-          'Thank you. Your details have been submitted successfully.',
+      if (error?.name === 'ValidationError') {
+        res.status(400).json({
+          success: false,
+          error: 'Some of the details could not be accepted. Please check them and try again.',
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        error: 'We could not save your details right now. Please try again in a moment.',
       });
     }
   }
@@ -840,16 +850,17 @@ function buildAIContext(
             (item.role === 'user' || item.role === 'assistant') &&
             typeof item.content === 'string'
         )
-        .slice(-10)
+        .slice(-AI_MAX_HISTORY_ITEMS)
+        .map((item) => ({ ...item, content: item.content.slice(0, AI_MAX_HISTORY_ITEM_CHARS) }))
     : [];
 
   const profileText = profile
     ? JSON.stringify({
-        name: profile.name || '',
-        currentRole: profile.currentRole || '',
-        experience: profile.experience || '',
-        industry: profile.industry || '',
-        goal: profile.goal || '',
+        name: String(profile.name || '').slice(0, 200),
+        currentRole: String(profile.currentRole || '').slice(0, 200),
+        experience: String(profile.experience || '').slice(0, 200),
+        industry: String(profile.industry || '').slice(0, 200),
+        goal: String(profile.goal || '').slice(0, 500),
       })
     : '{}';
 
@@ -865,8 +876,14 @@ function buildAIContext(
   return `USER PROFILE:\n${profileText}\n\nRECENT CONVERSATION:\n${historyText}`;
 }
 
+const AI_MAX_MESSAGE_CHARS = 1000;
+const AI_MAX_HISTORY_ITEMS = 10;
+const AI_MAX_HISTORY_ITEM_CHARS = 2000;
+
 app.post(
   '/api/ai',
+  aiBurstLimiter.middleware,
+  aiDailyLimiter.middleware,
   async (req: Request, res: Response) => {
     const controller = new AbortController();
 
@@ -899,11 +916,35 @@ app.post(
         });
       }
 
+      if (message.length > AI_MAX_MESSAGE_CHARS) {
+        clearTimeout(timeout);
+        return res.status(400).json({
+          success: false,
+          error: `Message is too long (maximum ${AI_MAX_MESSAGE_CHARS} characters).`,
+        });
+      }
+
+      if (history !== undefined && history !== null && !Array.isArray(history)) {
+        clearTimeout(timeout);
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid conversation history.',
+        });
+      }
+
+      if (profile !== undefined && profile !== null && (typeof profile !== 'object' || Array.isArray(profile))) {
+        clearTimeout(timeout);
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid profile.',
+        });
+      }
+
       const userMessage = message.trim();
       const knowledge = getCareerKnowledge(userMessage);
       const context = buildAIContext(history || [], profile);
 
-      console.log('[NVIDIA AI] Request started:', userMessage);
+      console.log(`[NVIDIA AI] Request started (${userMessage.length} chars)`);
 
       const response = await fetch(
         'https://integrate.api.nvidia.com/v1/chat/completions',
@@ -1007,6 +1048,24 @@ ${context}`,
 
 // ----------------- VITE MIDDLEWARE & SERVER START -----------------
 
+// Body-parser problems (malformed JSON, oversized bodies) on API routes get a
+// structured JSON error instead of the default HTML error page.
+app.use((err: any, req: Request, res: Response, next: express.NextFunction) => {
+  if (req.path.startsWith('/api') && (err?.type === 'entity.parse.failed' || err?.type === 'entity.too.large' || err?.status === 400 || err?.status === 413)) {
+    res.status(err.status || 400).json({
+      success: false,
+      error: err.type === 'entity.too.large' ? 'Request is too large.' : 'Invalid request.',
+    });
+    return;
+  }
+  next(err);
+});
+
+// Unknown API paths get a JSON 404 (not the SPA page). Registered after every real route.
+app.use('/api', (req: Request, res: Response) => {
+  res.status(404).json({ success: false, error: 'Not found.' });
+});
+
 async function startServer() {
   await connectDatabase();
 
@@ -1038,9 +1097,12 @@ async function startServer() {
 
     app.use(vite.middlewares);
   } else {
+    // Only the client build is public. The server bundle (dist/server.cjs) and its
+    // source map live next to it in dist/ and must never be served.
     const distPath = path.join(
       process.cwd(),
-      'dist'
+      'dist',
+      'client'
     );
 
     app.use(

@@ -34,6 +34,7 @@ import {
   Target,
   ArrowUpRight
 } from 'lucide-react';
+import { submitLead } from '../../utils/submitLead';
 
 interface HomeScreenProps {
   onSelectMentor: (mentor: Mentor) => void;
@@ -73,6 +74,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   });
   const [heroSubmitted, setHeroSubmitted] = useState(false);
   const [heroLoading, setHeroLoading] = useState(false);
+  const [heroError, setHeroError] = useState<string | null>(null);
 
   // FAQ Accordion State
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -82,27 +84,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (!heroForm.name || !heroForm.mobile) return;
 
     setHeroLoading(true);
+    setHeroError(null);
     try {
       const parts = heroForm.name.trim().split(' ');
-      await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: parts[0],
-          lastName: parts.slice(1).join(' ') || '',
-          mobile: heroForm.mobile.trim(),
-          email: heroForm.email.trim() || 'counselling-lead@careerbuddies.in',
-          currentRole: 'Professional',
-          experience: '2-5 years',
-          industry: 'Technology',
-          requirement: heroForm.goal,
-          planInterest: 'Free Diagnostic Counselling',
-          source: 'Hero Quick Diagnostic'
-        })
+      const result = await submitLead({
+        firstName: parts[0],
+        lastName: parts.slice(1).join(' ') || '',
+        mobile: heroForm.mobile.trim(),
+        email: heroForm.email.trim(),
+        requirement: heroForm.goal,
+        planInterest: 'Free Diagnostic Counselling',
+        source: 'Hero Quick Diagnostic'
       });
-      setHeroSubmitted(true);
-    } catch (err) {
-      console.error(err);
+      if (!result.ok) {
+        setHeroError(result.error || 'We could not send your details. Please try again.');
+        return;
+      }
       setHeroSubmitted(true);
     } finally {
       setHeroLoading(false);

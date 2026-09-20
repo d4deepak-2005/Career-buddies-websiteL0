@@ -5,6 +5,7 @@ import { Lead } from '../models/Lead.ts';
 import { Payment } from '../models/Payment.ts';
 import { Webinar } from '../models/Webinar.ts';
 import { passwordResetEmail, sendMail, socialOnlyEmail } from '../services/mailer.ts';
+import { createRateLimiter } from '../middleware/rateLimit.ts';
 import {
   createCandidateToken,
   hashPassword,
@@ -21,23 +22,18 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const str = (v: unknown, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
-// Small in-memory brute-force guard for login/signup (per IP).
-const attempts = new Map<string, { count: number; reset: number }>();
-function rateLimited(req: Request, res: Response): boolean {
-  const key = req.ip || 'unknown';
-  const now = Date.now();
-  const entry = attempts.get(key);
-  if (!entry || now > entry.reset) {
-    attempts.set(key, { count: 1, reset: now + 15 * 60 * 1000 });
-    return false;
-  }
-  entry.count += 1;
-  if (entry.count > 20) {
-    res.status(429).json({ success: false, error: 'Too many attempts. Please try again in a few minutes.' });
-    return true;
-  }
-  return false;
-}
+// Independent rate-limit buckets: a burst of failed logins can never lock out signup,
+// forgot-password or normal API use (and vice versa). Keys are the real client address
+// (Express `trust proxy`) or the account email.
+const signupLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 10, message: 'Too many sign-up attempts. Please try again later.' });
+const loginIpLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10, message: 'Too many failed login attempts. Please try again in a few minutes.' });
+const loginEmailLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 8, message: 'Too many failed login attempts. Please try again in a few minutes.' });
+const enquiryLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  message: 'You have sent several enquiries recently. Please wait a few minutes before sending another.',
+  keyFn: (req) => String((req as any).candidate?._id || req.ip || 'unknown'),
+});
 
 // Profile fields the Candidate Area edits (email/password are handled separately).
 const PROFILE_FIELDS = [
@@ -75,8 +71,7 @@ async function issueSession(res: Response, candidateId: string, status = 200) {
   res.status(status).json(await buildSession(candidateId));
 }
 
-router.post('/signup', async (req: Request, res: Response) => {
-  if (rateLimited(req, res)) return;
+router.post('/signup', signupLimiter.middleware, async (req: Request, res: Response) => {
   try {
     const name = str(req.body?.name, 120);
     const email = str(req.body?.email, 200).toLowerCase();
@@ -111,15 +106,31 @@ router.post('/signup', async (req: Request, res: Response) => {
 });
 
 router.post('/login', async (req: Request, res: Response) => {
-  if (rateLimited(req, res)) return;
+  const ipKey = req.ip || 'unknown';
+  const email = str(req.body?.email, 200).toLowerCase();
+  const emailKey = email || '(none)';
+
+  // Only FAILED attempts count. Checked before the password is even looked at.
+  if (loginIpLimiter.isBlocked(ipKey) || loginEmailLimiter.isBlocked(emailKey)) {
+    const wait = Math.max(loginIpLimiter.retryAfterSeconds(ipKey), loginEmailLimiter.retryAfterSeconds(emailKey));
+    res.setHeader('Retry-After', String(wait));
+    return void res.status(429).json({
+      success: false,
+      error: 'Too many failed login attempts. Please try again in a few minutes.',
+      retryAfterSeconds: wait,
+    });
+  }
+
   try {
-    const email = str(req.body?.email, 200).toLowerCase();
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
 
     const candidate = await Candidate.findOne({ email }).select('+passwordHash');
     if (!candidate || !verifyPassword(password, candidate.passwordHash)) {
+      loginIpLimiter.fail(ipKey);
+      loginEmailLimiter.fail(emailKey);
       return void res.status(401).json({ success: false, error: 'Incorrect email or password.' });
     }
+    loginEmailLimiter.reset(emailKey);
     await issueSession(res, candidate._id.toString());
   } catch (error: any) {
     console.error('[Candidate] Login failed:', error?.message || error);
@@ -311,12 +322,20 @@ const LEAD_STATUS_LABEL: Record<string, string> = {
 
 // Everything the tabs need, scoped to the logged-in candidate's own email.
 router.get('/dashboard', requireCandidateAuth, async (req: Request, res: Response) => {
-  const email: string = (req as any).candidate.email;
-  const exact = new RegExp(`^${escapeRegex(email)}$`, 'i');
+  const me = (req as any).candidate;
+  const email: string = me.email;
+
+  // Payments belong to the account that created the checkout (server-side session),
+  // never to whoever typed a matching email. Enquiries: the ones this account sent
+  // while logged in, plus leads under its email ONLY if that email is verified
+  // (password sign-ups are not verified, so a stranger can't read someone else's lead).
+  const enquiryFilter: any = me.emailVerified
+    ? { $or: [{ candidateId: me._id }, { email }] }
+    : { candidateId: me._id };
 
   const [payments, leads] = await Promise.all([
-    Payment.find({ customerEmail: exact }).sort({ createdAt: -1 }).lean(),
-    Lead.find({ email }).sort({ createdAt: -1 }).lean(),
+    Payment.find({ candidateId: me._id }).sort({ createdAt: -1 }).lean(),
+    Lead.find(enquiryFilter).sort({ createdAt: -1 }).lean(),
   ]);
 
   // Webinars the candidate has actually paid for, joined to the CMS webinar
@@ -369,7 +388,7 @@ router.get('/dashboard', requireCandidateAuth, async (req: Request, res: Respons
 
 // New enquiry from the Candidate Area → stored as a lead so the admin sees it in
 // the existing Leads dashboard, and it appears in this candidate's own history.
-router.post('/enquiries', requireCandidateAuth, async (req: Request, res: Response) => {
+router.post('/enquiries', requireCandidateAuth, enquiryLimiter.middleware, async (req: Request, res: Response) => {
   const c = (req as any).candidate;
   const subject = str(req.body?.subject, 200);
   const category = str(req.body?.category, 100) || 'General';
@@ -384,6 +403,7 @@ router.post('/enquiries', requireCandidateAuth, async (req: Request, res: Respon
     lastName: c.lastName || '',
     mobile: c.mobile || 'Not provided',
     email: c.email,
+    candidateId: c._id,
     currentRole: c.currentDesignation || 'Professional',
     experience: c.totalExperience || 'Not specified',
     requirement: `${subject} — ${message}`,

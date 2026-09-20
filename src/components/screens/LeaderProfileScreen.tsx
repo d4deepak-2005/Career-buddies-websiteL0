@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { HandshakeIcon } from '../common/HandshakeIcon';
 import { LeaderPortrait } from '../common/LeaderPortrait';
+import { submitLead } from '../../utils/submitLead';
 
 interface LeaderProfileScreenProps {
   slug?: string;
@@ -46,6 +47,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
   const nextLeader = getLeaderByIndex(currentIndex + 1);
 
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submittedName, setSubmittedName] = useState('');
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -57,11 +59,9 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
 
   const handleFormSubmit = async (data: StandardCandidateFormData) => {
     setSubmitting(true);
+    setSubmitError(null);
     try {
-      await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await submitLead({
           firstName: data.firstName,
           lastName: data.lastName,
           mobile: data.mobile,
@@ -75,17 +75,16 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
           requirement: `Direct Message to ${currentLeader.name} (${currentLeader.role}): ${data.additionalInfo || 'Leadership Advisory Connect'}`,
           planInterest: `Leadership Connect - ${currentLeader.name}`,
           source: `Leader Profile Page - ${currentLeader.name}`
-        })
-      });
+        });
+      if (!result.ok) {
+        setSubmitError(result.error || 'We could not send your details. Please try again.');
+        return;
+      }
       setSubmittedName(data.firstName);
       setSubmitSuccess(true);
       setTimeout(() => {
         setSubmitSuccess(false);
       }, 6000);
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setSubmittedName(data.firstName);
-      setSubmitSuccess(true);
     } finally {
       setSubmitting(false);
     }
@@ -469,6 +468,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
               additionalInfoLabel={`Message for ${currentLeader.name}`}
               additionalInfoPlaceholder={`Hi ${currentLeader.name}, I would like your guidance on...`}
               onSubmit={handleFormSubmit}
+                submitError={submitError}
               isLoading={submitting}
             />
           )}

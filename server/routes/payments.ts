@@ -6,6 +6,7 @@ import { Payment } from '../models/Payment.ts';
 import { Webinar } from '../models/Webinar.ts';
 import { Plan } from '../models/Plan.ts';
 import { Programme } from '../models/Programme.ts';
+import { requireCandidateAuth } from '../middleware/candidateAuth.ts';
 import { requireAdminAuth } from '../middleware/adminAuth.ts';
 
 // Dodo Payments integration.
@@ -53,7 +54,7 @@ export const paymentsRouter = express.Router();
 
 // Create a Dodo checkout session for a webinar / plan / programme.
 // The price is defined by the Dodo product — the browser never sends an amount.
-paymentsRouter.post('/checkout', async (req: Request, res: Response) => {
+paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res: Response) => {
   const client = getClient();
 
   if (!client) {
@@ -65,9 +66,12 @@ paymentsRouter.post('/checkout', async (req: Request, res: Response) => {
   }
 
   const { itemType, itemId, itemName, customer, details } = req.body || {};
-  const name = String(customer?.name || '').trim().slice(0, 120);
-  const email = String(customer?.email || '').trim().toLowerCase().slice(0, 200);
-  const mobile = String(customer?.mobile || '').trim().slice(0, 30);
+  // Identity comes ONLY from the authenticated server session. Any customer id/email
+  // in the request body is ignored - it can't associate a checkout with someone else.
+  const candidate = (req as any).candidate;
+  const name = `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim().slice(0, 120);
+  const email = String(candidate.email || '').trim().toLowerCase().slice(0, 200);
+  const mobile = String(customer?.mobile || candidate.mobile || '').trim().slice(0, 30);
 
   if (!MODELS[itemType]) {
     res.status(400).json({ success: false, error: 'Invalid item type.' });
@@ -108,6 +112,7 @@ paymentsRouter.post('/checkout', async (req: Request, res: Response) => {
       itemId: String(itemId || ''),
       itemName: label,
       productId,
+      candidateId: candidate._id,
       customerName: name,
       customerEmail: email,
       customerMobile: mobile,

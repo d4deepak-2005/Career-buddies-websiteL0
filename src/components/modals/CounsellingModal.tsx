@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2, ShieldCheck, MessageSquare } from 'lucide-react';
 import { OFFICE_DETAILS } from '../../data/mockData';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
+import { submitLead } from '../../utils/submitLead';
 
 interface CounsellingModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const CounsellingModal: React.FC<CounsellingModalProps> = ({
   const [submittedName, setSubmittedName] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -35,11 +37,9 @@ export const CounsellingModal: React.FC<CounsellingModalProps> = ({
 
   const handleFormSubmit = async (data: StandardCandidateFormData) => {
     setLoading(true);
+    setSubmitError(null);
     try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await submitLead({
           firstName: data.firstName,
           lastName: data.lastName,
           mobile: data.mobile,
@@ -53,15 +53,12 @@ export const CounsellingModal: React.FC<CounsellingModalProps> = ({
           requirement: initialService ? `Service: ${initialService}` : '1:1 Career Counseling & Plan Diagnosis',
           planInterest: initialPlan || 'General Counselling',
           source: initialPlan ? 'Plan Enquiry' : 'Counselling Modal'
-        })
-      });
+        });
+      if (!result.ok) {
+        setSubmitError(result.error || 'We could not send your details. Please try again.');
+        return;
+      }
 
-      setSubmittedName(data.firstName);
-      setIsSuccess(true);
-      if (onSuccess) onSuccess();
-      if (onLeadSubmitted) onLeadSubmitted();
-    } catch (err) {
-      console.error('Lead submission error:', err);
       setSubmittedName(data.firstName);
       setIsSuccess(true);
       if (onSuccess) onSuccess();
@@ -153,6 +150,7 @@ export const CounsellingModal: React.FC<CounsellingModalProps> = ({
               submitButtonColor="green"
               contextTag={initialPlan ? `Plan Interested: ${initialPlan}` : undefined}
               onSubmit={handleFormSubmit}
+                submitError={submitError}
               onCancel={handleResetAndClose}
               isLoading={loading}
             />

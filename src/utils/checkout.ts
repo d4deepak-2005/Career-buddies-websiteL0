@@ -1,3 +1,5 @@
+import { getCandidateToken } from './candidateAuth';
+
 export interface CheckoutRequest {
   itemType: 'webinar' | 'plan' | 'programme';
   itemId?: string;
@@ -12,10 +14,16 @@ export interface CheckoutRequest {
 export async function startCheckout(
   request: CheckoutRequest
 ): Promise<{ ok: boolean; error?: string }> {
+  // Checkout is tied to the logged-in candidate account (identified by the server session).
+  const token = getCandidateToken();
+  if (!token) {
+    return { ok: false, error: 'Please log in or create a free account to complete your purchase.' };
+  }
+
   try {
     const res = await fetch('/api/payments/checkout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(request),
     });
     const data = await res.json();

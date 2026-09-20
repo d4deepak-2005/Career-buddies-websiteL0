@@ -38,7 +38,9 @@ Real values live only in your private `.env` / hosting dashboard. `.env.example`
 |---|---|---|
 | `MONGODB_URI` | yes | MongoDB connection string (leads + all CMS content + payments) |
 | `NVIDIA_API_KEY` | yes | AI Career Assistant |
-| `ADMIN_PASSWORD` | yes | Admin Workspace password (also signs admin session tokens) |
+| `ADMIN_PASSWORD` | yes | Admin Workspace password |
+| `ADMIN_SESSION_SECRET` | yes | Separate random secret (32+ chars) that signs admin sessions. Never reuse the password. Changing it logs every admin out. |
+| `TRUST_PROXY_HOPS` | optional | Number of reverse proxies in front of the app (default 1 in production) so rate limits see real client IPs |
 | `APP_URL` | production | Public https URL; used for payment return/cancel URLs |
 | `DODO_PAYMENTS_API_KEY` | for payments | Dodo secret API key |
 | `DODO_PAYMENTS_WEBHOOK_KEY` | for payments | Dodo webhook signing secret (`whsec_...`) |

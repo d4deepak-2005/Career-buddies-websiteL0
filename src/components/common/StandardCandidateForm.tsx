@@ -36,10 +36,12 @@ interface StandardCandidateFormProps {
   onSubmit: (data: StandardCandidateFormData) => Promise<void> | void;
   onCancel?: () => void;
   isLoading?: boolean;
+  submitError?: string | null;
 }
 
 export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
   initialValues,
+  submitError,
   submitButtonText = 'Submit Details',
   submitButtonColor = 'green',
   contextTag,
@@ -152,6 +154,13 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
         <div className="flex items-center gap-2 p-2.5 bg-[#f1f3ff] rounded-xl border border-[#cbdaff] text-xs font-bold text-[#002869]">
           <ShieldCheck className="w-4 h-4 text-[#006e29] shrink-0" />
           <span>{contextTag}</span>
+        </div>
+      )}
+
+      {submitError && (
+        <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{submitError}</span>
         </div>
       )}
 

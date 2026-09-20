@@ -3,16 +3,32 @@ import { Request, Response, NextFunction } from 'express';
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
-function getSecret(): string {
-  const secret = process.env.ADMIN_PASSWORD;
+// Session tokens are signed with ADMIN_SESSION_SECRET - a separate random value - and
+// NOT with the admin password: a token is public-ish data (it sits in the browser),
+// so signing with the password would let anyone holding a token guess the password
+// offline. Changing ADMIN_SESSION_SECRET invalidates every existing admin session.
+const MIN_SESSION_SECRET_LENGTH = 32;
 
-  if (!secret) {
+function getSecret(): string {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+
+  if (!secret || secret.length < MIN_SESSION_SECRET_LENGTH) {
     throw new Error(
-      'ADMIN_PASSWORD is not configured. Add ADMIN_PASSWORD to your .env file.'
+      `ADMIN_SESSION_SECRET is not configured (random value of at least ${MIN_SESSION_SECRET_LENGTH} characters required).`
     );
   }
 
   return secret;
+}
+
+function getAdminPassword(): string {
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!password) {
+    throw new Error('ADMIN_PASSWORD is not configured. Add ADMIN_PASSWORD to your .env file.');
+  }
+
+  return password;
 }
 
 function sign(expiresAt: number): string {
@@ -35,6 +51,13 @@ export function createAdminToken(): { token: string; expiresAt: number } {
 export function verifyAdminToken(token: string | undefined | null): boolean {
   if (!token) return false;
 
+  // Fail closed: if signing isn't configured, no token is valid.
+  try {
+    getSecret();
+  } catch {
+    return false;
+  }
+
   const [expiresAtRaw, signature] = token.split('.');
 
   if (!expiresAtRaw || !signature) return false;
@@ -56,7 +79,7 @@ export function verifyAdminToken(token: string | undefined | null): boolean {
 export function verifyAdminPassword(password: string | undefined | null): boolean {
   if (!password) return false;
 
-  const expected = Buffer.from(getSecret());
+  const expected = Buffer.from(getAdminPassword());
   const actual = Buffer.from(String(password));
 
   if (expected.length !== actual.length) return false;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, CheckCircle2, ShieldCheck, Sparkles, Send, User, Phone, Mail, Briefcase, Clock, Linkedin } from 'lucide-react';
+import { submitLead } from '../../utils/submitLead';
 
 interface BecomeMentorModalProps {
   isOpen: boolean;
@@ -100,10 +101,7 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
 
     setLoading(true);
     try {
-      await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await submitLead({
           firstName,
           lastName,
           mobile,
@@ -117,13 +115,14 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
           requirement: `Mentor Application - ${category}`,
           planInterest: 'Mentor Onboarding',
           source: 'Become a Mentor Modal'
-        })
-      });
-    } catch (err) {
-      console.error('Error submitting mentor application:', err);
+        });
+      if (result.ok) {
+        setSubmitted(true);
+      } else {
+        setGeneralError(result.error || 'We could not send your application. Please try again.');
+      }
     } finally {
       setLoading(false);
-      setSubmitted(true);
     }
   };
 

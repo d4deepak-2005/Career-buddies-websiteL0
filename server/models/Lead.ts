@@ -15,7 +15,10 @@ const leadSchema = new mongoose.Schema(
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, default: '', trim: true },
     mobile: { type: String, required: true, trim: true },
-    email: { type: String, required: true, trim: true, lowercase: true },
+    // Optional: some forms don't collect an email, and none is invented for them.
+    email: { type: String, default: '', trim: true, lowercase: true, index: true },
+    // Set when the enquiry was created by a logged-in candidate (used to show them their own history).
+    candidateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate', index: true },
     currentRole: { type: String, default: 'Professional', trim: true },
     experience: { type: String, default: 'Not specified', trim: true },
     industry: { type: String, default: 'Technology', trim: true },

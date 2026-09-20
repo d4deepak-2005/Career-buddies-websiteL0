@@ -14,6 +14,7 @@ import {
   Linkedin,
   Lock
 } from 'lucide-react';
+import { submitLead } from '../../utils/submitLead';
 
 interface BookingModalProps {
   mentor: Mentor | null;
@@ -64,6 +65,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Validation
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdSession, setCreatedSession] = useState<BookedSession | null>(null);
 
@@ -78,7 +80,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return cleaned.length >= 7 && cleaned.length <= 15;
   };
 
-  const handleBooking = (e: React.FormEvent) => {
+  const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setGeneralError('');
     const newErrors: Record<string, string> = {};
@@ -132,6 +134,30 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
 
+    // The booking is only confirmed once the server has really stored the request.
+    if (submitting) return;
+    setSubmitting(true);
+    const result = await submitLead({
+        firstName,
+        lastName,
+        mobile,
+        email,
+        currentRole: currentDesignation,
+        experience: totalExperience,
+        alternateNumber: alternateNumber || undefined,
+        alternateEmail: alternateEmail || undefined,
+        linkedinUrl: linkedinUrl || undefined,
+        notes: `Mentor Session: ${mentor.name} (${mentor.title} @ ${mentor.company}) | Slot: ${selectedDay}, ${selectedSlot} | Topic: ${topic || 'General Strategy'} | Notes: ${notes || 'None'}`,
+        requirement: `1:1 Session with ${mentor.name}`,
+        planInterest: `Mentor Booking - ${mentor.name}`,
+        source: 'Booking Modal'
+      });
+    setSubmitting(false);
+    if (!result.ok) {
+      setGeneralError(result.error || 'We could not confirm your booking. Please try again.');
+      return;
+    }
+
     const newSession: BookedSession = {
       id: `sess-${Date.now()}`,
       mentorId: mentor.id,
@@ -150,27 +176,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setCreatedSession(newSession);
     setIsSuccess(true);
     onConfirmBooking(newSession);
-
-    // Also send lead to backend
-    fetch('/api/leads', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        firstName,
-        lastName,
-        mobile,
-        email,
-        currentRole: currentDesignation,
-        experience: totalExperience,
-        alternateNumber: alternateNumber || undefined,
-        alternateEmail: alternateEmail || undefined,
-        linkedinUrl: linkedinUrl || undefined,
-        notes: `Mentor Session: ${mentor.name} (${mentor.title} @ ${mentor.company}) | Slot: ${selectedDay}, ${selectedSlot} | Topic: ${topic || 'General Strategy'} | Notes: ${notes || 'None'}`,
-        requirement: `1:1 Session with ${mentor.name}`,
-        planInterest: `Mentor Booking - ${mentor.name}`,
-        source: 'Booking Modal'
-      })
-    }).catch(console.error);
   };
 
   const handleReset = () => {
@@ -563,7 +568,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full py-3 bg-[#002869] hover:bg-[#0b3d91] text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              disabled={submitting}
+              className="w-full py-3 bg-[#002869] hover:bg-[#0b3d91] text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
             >
               <Lock className="w-3.5 h-3.5" />
               <span>Confirm & Lock In Session (${mentor.hourlyRate})</span>

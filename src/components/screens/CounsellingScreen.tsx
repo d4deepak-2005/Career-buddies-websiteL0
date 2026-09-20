@@ -19,6 +19,7 @@ import { OFFICE_DETAILS } from '../../data/mockData';
 import { PageView } from '../../types';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
+import { submitLead } from '../../utils/submitLead';
 
 interface CounsellingScreenProps {
   onLeadSubmitted?: () => void;
@@ -30,6 +31,7 @@ export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({
   setActivePage 
 }) => {
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submittedName, setSubmittedName] = useState('');
   const [submittedMobile, setSubmittedMobile] = useState('');
@@ -37,11 +39,9 @@ export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({
 
   const handleFormSubmit = async (data: StandardCandidateFormData) => {
     setLoading(true);
+    setSubmitError(null);
     try {
-      await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await submitLead({
           firstName: data.firstName,
           lastName: data.lastName,
           mobile: data.mobile,
@@ -55,16 +55,12 @@ export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({
           requirement: 'Free 1:1 Strategic Career Counselling & Profile Diagnosis',
           planInterest: 'Elevate Career Guidance (Recommended)',
           source: 'Counselling Page'
-        })
-      });
+        });
+      if (!result.ok) {
+        setSubmitError(result.error || 'We could not send your details. Please try again.');
+        return;
+      }
 
-      setSubmittedName(data.firstName);
-      setSubmittedMobile(data.mobile);
-      setSubmittedEmail(data.email);
-      setIsSuccess(true);
-      if (onLeadSubmitted) onLeadSubmitted();
-    } catch (err) {
-      console.error('Submission error:', err);
       setSubmittedName(data.firstName);
       setSubmittedMobile(data.mobile);
       setSubmittedEmail(data.email);
@@ -168,6 +164,7 @@ export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({
                 submitButtonColor="green"
                 contextTag="counselling"
                 onSubmit={handleFormSubmit}
+                submitError={submitError}
                 isLoading={loading}
               />
             )}

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { HandshakeIcon } from '../common/HandshakeIcon';
 import { LeaderPortrait } from '../common/LeaderPortrait';
+import { submitLead } from '../../utils/submitLead';
 
 interface LeadershipProfileModalProps {
   founder: FounderInfo | null;
@@ -37,14 +38,13 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
   const [sentSuccess, setSentSuccess] = useState(false);
   const [submittedName, setSubmittedName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleFormSubmit = async (data: StandardCandidateFormData) => {
     setSubmitting(true);
+    setSubmitError(null);
     try {
-      await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await submitLead({
           firstName: data.firstName,
           lastName: data.lastName,
           mobile: data.mobile,
@@ -58,17 +58,16 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
           requirement: `Direct Message to ${founder.name} (${founder.role}): ${data.additionalInfo || 'Leadership Desk Inquiry'}`,
           planInterest: `Leadership Connect - ${founder.name}`,
           source: `Founder Profile - ${founder.name}`
-        })
-      });
+        });
+      if (!result.ok) {
+        setSubmitError(result.error || 'We could not send your details. Please try again.');
+        return;
+      }
       setSubmittedName(data.firstName);
       setSentSuccess(true);
       setTimeout(() => {
         setSentSuccess(false);
       }, 5000);
-    } catch (err) {
-      console.error('Error submitting leadership inquiry:', err);
-      setSubmittedName(data.firstName);
-      setSentSuccess(true);
     } finally {
       setSubmitting(false);
     }
@@ -241,6 +240,7 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
                 additionalInfoLabel={`Message for ${founder.name}`}
                 additionalInfoPlaceholder={`Write your career question or advisory goal for ${founder.name}...`}
                 onSubmit={handleFormSubmit}
+                submitError={submitError}
                 isLoading={submitting}
               />
             )}

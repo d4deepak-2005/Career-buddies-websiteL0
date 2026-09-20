@@ -12,11 +12,12 @@ function getKey(): string {
   const explicit = process.env.CANDIDATE_SESSION_SECRET;
   if (explicit) return explicit;
 
-  const admin = process.env.ADMIN_PASSWORD;
-  if (!admin) {
-    throw new Error('Set CANDIDATE_SESSION_SECRET (or ADMIN_PASSWORD) in your .env file.');
+  // Derived from the separate admin session secret (never from the admin password).
+  const base = process.env.ADMIN_SESSION_SECRET;
+  if (!base || base.length < 32) {
+    throw new Error('Set CANDIDATE_SESSION_SECRET (or ADMIN_SESSION_SECRET) in your .env file.');
   }
-  return crypto.createHmac('sha256', admin).update('careerbuddies-candidate-session-v1').digest('hex');
+  return crypto.createHmac('sha256', base).update('careerbuddies-candidate-session-v1').digest('hex');
 }
 
 function sign(payload: string): string {

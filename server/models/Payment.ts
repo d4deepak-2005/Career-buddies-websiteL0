@@ -17,6 +17,8 @@ const paymentSchema = new mongoose.Schema(
     },
     amount: { type: Number },
     currency: { type: String, default: '' },
+    // The authenticated candidate this checkout belongs to (taken from the server session, never from the browser).
+    candidateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate', index: true },
     customerName: { type: String, default: '' },
     customerEmail: { type: String, default: '' },
     customerMobile: { type: String, default: '' },

@@ -6,6 +6,8 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    // Client assets go to dist/client so the server bundle in dist/ is never served.
+    build: { outDir: 'dist/client', emptyOutDir: true },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
