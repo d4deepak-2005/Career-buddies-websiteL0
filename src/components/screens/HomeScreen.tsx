@@ -207,7 +207,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <button
                 id="hero-explore-programmes-btn"
                 onClick={() => setActivePage('programmes')}
-                className="w-full sm:w-auto justify-center px-4 py-3.5 rounded-xl text-xs sm:text-sm font-bold text-[#dae2ff] hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="w-full sm:w-auto justify-center px-4 sm:px-0 py-3.5 rounded-xl text-xs sm:text-sm font-bold text-[#dae2ff] hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Layers className="w-4 h-4 text-[#79fd8d]" />
                 <span>Explore Programmes</span>

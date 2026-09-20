@@ -215,6 +215,62 @@ export default function App() {
       .finally(() => setAuthChecked(true));
   }, []);
 
+  // ---- Social sign-in return trip (server redirects back with #social=<one-time code>
+  // on success, or ?auth_error=<code> on cancel/failure) ----
+  const [socialAuthMessage, setSocialAuthMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cleanUrl = () =>
+      window.history.replaceState(window.history.state, '', window.location.pathname);
+
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const code = hash.get('social');
+    const params = new URLSearchParams(window.location.search);
+    const errorCode = params.get('auth_error');
+    const provider = params.get('auth_provider') || 'the provider';
+
+    if (code) {
+      cleanUrl();
+      setAuthChecked(false);
+      fetch('/api/auth/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      })
+        .then(async (res) => {
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok || !body.success) throw new Error(body.error || 'Sign-in failed. Please try again.');
+          setCandidateToken(body.token, body.expiresAt);
+          setCandidate(body.candidate);
+          setActivePage('dashboard');
+          window.scrollTo({ top: 0 });
+          if (body.notice === 'linked_password_cleared') {
+            window.alert('Your social account is now linked to your existing CareerBuddies account. For security, your previous password was cleared - please keep signing in with this provider.');
+          }
+        })
+        .catch((err) => {
+          setSocialAuthMessage(err.message || 'Sign-in failed. Please try again.');
+          setAuthMode('login');
+          setIsAuthOpen(true);
+        })
+        .finally(() => setAuthChecked(true));
+    } else if (errorCode) {
+      cleanUrl();
+      const label = ({ google: 'Google', linkedin: 'LinkedIn', microsoft: 'Microsoft', facebook: 'Facebook' } as Record<string, string>)[provider] || 'Social';
+      const messages: Record<string, string> = {
+        cancelled: `${label} sign-in was cancelled. You can try again or use email and password.`,
+        not_configured: `${label} sign-in is not available yet - it has not been configured on this site. Please use email and password.`,
+        invalid_state: `${label} sign-in could not be verified (the request expired or did not start on this browser). Please try again.`,
+        email_unverified_conflict: `An account with this email already exists, and ${label} could not confirm that you own it. Please log in with your email and password.`,
+        no_email: `${label} did not share an email address, which CareerBuddies needs to create your account. Please allow email access or sign up with email.`
+      };
+      setSocialAuthMessage(messages[errorCode] || `${label} sign-in failed. Please try again or use email and password.`);
+      setAuthMode('login');
+      setIsAuthOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAuthenticate = async (
     mode: 'login' | 'signup',
     data: { name: string; email: string; password: string; accountType: 'mentee' | 'mentor' }
@@ -642,7 +698,11 @@ export default function App() {
       <AuthModal
         isOpen={isAuthOpen}
         initialMode={authMode}
-        onClose={() => setIsAuthOpen(false)}
+        onClose={() => {
+          setIsAuthOpen(false);
+          setSocialAuthMessage(null);
+        }}
+        externalError={socialAuthMessage}
         onAuthenticate={handleAuthenticate}
       />
 

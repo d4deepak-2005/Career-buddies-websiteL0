@@ -6,6 +6,8 @@ interface AuthModalProps {
   isOpen: boolean;
   initialMode?: 'login' | 'signup';
   onClose: () => void;
+  // Error/notice from a social sign-in attempt (cancelled, failed, not configured...).
+  externalError?: string | null;
   // Performs the real signup/login; resolves to an error message, or null on success.
   onAuthenticate: (
     mode: 'login' | 'signup',
@@ -17,6 +19,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   initialMode = 'login',
   onClose,
+  externalError,
   onAuthenticate
 }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
@@ -36,6 +39,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
   }, [initialMode, isOpen]);
 
+  React.useEffect(() => {
+    if (isOpen && externalError) {
+      setMessage(null);
+      setError(externalError);
+    }
+  }, [isOpen, externalError]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,9 +63,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handleSocialUnavailable = () => {
+  // Real OAuth: the server starts the provider's sign-in and brings the user back
+  // to the site signed in (see /api/auth/:provider/start).
+  const handleSocialLogin = (provider: 'google' | 'linkedin' | 'microsoft' | 'facebook') => {
+    setError(null);
     setMessage(null);
-    setError('Social sign-in is not available yet. Please continue with your email and password.');
+    setLoading(true);
+    window.location.href = `/api/auth/${provider}/start`;
   };
 
   const handleForgotPassword = () => {
@@ -259,7 +273,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* Google */}
               <button
                 type="button"
-                onClick={handleSocialUnavailable}
+                onClick={() => handleSocialLogin('google')}
                 className="py-2 px-2.5 rounded-xl border border-[#cbdaff] bg-white hover:bg-[#f1f3ff] text-xs font-bold text-[#061b3b] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -274,7 +288,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* LinkedIn */}
               <button
                 type="button"
-                onClick={handleSocialUnavailable}
+                onClick={() => handleSocialLogin('linkedin')}
                 className="py-2 px-2.5 rounded-xl border border-[#cbdaff] bg-white hover:bg-[#f1f3ff] text-xs font-bold text-[#061b3b] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4 fill-[#0A66C2]" viewBox="0 0 24 24">
@@ -286,7 +300,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* Outlook / Microsoft */}
               <button
                 type="button"
-                onClick={handleSocialUnavailable}
+                onClick={() => handleSocialLogin('microsoft')}
                 className="py-2 px-2.5 rounded-xl border border-[#cbdaff] bg-white hover:bg-[#f1f3ff] text-xs font-bold text-[#061b3b] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -301,7 +315,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* Facebook */}
               <button
                 type="button"
-                onClick={handleSocialUnavailable}
+                onClick={() => handleSocialLogin('facebook')}
                 className="py-2 px-2.5 rounded-xl border border-[#cbdaff] bg-white hover:bg-[#f1f3ff] text-xs font-bold text-[#061b3b] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4 fill-[#1877F2]" viewBox="0 0 24 24">

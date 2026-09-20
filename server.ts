@@ -23,6 +23,7 @@ import { Plan } from './server/models/Plan.ts';
 import { paymentsRouter, paymentsWebhookHandler } from './server/routes/payments.ts';
 import mediaRouter from './server/routes/media.ts';
 import candidateRouter from './server/routes/candidate.ts';
+import oauthRouter from './server/routes/oauth.ts';
 
 dotenv.config();
 
@@ -764,6 +765,7 @@ app.use('/api/plans', createCrudRouter(Plan));
 app.use('/api/payments', paymentsRouter);
 app.use('/api/media', mediaRouter);
 app.use('/api/candidate', candidateRouter);
+app.use('/api/auth', oauthRouter);
 
 // =====================================================
 // CAREERBUDDIES AI CAREER COUNSELLOR

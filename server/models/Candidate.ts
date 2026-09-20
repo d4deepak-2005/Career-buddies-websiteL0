@@ -8,6 +8,13 @@ const candidateSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true, select: false },
     // Bumped on logout / password change so previously issued tokens stop working.
     tokenVersion: { type: Number, default: 0, select: false },
+    // True once a social provider has proven the address. Password sign-ups are unverified.
+    emailVerified: { type: Boolean, default: false },
+    // Linked social logins (Google / LinkedIn / Microsoft / Facebook), keyed by the provider's stable user id.
+    identities: {
+      type: [{ provider: { type: String, required: true }, subject: { type: String, required: true }, _id: false }],
+      default: [],
+    },
     accountType: { type: String, enum: ['mentee', 'mentor'], default: 'mentee' },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, default: '', trim: true },
@@ -23,6 +30,8 @@ const candidateSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+candidateSchema.index({ 'identities.provider': 1, 'identities.subject': 1 });
 
 export const Candidate: mongoose.Model<any> =
   mongoose.models.Candidate || mongoose.model('Candidate', candidateSchema);

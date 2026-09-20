@@ -81,3 +81,24 @@ export function verifyPassword(password: string, stored: string): boolean {
   const actual = crypto.scryptSync(password, salt, 64);
   return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 }
+
+// Signed, expiring blob (used for the OAuth state cookie).
+export function signPayload(data: object, ttlMs: number): string {
+  const body = Buffer.from(JSON.stringify({ ...data, exp: Date.now() + ttlMs })).toString('base64url');
+  return `${body}.${sign(`payload:${body}`)}`;
+}
+
+export function readPayload<T = any>(value: string | undefined): T | null {
+  if (!value) return null;
+  const [body, sig] = value.split('.');
+  if (!body || !sig) return null;
+  const expected = Buffer.from(sign(`payload:${body}`), 'hex');
+  const actual = Buffer.from(sig, 'hex');
+  if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return typeof data.exp === 'number' && Date.now() <= data.exp ? (data as T) : null;
+  } catch {
+    return null;
+  }
+}

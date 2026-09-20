@@ -63,10 +63,14 @@ function publicCandidate(c: any) {
   };
 }
 
-async function issueSession(res: Response, candidateId: string, status = 200) {
+export async function buildSession(candidateId: string) {
   const c = await Candidate.findById(candidateId).select('+tokenVersion');
   const { token, expiresAt } = createCandidateToken(candidateId, c.tokenVersion ?? 0);
-  res.status(status).json({ success: true, token, expiresAt, candidate: publicCandidate(c) });
+  return { success: true, token, expiresAt, candidate: publicCandidate(c) };
+}
+
+async function issueSession(res: Response, candidateId: string, status = 200) {
+  res.status(status).json(await buildSession(candidateId));
 }
 
 router.post('/signup', async (req: Request, res: Response) => {
