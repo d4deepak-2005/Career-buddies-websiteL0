@@ -103,6 +103,7 @@ export interface ProgrammeItem {
   enrolledCount: number;
   capacity: number;
   isPopular?: boolean;
+  dodoProductId?: string; // Dodo Payments product (set via CMS) enabling online payment
 }
 
 export interface CareerStageOption {
@@ -235,6 +236,7 @@ export interface WebinarItem {
   recordingIncluded: boolean;
   certificateProvided: boolean;
   badge?: string;
+  dodoProductId?: string; // Dodo Payments product (set via CMS) enabling online payment
 }
 
 export interface WebinarRegistration {
@@ -307,6 +309,7 @@ export interface PlanItem {
   bestFor: string;
   badge?: string;
   features: PlanFeature[];
+  dodoProductId?: string; // Dodo Payments product (set via CMS) enabling online payment
 }
 
 export interface ResourceCategory {

@@ -10,7 +10,7 @@ const PERSON_FIELDS: FieldConfig[] = [
     options: ['founder', 'co-founder', 'leadership'],
   },
   { key: 'title', label: 'Designation', type: 'text', placeholder: 'e.g. Founder, CareerBuddies' },
-  { key: 'photoUrl', label: 'Photo URL / path', type: 'text', placeholder: '/assets/nishant.jpg' },
+  { key: 'photoUrl', label: 'Photo URL / path', type: 'text', placeholder: '/assets/team/nishant-sharma.jpg' },
   { key: 'yearsOfExperience', label: 'Experience Badge', type: 'text', placeholder: 'e.g. 10+ Years of Professional Experience' },
   { key: 'shortBio', label: 'Short Bio', type: 'textarea' },
   { key: 'longBio', label: 'Long Bio', type: 'textarea' },

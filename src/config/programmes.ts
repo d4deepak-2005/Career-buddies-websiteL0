@@ -13,7 +13,7 @@ export const PROGRAMMES_CATALOGUE: ProgrammeItem[] = [
     mentorName: "Nishant Sharma & Executive Council",
     mentorRole: "Founder & VP Engineering Advisors",
     mentorCompany: "CareerBuddies Executive Network",
-    mentorAvatar: "/assets/nishant.png",
+    mentorAvatar: "/assets/team/nishant-sharma.jpg",
     availability: "Limited to 15 Fellows / Cohort",
     cohortStartDate: "Next Cohort: 15th Sep 2026",
     highlights: [
@@ -77,7 +77,7 @@ export const PROGRAMMES_CATALOGUE: ProgrammeItem[] = [
     mentorName: "Deepak Sah & Principal PMs",
     mentorRole: "Co-Founder & Principal Product Leaders",
     mentorCompany: "CareerBuddies PM Network",
-    mentorAvatar: "/assets/deepak.png",
+    mentorAvatar: "/assets/team/deepak-sah.jpg",
     availability: "Open for Enrollment",
     cohortStartDate: "Next Cohort: 12th Sep 2026",
     highlights: [
@@ -107,7 +107,7 @@ export const PROGRAMMES_CATALOGUE: ProgrammeItem[] = [
     mentorName: "Divyanshu Gautam & Verified Mentors",
     mentorRole: "Co-Founder & Senior Industry Practitioners",
     mentorCompany: "CareerBuddies Network",
-    mentorAvatar: "/assets/divyanshu.png",
+    mentorAvatar: "/assets/team/divyanshu-gautam.jpg",
     availability: "Open for Matching",
     cohortStartDate: "Rolling Enrollment",
     highlights: [
@@ -137,7 +137,7 @@ export const PROGRAMMES_CATALOGUE: ProgrammeItem[] = [
     mentorName: "Divyanshu Gautam & Tech Mentors",
     mentorRole: "Co-Founder & Senior Engineers",
     mentorCompany: "CareerBuddies Mentor Network",
-    mentorAvatar: "/assets/divyanshu.png",
+    mentorAvatar: "/assets/team/divyanshu-gautam.jpg",
     availability: "Open for Enrollment",
     cohortStartDate: "Next Cohort: 8th Sep 2026",
     highlights: [

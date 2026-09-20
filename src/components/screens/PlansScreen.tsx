@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { usePlans } from '../../hooks/useCmsCatalog';
+import { OnlineCheckoutModal } from '../modals/OnlineCheckoutModal';
 import { PlanItem, PageView } from '../../types';
 import { 
   Check, 
@@ -28,6 +29,7 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
 }) => {
   const CAREER_PLANS = usePlans();
   const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
+  const [payPlan, setPayPlan] = useState<PlanItem | null>(null);
 
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
@@ -188,6 +190,14 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
                     <span>{plan.isCustomPricing ? 'Connect with Our Sales Team' : `Choose ${plan.name}`}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
+                  {plan.dodoProductId && !plan.isCustomPricing && (
+                    <button
+                      onClick={() => setPayPlan(plan)}
+                      className="w-full mt-2 py-2.5 rounded-xl font-black text-xs bg-white border border-[#006e29] text-[#006e29] hover:bg-[#f0faf3] transition-all cursor-pointer"
+                    >
+                      Pay online securely
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -195,6 +205,13 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
         </div>
 
       </div>
+      <OnlineCheckoutModal
+        isOpen={!!payPlan}
+        onClose={() => setPayPlan(null)}
+        itemType="plan"
+        itemId={payPlan?.id}
+        itemName={payPlan?.name || ''}
+      />
     </div>
   );
 };

@@ -14,6 +14,7 @@ import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AICareerAssistant } from './components/AICareerAssistant';
 import { AdminAuthGate } from './components/common/AdminAuthGate';
+import { PaymentStatusBanner } from './components/common/PaymentStatusBanner';
 
 // Screens
 import { HomeScreen } from './components/screens/HomeScreen';
@@ -505,6 +506,7 @@ export default function App() {
         }}
       />
       
+<PaymentStatusBanner />
 <AICareerAssistant />
 
     </div>

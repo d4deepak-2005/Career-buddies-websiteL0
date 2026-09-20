@@ -24,6 +24,8 @@ const planSchema = new mongoose.Schema(
     badge: { type: String, default: '' },
     features: { type: [planFeatureSchema], default: [] },
     ctaText: { type: String, default: '' },
+    // Dodo Payments product id used for online checkout (optional)
+    dodoProductId: { type: String, default: '' },
     displayOrder: { type: Number, default: 0 },
     visible: { type: Boolean, default: true },
   },

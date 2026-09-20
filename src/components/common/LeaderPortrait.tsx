@@ -26,10 +26,10 @@ export const LeaderPortrait: React.FC<LeaderPortraitProps> = ({
 }) => {
   const getInitialSrc = () => {
     if (imageSrc) return imageSrc;
-    if (slug.includes('nishant')) return '/assets/nishant.jpg';
-    if (slug.includes('deepak')) return '/assets/deepak.jpg';
-    if (slug.includes('divyanshu')) return '/assets/divyanshu.jpg';
-    return '/assets/nishant.jpg';
+    if (slug.includes('nishant')) return '/assets/team/nishant-sharma.jpg';
+    if (slug.includes('deepak')) return '/assets/team/deepak-sah.jpg';
+    if (slug.includes('divyanshu')) return '/assets/team/divyanshu-gautam.jpg';
+    return '/assets/team/nishant-sharma.jpg';
   };
 
   const [currentSrc, setCurrentSrc] = useState<string>(getInitialSrc);
@@ -43,14 +43,14 @@ export const LeaderPortrait: React.FC<LeaderPortraitProps> = ({
   const handleImageError = () => {
     if (attemptCount === 0) {
       setAttemptCount(1);
-      if (slug.includes('nishant')) setCurrentSrc('/nishant.jpg');
-      else if (slug.includes('deepak')) setCurrentSrc('/deepak.jpg');
-      else if (slug.includes('divyanshu')) setCurrentSrc('/divyanshu.jpg');
+      if (slug.includes('nishant')) setCurrentSrc('/assets/team/nishant-sharma.jpg');
+      else if (slug.includes('deepak')) setCurrentSrc('/assets/team/deepak-sah.jpg');
+      else if (slug.includes('divyanshu')) setCurrentSrc('/assets/team/divyanshu-gautam.jpg');
     } else if (attemptCount === 1) {
       setAttemptCount(2);
-      if (slug.includes('nishant')) setCurrentSrc('/assets/nishant.png');
-      else if (slug.includes('deepak')) setCurrentSrc('/assets/deepak.png');
-      else if (slug.includes('divyanshu')) setCurrentSrc('/assets/divyanshu.png');
+      if (slug.includes('nishant')) setCurrentSrc('/assets/team/nishant-sharma.jpg');
+      else if (slug.includes('deepak')) setCurrentSrc('/assets/team/deepak-sah.jpg');
+      else if (slug.includes('divyanshu')) setCurrentSrc('/assets/team/divyanshu-gautam.jpg');
     }
   };
 

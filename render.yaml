@@ -10,3 +10,19 @@ services:
         value: production
       - key: GEMINI_API_KEY
         sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: DODO_PAYMENTS_API_KEY
+        sync: false
+      - key: DODO_PAYMENTS_WEBHOOK_KEY
+        sync: false
+      - key: DODO_PAYMENTS_ENVIRONMENT
+        sync: false
+      - key: DODO_PRODUCT_ID_WEBINAR
+        sync: false

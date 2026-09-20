@@ -38,7 +38,7 @@ export const FOUNDERS: FounderInfo[] = [
     title: "Founder, CareerBuddies",
     email: "nishant.sharma@careerbuddies.in",
     bio: "Passionate about democratizing access to high-caliber executive and technical mentorship. Driving the vision of structured career transformation for professionals worldwide.",
-    avatar: "/assets/nishant.jpg",
+    avatar: "/assets/team/nishant-sharma.jpg",
     contribution: "Pioneered the core career acceleration architecture and diagnostic methodology in 2022.",
     expertise: ["Executive Strategy", "Career Roadmapping", "Mentorship Standards"],
     linkedIn: "https://www.linkedin.com/company/careerbuddies"
@@ -49,7 +49,7 @@ export const FOUNDERS: FounderInfo[] = [
     title: "Co-Founder, CareerBuddies",
     email: "deepak.sah@careerbuddies.in",
     bio: "Product strategist and technologist focused on crafting human-centric mentorship matching engines, career diagnostic rubrics, and personalized growth roadmaps.",
-    avatar: "/assets/deepak.jpg",
+    avatar: "/assets/team/deepak-sah.jpg",
     contribution: "Architected the mentor-mentee matching rubric and structured diagnostic framework.",
     expertise: ["Product Strategy", "User Experience", "Growth Architecture"],
     linkedIn: "https://www.linkedin.com/company/careerbuddies"
@@ -60,7 +60,7 @@ export const FOUNDERS: FounderInfo[] = [
     title: "Co-Founder, CareerBuddies",
     email: "divyanshu.gautam@careerbuddies.in",
     bio: "Building enterprise partner ecosystems, mentor vetting standards, and community initiatives connecting ambitious learners with industry-leading practitioners.",
-    avatar: "/assets/divyanshu.jpg",
+    avatar: "/assets/team/divyanshu-gautam.jpg",
     contribution: "Spearheaded mentor onboarding, practitioner vetting, and live masterclass series.",
     expertise: ["Mentor Partnerships", "Community Growth", "Operational Scale"],
     linkedIn: "https://www.linkedin.com/company/careerbuddies"

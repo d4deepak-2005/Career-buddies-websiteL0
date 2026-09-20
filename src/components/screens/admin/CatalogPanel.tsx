@@ -32,6 +32,7 @@ export const PROGRAMME_FIELDS: FieldConfig[] = [
   { key: 'ctaText', label: 'CTA Text' },
   { key: 'ctaLink', label: 'CTA Link' },
   { key: 'brochureUrl', label: 'Brochure URL' },
+  { key: 'dodoProductId', label: 'Dodo Payments Product ID (enables online payment)' },
   { key: 'featured', label: 'Featured', type: 'checkbox' },
 ];
 
@@ -52,6 +53,7 @@ export const WEBINAR_FIELDS: FieldConfig[] = [
   { key: 'duration', label: 'Duration' },
   { key: 'priceINR', label: 'Price (INR)', type: 'number' },
   { key: 'registrationLink', label: 'Registration Link' },
+  { key: 'dodoProductId', label: 'Dodo Payments Product ID (blank = standard webinar pass)' },
   { key: 'imageUrl', label: 'Image URL or path' },
   {
     key: 'status',
@@ -118,6 +120,7 @@ export const PLAN_FIELDS: FieldConfig[] = [
   },
   { key: 'customPricingNote', label: 'Custom Pricing Note', type: 'textarea' },
   { key: 'ctaText', label: 'CTA Text' },
+  { key: 'dodoProductId', label: 'Dodo Payments Product ID (enables online payment)' },
   { key: 'isRecommended', label: 'Recommended / Most Popular', type: 'checkbox' },
   { key: 'isCustomPricing', label: 'Custom pricing (no fixed price)', type: 'checkbox' },
 ];

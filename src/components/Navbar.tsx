@@ -76,13 +76,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#cbdaff]/70 shadow-[0_2px_14px_rgba(0,40,105,0.04)] transition-all">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-2.5 flex items-center justify-between gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-6 py-1 sm:py-1.5 flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
         
         {/* Left Side: Prominent, Wide Official CareerBuddies Logo Presentation Area */}
         <div className="flex items-center shrink-0">
           <div 
             onClick={() => handleNav('home')}
-            className="group relative inline-flex items-center py-1 sm:py-1.5 px-2 sm:px-3 rounded-2xl transition-all duration-200 cursor-pointer select-none bg-gradient-to-r from-transparent via-[#f4f7ff]/40 to-transparent hover:via-[#dae2ff]/25 border border-transparent hover:border-[#cbdaff]/40 hover:shadow-2xs active:scale-[0.99]"
+            className="group relative inline-flex items-center py-0.5 px-1.5 sm:px-2 rounded-2xl transition-all duration-200 cursor-pointer select-none bg-gradient-to-r from-transparent via-[#f4f7ff]/40 to-transparent hover:via-[#dae2ff]/25 border border-transparent hover:border-[#cbdaff]/40 hover:shadow-2xs active:scale-[0.99]"
             title="CareerBuddies - Home"
           >
             {/* Subtle soft backdrop ambient aura for premium prominence */}
@@ -99,12 +99,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Clean Core Navigation Items (Home | Services | Programmes | More ▼) */}
-        <nav className="hidden md:flex items-center gap-1 sm:gap-1.5 lg:gap-2 xl:gap-2.5">
+        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1">
           {/* 1. Home */}
           <button
             id="nav-home-btn"
             onClick={() => handleNav('home')}
-            className={`px-3 lg:px-3.5 xl:px-4 py-2 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
+            className={`px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
               activePage === 'home'
                 ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
                 : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
@@ -120,7 +120,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="nav-services-btn"
             onClick={() => handleNav('services')}
-            className={`px-3 lg:px-3.5 xl:px-4 py-2 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
+            className={`px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
               activePage === 'services'
                 ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
                 : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
@@ -136,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="nav-programmes-btn"
             onClick={() => handleNav('programmes')}
-            className={`px-3 lg:px-3.5 xl:px-4 py-2 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
+            className={`px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
               activePage === 'programmes'
                 ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
                 : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
@@ -153,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-more-dropdown-btn"
               onClick={() => setExploreOpen(!exploreOpen)}
-              className={`px-3 lg:px-3.5 xl:px-4 py-2 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
+              className={`px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-[14px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
                 exploreOpen || isExploreActive
                   ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
                   : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
@@ -276,13 +276,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Right Action Controls: [Login / Sign Up] + [Dashboard/Profile] */}
-        <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-auto">
           
           {/* Combined Login / Sign Up Button */}
           <button
             id="nav-auth-btn"
             onClick={onOpenLogin}
-            className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4.5 py-2 sm:py-2.5 bg-[#002869] hover:bg-[#0b3d91] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#002869] hover:bg-[#0b3d91] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md active:scale-95 transition-all cursor-pointer whitespace-nowrap"
             title="Sign in or create a CareerBuddies account"
           >
             <span>Login / Sign Up</span>
@@ -292,7 +292,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="nav-profile-btn"
             onClick={onOpenUserDashboard}
-            className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#dae2ff]/90 hover:bg-[#cbdaff] text-[#002869] flex items-center justify-center transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0 border border-[#cbdaff]"
+            className="relative w-9 h-9 rounded-xl bg-[#dae2ff]/90 hover:bg-[#cbdaff] text-[#002869] flex items-center justify-center transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0 border border-[#cbdaff]"
             title="My Career Dashboard & Bookings"
             aria-label="My Career Dashboard & Bookings"
           >

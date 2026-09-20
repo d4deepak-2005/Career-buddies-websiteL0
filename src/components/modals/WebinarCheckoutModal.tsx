@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { WebinarItem, WebinarRegistration } from '../../types';
+import { startCheckout } from '../../utils/checkout';
 import { DEFAULT_SITE_CONFIG } from '../../config/siteConfig';
 import { 
   X, 
@@ -63,6 +64,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
   const [completedRegistration, setCompletedRegistration] = useState<WebinarRegistration | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -111,50 +113,34 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
 
   const handleProcessPayment = async () => {
     setIsProcessing(true);
-    
-    // Simulate real gateway processing
-    setTimeout(async () => {
-      const paymentId = `PAY-WB-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      const meetLink = `https://meet.google.com/cb-${webinar.id}-${Math.random().toString(36).substring(2, 6)}`;
-      const fullName = `${firstName.trim()} ${lastName.trim()}`;
-      
-      const newRegistration: WebinarRegistration = {
-        id: `reg-${Date.now()}`,
-        webinarId: webinar.id,
-        webinarTitle: webinar.title,
-        registeredAt: new Date().toISOString(),
-        timestampIST: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-        fullName,
-        email: email.trim().toLowerCase(),
-        mobile: mobile.trim(),
-        currentRole: currentDesignation || 'Professional',
-        experience: totalExperience || '1-3 years',
-        questionForSpeaker: questionForSpeaker.trim(),
-        amountPaidINR: price,
-        paymentId,
-        paymentStatus: 'success',
-        meetLink
-      };
+    setPaymentError('');
 
-      // Save to backend
-      try {
-        await fetch('/api/webinars/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newRegistration)
-        });
-      } catch (err) {
-        console.warn('Could not reach backend /api/webinars/register, stored locally:', err);
+    // Real payment: the server creates a Dodo Payments checkout session and
+    // we redirect to Dodo's hosted checkout. Payment status is confirmed by
+    // Dodo's signed webhook, not by this browser.
+    const result = await startCheckout({
+      itemType: 'webinar',
+      itemId: webinar.id,
+      itemName: webinar.title,
+      customer: {
+        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        email: email.trim(),
+        mobile: mobile.trim()
+      },
+      details: {
+        currentDesignation,
+        totalExperience,
+        alternateNumber,
+        alternateEmail,
+        linkedinUrl,
+        questionForSpeaker: questionForSpeaker.trim()
       }
+    });
 
-      setCompletedRegistration(newRegistration);
+    if (!result.ok) {
+      setPaymentError(result.error || 'Unable to start payment.');
       setIsProcessing(false);
-      setStep('success');
-
-      if (onRegistrationSuccess) {
-        onRegistrationSuccess(newRegistration);
-      }
-    }, 1200);
+    }
   };
 
   const handleCopyLink = () => {
@@ -545,159 +531,25 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
             <div className="flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-[#061b3b]">
-                  Select Payment Method
+                  Secure Payment
                 </h3>
                 <span className="text-xs font-black text-[#006e29]">Pay ₹{price}</span>
               </div>
 
-              {/* Payment Tabs */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('upi_qr')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                    paymentMethod === 'upi_qr'
-                      ? 'bg-[#002869] text-white border-[#002869]'
-                      : 'bg-[#f9f9ff] text-[#434652] border-[#cbdaff] hover:bg-[#f1f3ff]'
-                  }`}
-                >
-                  <QrCode className="w-4 h-4" />
-                  <span>UPI QR Code</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('gpay')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                    paymentMethod === 'gpay'
-                      ? 'bg-[#002869] text-white border-[#002869]'
-                      : 'bg-[#f9f9ff] text-[#434652] border-[#cbdaff] hover:bg-[#f1f3ff]'
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span>GPay / UPI ID</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('card')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                    paymentMethod === 'card'
-                      ? 'bg-[#002869] text-white border-[#002869]'
-                      : 'bg-[#f9f9ff] text-[#434652] border-[#cbdaff] hover:bg-[#f1f3ff]'
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Cards</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('netbanking')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                    paymentMethod === 'netbanking'
-                      ? 'bg-[#002869] text-white border-[#002869]'
-                      : 'bg-[#f9f9ff] text-[#434652] border-[#cbdaff] hover:bg-[#f1f3ff]'
-                  }`}
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>Netbanking</span>
-                </button>
+              <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-xs font-black text-[#002869]">
+                  <ShieldCheck className="w-4 h-4 text-[#006e29]" />
+                  <span>Powered by Dodo Payments</span>
+                </div>
+                <p className="text-xs text-[#434652] leading-relaxed">
+                  You will be taken to a secure hosted checkout page to complete your payment.
+                  Your card and bank details are never entered or stored on CareerBuddies.
+                </p>
               </div>
 
-              {/* Payment UI for UPI QR */}
-              {paymentMethod === 'upi_qr' && (
-                <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col sm:flex-row items-center gap-6">
-                  {/* Generated QR Box */}
-                  <div className="w-36 h-36 bg-white p-2 rounded-2xl border border-[#cbdaff] shadow-xs flex flex-col items-center justify-center shrink-0">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=careerbuddies@icici%26pn=CareerBuddies%26am=${price}%26cu=INR`}
-                      alt="Scan to pay via UPI"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-2 text-center sm:text-left">
-                    <span className="text-xs font-extrabold text-[#002869]">
-                      Scan with any UPI App
-                    </span>
-                    <p className="text-xs text-[#434652] leading-relaxed">
-                      Scan using Google Pay, PhonePe, Paytm, or BHIM. Amount ₹{price} is pre-configured.
-                    </p>
-                    <span className="text-[11px] text-[#747783]">
-                      UPI VPA: <strong className="text-[#061b3b]">careerbuddies@icici</strong>
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Payment UI for GPay / UPI ID */}
-              {paymentMethod === 'gpay' && (
-                <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-3">
-                  <label className="text-xs font-bold text-[#061b3b]">Enter your UPI ID / VPA</label>
-                  <input
-                    type="text"
-                    value={upiId}
-                    onChange={(e) => setUpiId(e.target.value)}
-                    placeholder="e.g. yourname@okhdfcbank or 9876543210@paytm"
-                    className="w-full px-3 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
-                  />
-                  <span className="text-[11px] text-[#747783]">
-                    A payment request for ₹{price} will be sent to your UPI app.
-                  </span>
-                </div>
-              )}
-
-              {/* Payment UI for Cards */}
-              {paymentMethod === 'card' && (
-                <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-[#061b3b]">Card Number</label>
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      placeholder="4532 •••• •••• 8892"
-                      className="w-full px-3 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-[#061b3b]">Expiry</label>
-                      <input
-                        type="text"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        placeholder="MM / YY"
-                        className="w-full px-3 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-[#061b3b]">CVV</label>
-                      <input
-                        type="password"
-                        maxLength={4}
-                        value={cardCvv}
-                        onChange={(e) => setCardCvv(e.target.value)}
-                        placeholder="•••"
-                        className="w-full px-3 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Payment UI for Netbanking */}
-              {paymentMethod === 'netbanking' && (
-                <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-3">
-                  <label className="text-xs font-bold text-[#061b3b]">Select Bank</label>
-                  <select className="w-full px-3 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]">
-                    <option>HDFC Bank</option>
-                    <option>ICICI Bank</option>
-                    <option>State Bank of India</option>
-                    <option>Axis Bank</option>
-                    <option>Kotak Mahindra Bank</option>
-                  </select>
+              {paymentError && (
+                <div className="px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-bold">
+                  {paymentError}
                 </div>
               )}
 
@@ -718,7 +570,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                   className="px-6 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <ShieldCheck className="w-4 h-4 text-[#79fd8d]" />
-                  <span>{isProcessing ? 'Verifying Payment...' : `Complete Payment (₹${price})`}</span>
+                  <span>{isProcessing ? 'Redirecting to secure checkout...' : `Pay Securely (₹${price})`}</span>
                 </button>
               </div>
             </div>

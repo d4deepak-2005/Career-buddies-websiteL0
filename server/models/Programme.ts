@@ -34,6 +34,8 @@ const programmeSchema = new mongoose.Schema(
     brochureUrl: { type: String, default: '' },
     status: { type: String, default: 'active' },
     featured: { type: Boolean, default: false },
+    // Dodo Payments product id used for online checkout (optional)
+    dodoProductId: { type: String, default: '' },
     displayOrder: { type: Number, default: 0 },
     visible: { type: Boolean, default: true },
   },

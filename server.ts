@@ -20,11 +20,20 @@ import { Webinar } from './server/models/Webinar.ts';
 import { Testimonial } from './server/models/Testimonial.ts';
 import { Service } from './server/models/Service.ts';
 import { Plan } from './server/models/Plan.ts';
+import { paymentsRouter, paymentsWebhookHandler } from './server/routes/payments.ts';
 
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
+
+// Dodo Payments webhook — needs the RAW body for signature verification,
+// so it is registered before the JSON body parser.
+app.post(
+  '/api/payments/webhook',
+  express.raw({ type: '*/*', limit: '1mb' }),
+  paymentsWebhookHandler
+);
 
 app.use(express.json());
 
@@ -750,6 +759,7 @@ app.use('/api/webinars', createCrudRouter(Webinar));
 app.use('/api/testimonials', createCrudRouter(Testimonial));
 app.use('/api/services', createCrudRouter(Service));
 app.use('/api/plans', createCrudRouter(Plan));
+app.use('/api/payments', paymentsRouter);
 
 // =====================================================
 // CAREERBUDDIES AI CAREER COUNSELLOR

@@ -28,6 +28,8 @@ const webinarSchema = new mongoose.Schema(
     priceINR: { type: Number, default: 0 },
     status: { type: String, default: 'upcoming' },
     featured: { type: Boolean, default: false },
+    // Dodo Payments product id used for online checkout (optional)
+    dodoProductId: { type: String, default: '' },
     displayOrder: { type: Number, default: 0 },
     visible: { type: Boolean, default: true },
   },

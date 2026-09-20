@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { PageView, ProgrammeItem } from '../../types';
 import { useProgrammes, usePlans } from '../../hooks/useCmsCatalog';
+import { OnlineCheckoutModal } from '../modals/OnlineCheckoutModal';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
 
@@ -31,6 +32,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
 }) => {
   const PROGRAMMES_CATALOGUE = useProgrammes();
   const CAREER_PLANS = usePlans();
+  const [payProgramme, setPayProgramme] = useState<ProgrammeItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [expandedCurriculumId, setExpandedCurriculumId] = useState<string | null>(null);
 
@@ -332,6 +334,14 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <span>Apply for Programme</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />
                   </button>
+                  {programme.dodoProductId && (
+                    <button
+                      onClick={() => setPayProgramme(programme)}
+                      className="px-6 py-3 bg-white border border-[#006e29] text-[#006e29] hover:bg-[#f0faf3] text-xs font-black rounded-xl transition-all cursor-pointer"
+                    >
+                      Pay online securely
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -345,6 +355,13 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
         />
 
       </div>
+      <OnlineCheckoutModal
+        isOpen={!!payProgramme}
+        onClose={() => setPayProgramme(null)}
+        itemType="programme"
+        itemId={payProgramme?.id}
+        itemName={payProgramme?.name || ''}
+      />
     </div>
   );
 };
