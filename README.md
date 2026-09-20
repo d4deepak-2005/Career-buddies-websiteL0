@@ -52,6 +52,13 @@ Real values live only in your private `.env` / hosting dashboard. `.env.example`
 | `NODE_ENV` | production | Set to `production` when deploying |
 | `WHATSAPP_API_URL`, `WHATSAPP_API_TOKEN`, `NOTIFY_WHATSAPP_NUMBERS`, `APPS_SCRIPT_WEBHOOK_URL` | optional | Lead notifications / Google Sheets sync |
 
+## Performance notes
+
+- The client is code-split: only the Home screen and shared layout load up front; other screens, dialogs, the Candidate Area and Admin load on demand (`src/utils/lazy.tsx`).
+- Public CMS content (`/api/mentors`, `/api/site-settings`, ...) is fetched once and shared between components for 60 seconds (`src/utils/publicCache.ts`); it is cleared when an admin saves a change. Candidate and Admin data is never cached this way.
+- Content-hashed build files (`dist/client/assets/*-<hash>.*`) are served with a one-year `immutable` cache header; the HTML shell is `no-cache`; `/api` responses are `no-cache` (public) or `no-store` (private).
+- Contact details shown on the site come from Site Settings when set, otherwise the built-in defaults (`src/utils/contactInfo.ts`). The webinar entry price follows the live webinar prices in the CMS, falling back to `WEBINAR_ENTRY_PRICE_INR`.
+
 ## Repository structure
 
 ```

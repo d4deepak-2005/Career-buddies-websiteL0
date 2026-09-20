@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchPublicJson, peekPublicJson } from '../utils/publicCache';
 
 export interface PersonRecord {
   _id: string;
@@ -19,14 +20,14 @@ export interface PersonRecord {
 // Returns an empty array on failure or while loading — callers fall back to
 // their existing static config in that case, so the public site never breaks.
 export function usePeople() {
-  const [people, setPeople] = useState<PersonRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = peekPublicJson('/api/people');
+  const [people, setPeople] = useState<PersonRecord[]>(cached?.success && Array.isArray(cached.items) ? cached.items : []);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/people')
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Request failed'))))
+    fetchPublicJson('/api/people')
       .then((data) => {
         if (!cancelled && data?.success && Array.isArray(data.items)) {
           setPeople(data.items);

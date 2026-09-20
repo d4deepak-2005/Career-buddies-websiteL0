@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSiteSettings } from './hooks/useSiteSettings';
 import { 
   PageView, 
@@ -13,39 +13,40 @@ import {
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AICareerAssistant } from './components/AICareerAssistant';
-import { AdminAuthGate } from './components/common/AdminAuthGate';
+const AdminAuthGate = lazyNamed(() => import('./components/common/AdminAuthGate'), 'AdminAuthGate');
 import { PaymentStatusBanner } from './components/common/PaymentStatusBanner';
 
 // Screens
 import { HomeScreen } from './components/screens/HomeScreen';
-import { ServicesScreen } from './components/screens/ServicesScreen';
-import { ProgrammesScreen } from './components/screens/ProgrammesScreen';
-import { LeadershipScreen } from './components/screens/LeadershipScreen';
-import { SuccessStoriesScreen } from './components/screens/SuccessStoriesScreen';
-import { HowItWorksScreen } from './components/screens/HowItWorksScreen';
-import { PlansScreen } from './components/screens/PlansScreen';
-import { ResourcesScreen } from './components/screens/ResourcesScreen';
-import { MentorsScreen } from './components/screens/MentorsScreen';
-import { AboutUsScreen } from './components/screens/AboutUsScreen';
-import { ContactScreen } from './components/screens/ContactScreen';
-import { LegalScreen } from './components/screens/LegalScreen';
+const ServicesScreen = lazyNamed(() => import('./components/screens/ServicesScreen'), 'ServicesScreen');
+const ProgrammesScreen = lazyNamed(() => import('./components/screens/ProgrammesScreen'), 'ProgrammesScreen');
+const LeadershipScreen = lazyNamed(() => import('./components/screens/LeadershipScreen'), 'LeadershipScreen');
+const SuccessStoriesScreen = lazyNamed(() => import('./components/screens/SuccessStoriesScreen'), 'SuccessStoriesScreen');
+const HowItWorksScreen = lazyNamed(() => import('./components/screens/HowItWorksScreen'), 'HowItWorksScreen');
+const PlansScreen = lazyNamed(() => import('./components/screens/PlansScreen'), 'PlansScreen');
+const ResourcesScreen = lazyNamed(() => import('./components/screens/ResourcesScreen'), 'ResourcesScreen');
+const MentorsScreen = lazyNamed(() => import('./components/screens/MentorsScreen'), 'MentorsScreen');
+const AboutUsScreen = lazyNamed(() => import('./components/screens/AboutUsScreen'), 'AboutUsScreen');
+const ContactScreen = lazyNamed(() => import('./components/screens/ContactScreen'), 'ContactScreen');
+const LegalScreen = lazyNamed(() => import('./components/screens/LegalScreen'), 'LegalScreen');
 import { applyPageMeta } from './utils/pageMeta';
-import { CounsellingScreen } from './components/screens/CounsellingScreen';
-import { LeadsDashboardScreen } from './components/screens/LeadsDashboardScreen';
-import { CareerCheckInScreen } from './components/screens/CareerCheckInScreen';
-import { WebinarsScreen } from './components/screens/WebinarsScreen';
-import { AdminScreen } from './components/screens/AdminScreen';
-import { LeaderProfileScreen } from './components/screens/LeaderProfileScreen';
-import { CandidateDashboardScreen } from './components/dashboard/CandidateDashboardScreen';
+import { LazyBoundary, ModalFallback, ScreenFallback, WhenOpen, lazyNamed } from './utils/lazy';
+const CounsellingScreen = lazyNamed(() => import('./components/screens/CounsellingScreen'), 'CounsellingScreen');
+const LeadsDashboardScreen = lazyNamed(() => import('./components/screens/LeadsDashboardScreen'), 'LeadsDashboardScreen');
+const CareerCheckInScreen = lazyNamed(() => import('./components/screens/CareerCheckInScreen'), 'CareerCheckInScreen');
+const WebinarsScreen = lazyNamed(() => import('./components/screens/WebinarsScreen'), 'WebinarsScreen');
+const AdminScreen = lazyNamed(() => import('./components/screens/AdminScreen'), 'AdminScreen');
+const LeaderProfileScreen = lazyNamed(() => import('./components/screens/LeaderProfileScreen'), 'LeaderProfileScreen');
+const CandidateDashboardScreen = lazyNamed(() => import('./components/dashboard/CandidateDashboardScreen'), 'CandidateDashboardScreen');
 
 // Modals
-import { SmartMatchingModal } from './components/modals/SmartMatchingModal';
-import { BookingModal } from './components/modals/BookingModal';
-import { MentorProfileModal } from './components/modals/MentorProfileModal';
-import { BecomeMentorModal } from './components/modals/BecomeMentorModal';
-import { AuthModal } from './components/modals/AuthModal';
-import { ResetPasswordModal } from './components/modals/ResetPasswordModal';
-import { LinkAccountModal } from './components/modals/LinkAccountModal';
+const SmartMatchingModal = lazyNamed(() => import('./components/modals/SmartMatchingModal'), 'SmartMatchingModal');
+const BookingModal = lazyNamed(() => import('./components/modals/BookingModal'), 'BookingModal');
+const MentorProfileModal = lazyNamed(() => import('./components/modals/MentorProfileModal'), 'MentorProfileModal');
+const BecomeMentorModal = lazyNamed(() => import('./components/modals/BecomeMentorModal'), 'BecomeMentorModal');
+const AuthModal = lazyNamed(() => import('./components/modals/AuthModal'), 'AuthModal');
+const ResetPasswordModal = lazyNamed(() => import('./components/modals/ResetPasswordModal'), 'ResetPasswordModal');
+const LinkAccountModal = lazyNamed(() => import('./components/modals/LinkAccountModal'), 'LinkAccountModal');
 import {
   CandidateProfile,
   candidateFetch,
@@ -53,12 +54,12 @@ import {
   getCandidateToken,
   setCandidateToken
 } from './utils/candidateAuth';
-import { UserDashboardDrawer } from './components/modals/UserDashboardDrawer';
-import { CounsellingModal } from './components/modals/CounsellingModal';
-import { ServiceDetailModal } from './components/modals/ServiceDetailModal';
-import { ArticleReaderModal } from './components/modals/ArticleReaderModal';
-import { WebinarDetailModal } from './components/modals/WebinarDetailModal';
-import { WebinarCheckoutModal } from './components/modals/WebinarCheckoutModal';
+const UserDashboardDrawer = lazyNamed(() => import('./components/modals/UserDashboardDrawer'), 'UserDashboardDrawer');
+const CounsellingModal = lazyNamed(() => import('./components/modals/CounsellingModal'), 'CounsellingModal');
+const ServiceDetailModal = lazyNamed(() => import('./components/modals/ServiceDetailModal'), 'ServiceDetailModal');
+const ArticleReaderModal = lazyNamed(() => import('./components/modals/ArticleReaderModal'), 'ArticleReaderModal');
+const WebinarDetailModal = lazyNamed(() => import('./components/modals/WebinarDetailModal'), 'WebinarDetailModal');
+const WebinarCheckoutModal = lazyNamed(() => import('./components/modals/WebinarCheckoutModal'), 'WebinarCheckoutModal');
 
 export default function App() {
   // Site Settings (MongoDB-backed CMS) — fetched once, null while loading or
@@ -474,6 +475,8 @@ export default function App() {
 
       {/* Main Content Area */}
       <main id="main-content" tabIndex={-1} className="flex-1 w-full focus:outline-none">
+        <LazyBoundary key={activePage}>
+        <Suspense fallback={<ScreenFallback />}>
         
         {/* 1. HOME SCREEN */}
         {activePage === 'home' && (
@@ -606,12 +609,13 @@ export default function App() {
 
         {/* LEGAL PAGES */}
         {(activePage === 'privacy' || activePage === 'terms' || activePage === 'refund') && (
-          <LegalScreen kind={activePage} setActivePage={setActivePage} />
+          <LegalScreen kind={activePage} setActivePage={setActivePage} siteSettings={siteSettings} />
         )}
 
         {/* 14. COUNSELLING DEDICATED SCREEN */}
         {activePage === 'counselling' && (
           <CounsellingScreen 
+            siteSettings={siteSettings}
             onLeadSubmitted={() => setLeadCounter(prev => prev + 1)} 
             setActivePage={setActivePage}
           />
@@ -673,6 +677,8 @@ export default function App() {
           </div>
         )}
 
+        </Suspense>
+        </LazyBoundary>
       </main>
 
       {/* Footer */}
@@ -687,8 +693,12 @@ export default function App() {
         onOpenCounselling={() => handleOpenCounsellingWithPlan()}
       />
 
+      <LazyBoundary compact>
+      <Suspense fallback={<ModalFallback />}>
       {/* Free 1:1 Career Counselling Lead Capture Modal */}
+      <WhenOpen open={isCounsellingOpen}>
       <CounsellingModal
+        siteSettings={siteSettings}
         isOpen={isCounsellingOpen}
         onClose={() => setIsCounsellingOpen(false)}
         initialPlan={counsellingPlanInterest}
@@ -696,24 +706,30 @@ export default function App() {
           setLeadCounter(prev => prev + 1);
         }}
       />
+      </WhenOpen>
 
       {/* Webinar Detail Modal */}
+      <WhenOpen open={!!selectedWebinarForDetail}>
       <WebinarDetailModal
         isOpen={!!selectedWebinarForDetail}
         onClose={() => setSelectedWebinarForDetail(null)}
         webinar={selectedWebinarForDetail}
         onRegister={handleRegisterWebinar}
       />
+      </WhenOpen>
 
       {/* Webinar Checkout Modal */}
+      <WhenOpen open={!!webinarToCheckout}>
       <WebinarCheckoutModal
         isOpen={!!webinarToCheckout}
         onClose={() => setWebinarToCheckout(null)}
         webinar={webinarToCheckout}
         onRegistrationSuccess={handleWebinarSuccess}
       />
+      </WhenOpen>
 
       {/* Service Detail Modal */}
+      <WhenOpen open={!!selectedService}>
       <ServiceDetailModal
         service={selectedService}
         onClose={() => setSelectedService(null)}
@@ -722,8 +738,10 @@ export default function App() {
           handleOpenCounsellingWithPlan(`${service.title} Guidance`);
         }}
       />
+      </WhenOpen>
 
       {/* Resource Article Reader Modal */}
+      <WhenOpen open={!!selectedArticle}>
       <ArticleReaderModal
         article={selectedArticle}
         onClose={() => setSelectedArticle(null)}
@@ -732,8 +750,10 @@ export default function App() {
           handleOpenCounsellingWithPlan('Playbook Follow-up Guidance');
         }}
       />
+      </WhenOpen>
 
       {/* Mentor Profile / Bio Detail Modal */}
+      <WhenOpen open={!!bioMentor}>
       <MentorProfileModal
         mentor={bioMentor}
         isOpen={!!bioMentor}
@@ -743,16 +763,20 @@ export default function App() {
           setBookingMentor(mentor);
         }}
       />
+      </WhenOpen>
 
       {/* Master Session Booking Modal */}
+      <WhenOpen open={!!bookingMentor}>
       <BookingModal
         mentor={bookingMentor}
         isOpen={!!bookingMentor}
         onClose={() => setBookingMentor(null)}
         onConfirmBooking={handleConfirmBooking}
       />
+      </WhenOpen>
 
       {/* AI/Rule-based Smart Matching Modal */}
+      <WhenOpen open={isSmartMatchingOpen}>
       <SmartMatchingModal
         isOpen={isSmartMatchingOpen}
         onClose={() => setIsSmartMatchingOpen(false)}
@@ -765,14 +789,18 @@ export default function App() {
           setBookingMentor(mentor);
         }}
       />
+      </WhenOpen>
 
       {/* Become a Mentor Application Modal */}
+      <WhenOpen open={isBecomeMentorOpen}>
       <BecomeMentorModal
         isOpen={isBecomeMentorOpen}
         onClose={() => setIsBecomeMentorOpen(false)}
       />
+      </WhenOpen>
 
       {/* Authentication Modal */}
+      <WhenOpen open={isAuthOpen}>
       <AuthModal
         isOpen={isAuthOpen}
         initialMode={authMode}
@@ -785,6 +813,7 @@ export default function App() {
         startInForgot={startInForgot}
         onAuthenticate={handleAuthenticate}
       />
+      </WhenOpen>
 
       {linkCode && (
         <LinkAccountModal
@@ -820,6 +849,7 @@ export default function App() {
       )}
 
       {/* User Dashboard & Bookings Drawer */}
+      <WhenOpen open={isUserDashboardOpen}>
       <UserDashboardDrawer
         isOpen={isUserDashboardOpen}
         onClose={() => setIsUserDashboardOpen(false)}
@@ -831,7 +861,10 @@ export default function App() {
           setIsSmartMatchingOpen(true);
         }}
       />
-      
+      </WhenOpen>
+      </Suspense>
+      </LazyBoundary>
+
 <PaymentStatusBanner />
 <AICareerAssistant />
 

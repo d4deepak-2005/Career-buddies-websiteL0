@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MOCK_FAQS, OFFICE_DETAILS } from '../../data/mockData';
+import { MOCK_FAQS } from '../../data/mockData';
 import { FAQItem, PageView } from '../../types';
 import { 
   Mail, 
@@ -19,6 +19,8 @@ import { PageNavigationControls } from '../common/PageNavigationControls';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
 import { SiteSettingsData, pickText } from '../../hooks/useSiteSettings';
 import { submitLead } from '../../utils/submitLead';
+import { getContactInfo } from '../../utils/contactInfo';
+import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface ContactScreenProps {
   onLeadSubmitted?: () => void;
@@ -31,6 +33,8 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
   setActivePage,
   siteSettings
 }) => {
+  const contact = getContactInfo(siteSettings);
+  const entryPrice = useWebinarEntryPrice();
   const [openFaq, setOpenFaq] = useState<string | null>('faq1');
   const [faqCategory, setFaqCategory] = useState<string>('all');
   
@@ -173,7 +177,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
                 <div>
                   <span className="text-xs font-black text-[#061b3b] block">Registered Office</span>
                   <p className="text-xs text-[#434652] leading-relaxed mt-0.5 font-medium">
-                    {pickText(siteSettings?.contact?.address, OFFICE_DETAILS.address)}
+                    {contact.address}
                   </p>
                 </div>
               </div>
@@ -184,8 +188,8 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
                 </div>
                 <div>
                   <span className="text-xs font-black text-[#061b3b] block">WhatsApp Support Desk</span>
-                  <a href={OFFICE_DETAILS.whatsappLink} target="_blank" rel="noopener noreferrer" className="text-xs text-[#006e29] hover:underline font-bold">
-                    +91 9310288270 / +91 8890790077
+                  <a href={contact.whatsappLink()} target="_blank" rel="noopener noreferrer" className="text-xs text-[#006e29] hover:underline font-bold">
+                    {contact.whatsappPrimary} / {contact.whatsappSecondary}
                   </a>
                 </div>
               </div>
@@ -197,10 +201,10 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
                 <div>
                   <span className="text-xs font-black text-[#061b3b] block">Email Enquiries</span>
                   <a
-                    href={`mailto:${pickText(siteSettings?.contact?.email, 'support@careerbuddies.in')}`}
+                    href={`mailto:${contact.supportEmail}`}
                     className="text-xs text-[#002869] hover:underline font-bold block"
                   >
-                    {pickText(siteSettings?.contact?.email, 'support@careerbuddies.in')}
+                    {contact.supportEmail}
                   </a>
                   <span className="text-[11px] text-[#555966] font-medium block mt-0.5">
                     For student support, corporate sales, programmes, and business enquiries.
@@ -273,7 +277,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
                     className="w-full p-4 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-[#f9f9ff]"
                   >
                     <span className="font-bold text-sm text-[#061b3b]">
-                      {faq.question}
+                      {withEntryPrice(faq.question, entryPrice)}
                     </span>
                     {isOpen ? (
                       <ChevronUp className="w-4 h-4 text-[#002869] shrink-0" />
@@ -284,7 +288,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
 
                   {isOpen && (
                     <div className="px-4 pb-4 pt-1 text-xs text-[#434652] leading-relaxed border-t border-gray-100 bg-[#f9f9ff]/50">
-                      {faq.answer}
+                      {withEntryPrice(faq.answer, entryPrice)}
                     </div>
                   )}
                 </div>

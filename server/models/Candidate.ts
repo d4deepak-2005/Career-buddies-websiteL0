@@ -38,6 +38,8 @@ const candidateSchema = new mongoose.Schema(
 );
 
 candidateSchema.index({ 'identities.provider': 1, 'identities.subject': 1 });
+// Password-reset links are looked up by the hash of their token (sparse: most accounts have none).
+candidateSchema.index({ resetTokenHash: 1 }, { sparse: true });
 
 export const Candidate: mongoose.Model<any> =
   mongoose.models.Candidate || mongoose.model('Candidate', candidateSchema);

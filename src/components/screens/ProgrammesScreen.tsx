@@ -20,6 +20,7 @@ import { useProgrammes, usePlans } from '../../hooks/useCmsCatalog';
 import { OnlineCheckoutModal } from '../modals/OnlineCheckoutModal';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
+import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface ProgrammesScreenProps {
   onNavigate: (page: PageView) => void;
@@ -30,6 +31,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
   onNavigate,
   onOpenCounselling
 }) => {
+  const entryPrice = useWebinarEntryPrice();
   const PROGRAMMES_CATALOGUE = useProgrammes();
   const CAREER_PLANS = usePlans();
   const [payProgramme, setPayProgramme] = useState<ProgrammeItem | null>(null);
@@ -74,7 +76,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
             Choose Your Career Plan
           </h1>
           <p className="text-sm sm:text-base text-[#434652] mt-3 leading-relaxed">
-            Following your ₹199 live mentor webinar and advisor requirement review, choose from our three structured plans. Dedicated profile overhaul begins immediately upon enrolment.
+            Following your ₹{entryPrice} live mentor webinar and advisor requirement review, choose from our three structured plans. Dedicated profile overhaul begins immediately upon enrolment.
           </p>
         </div>
 
@@ -166,7 +168,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     onClick={() => onNavigate('webinars')}
                     className="px-4 py-2.5 rounded-xl bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>Start with ₹199 Webinar</span>
+                    <span>Start with ₹{entryPrice} Webinar</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>

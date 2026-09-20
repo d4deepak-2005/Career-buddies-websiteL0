@@ -16,8 +16,6 @@ export type PageView =
   | 'contact' 
   | 'counselling'
   | 'dashboard'
-  | 'login'
-  | 'signup'
   | 'admin'
   | 'privacy'
   | 'terms'

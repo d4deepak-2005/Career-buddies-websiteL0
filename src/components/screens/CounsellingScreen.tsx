@@ -15,21 +15,27 @@ import {
   Building,
   Target
 } from 'lucide-react';
-import { OFFICE_DETAILS } from '../../data/mockData';
 import { PageView } from '../../types';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
 import { submitLead } from '../../utils/submitLead';
+import { getContactInfo } from '../../utils/contactInfo';
+import { SiteSettingsData } from '../../hooks/useSiteSettings';
 
 interface CounsellingScreenProps {
+  siteSettings?: SiteSettingsData | null;
   onLeadSubmitted?: () => void;
   setActivePage?: (page: PageView) => void;
 }
 
+const SESSION_MESSAGE = 'Hi CareerBuddies, I would like to book a free career counselling session.';
+
 export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({ 
   onLeadSubmitted,
-  setActivePage 
+  setActivePage,
+  siteSettings
 }) => {
+  const contact = getContactInfo(siteSettings);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -141,13 +147,13 @@ export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({
                     Prefer to chat right now? Reach out to our lead guidance desk directly on WhatsApp.
                   </p>
                   <a
-                    href={OFFICE_DETAILS.whatsappLink}
+                    href={contact.whatsappLink()}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
                   >
                     <MessageSquare className="w-4 h-4" />
-                    <span>Chat on WhatsApp (+91 9310288270)</span>
+                    <span>Chat on WhatsApp ({contact.whatsappPrimary})</span>
                   </a>
                 </div>
 
@@ -228,22 +234,22 @@ export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({
               </p>
               <div className="flex flex-col gap-2 mt-1">
                 <a
-                  href="https://wa.me/919310288270?text=Hi%20CareerBuddies%2C%20I%20would%20like%20to%20book%20a%20free%20career%20counselling%20session."
+                  href={contact.whatsappLink(SESSION_MESSAGE)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#f1f3ff] hover:bg-[#dae2ff] text-[#006e29] text-xs font-bold transition-all"
                 >
                   <MessageSquare className="w-4 h-4 text-[#006e29]" />
-                  <span>WhatsApp: +91 9310288270</span>
+                  <span>WhatsApp: {contact.whatsappPrimary}</span>
                 </a>
                 <a
-                  href="https://wa.me/918890790077?text=Hi%20CareerBuddies%2C%20I%20would%20like%20to%20book%20a%20free%20career%20counselling%20session."
+                  href={contact.whatsappLink(SESSION_MESSAGE, contact.whatsappSecondary)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#f1f3ff] hover:bg-[#dae2ff] text-[#006e29] text-xs font-bold transition-all"
                 >
                   <MessageSquare className="w-4 h-4 text-[#006e29]" />
-                  <span>WhatsApp: +91 8890790077</span>
+                  <span>WhatsApp: {contact.whatsappSecondary}</span>
                 </a>
               </div>
             </div>

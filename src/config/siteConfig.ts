@@ -1,6 +1,5 @@
 import { 
   SiteConfig, 
-  FounderInfo, 
   JourneyMilestone, 
   WebinarItem, 
   FAQItem 
@@ -23,8 +22,6 @@ export {
 };
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = COMPANY_CONFIG;
-
-export const FOUNDERS_DATA: FounderInfo[] = LEADERSHIP_PROFILES;
 
 export const JOURNEY_TIMELINE: JourneyMilestone[] = [
   {
@@ -184,35 +181,3 @@ export const WEBINAR_FAQS: FAQItem[] = [
   }
 ];
 
-export const SITE_FAQS: FAQItem[] = [
-  {
-    id: "faq-1",
-    question: "What is CareerBuddies and how does it work?",
-    answer: "CareerBuddies is a practitioner-led career acceleration platform. The journey starts with an affordable ₹199 live mentor-led masterclass webinar. Interested candidates then connect with a dedicated Career Advisor who analyzes your background and helps you select from three tailored Career Plans. Upon enrolment, our specialized team overhauls your resume and portfolio, followed by a high-impact Personalized Industry Master Session.",
-    category: "general"
-  },
-  {
-    id: "faq-2",
-    question: "How does the Career Advisor discussion work after the webinar?",
-    answer: "After attending a ₹199 mentor-led webinar, genuinely interested professionals can request an advisor discussion. Our advisor reviews your current experience, target roles, and transition bottlenecks to recommend the most effective of our 3 structured Career Plans.",
-    category: "general"
-  },
-  {
-    id: "faq-3",
-    question: "What are the Live Webinars and what is included in ₹199?",
-    answer: `Our ₹${WEBINAR_ENTRY_PRICE_INR} live webinars are 90-minute interactive masterclasses led by senior practitioners from top technology companies. Every ticket includes live Q&A access, session recording, downloadable playbooks, and direct eligibility for our 3 structured career tracks.`,
-    category: "webinars"
-  },
-  {
-    id: "faq-4",
-    question: "When does the dedicated profile engineering work begin?",
-    answer: "Dedicated profile engineering (ATS resume rewrite, LinkedIn overhaul, portfolio audit) begins immediately upon enrolment in one of our three Career Plans. Our team works hand-in-hand on your assets before your Personalized Industry Master Session.",
-    category: "programmes"
-  },
-  {
-    id: "faq-5",
-    question: "How is the Personalized Industry Master Session arranged?",
-    answer: "Once your profile assets are revamped by our team, we schedule a 1:1 Personalized Master Session in the following week with a verified practitioner aligned specifically with your domain and career target.",
-    category: "mentors"
-  }
-];

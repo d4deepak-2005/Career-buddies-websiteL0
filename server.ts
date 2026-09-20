@@ -48,6 +48,16 @@ app.set('trust proxy', TRUST_PROXY_HOPS);
 app.disable('x-powered-by');
 app.use(securityHeaders(IS_PRODUCTION));
 
+// API responses are never cached by shared caches. Anything private (accounts, admin, leads,
+// payments, sign-in, AI) or sent with credentials is `no-store`; public content endpoints are
+// `no-cache` (browsers may keep a copy but must revalidate it).
+const PRIVATE_API = /^\/api\/(candidate|admin|leads|payments|auth|ai|media)(\/|$)/;
+app.use('/api', (req: Request, res: Response, next: express.NextFunction) => {
+  const isPrivate = PRIVATE_API.test(req.originalUrl.split('?')[0]) || !!req.headers.authorization || (req.method !== 'GET' && req.method !== 'HEAD');
+  res.setHeader('Cache-Control', isPrivate ? 'no-store' : 'no-cache');
+  next();
+});
+
 // Independent rate-limit buckets (never shared between endpoints).
 const leadsBurstLimiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 6, message: 'Too many submissions from your connection. Please wait a few minutes and try again.' });
 const leadsDailyLimiter = createRateLimiter({ windowMs: 24 * 60 * 60 * 1000, max: 25, message: 'Daily submission limit reached. Please contact us on WhatsApp instead.' });
@@ -752,9 +762,11 @@ app.get(
 );
 
 // Serve public directory
+// (Not content-hashed, so browsers may reuse these for an hour, then revalidate.)
 app.use(
   express.static(
-    path.join(process.cwd(), 'public')
+    path.join(process.cwd(), 'public'),
+    { index: false, maxAge: '1h' }
   )
 );
 
@@ -1119,6 +1131,7 @@ async function startServer() {
         'Disallow: /reset-password',
       ];
       if (base) lines.push('', `Sitemap: ${base}/sitemap.xml`);
+      res.setHeader('Cache-Control', 'no-cache');
       res.type('text/plain').send(lines.join('\n') + '\n');
     });
 
@@ -1131,6 +1144,7 @@ async function startServer() {
         return;
       }
       res
+        .set('Cache-Control', 'no-cache')
         .type('application/xml')
         .send(
           '<?xml version="1.0" encoding="UTF-8"?>\n' +
@@ -1154,13 +1168,28 @@ async function startServer() {
       return indexTemplate.replace('<!--SEO_BASE-->', tags);
     };
 
+    // Vite output names files by content hash (assets/name-XXXXXXXX.ext), so those can be cached
+    // for a year and never change under the same URL. Everything else in the folder (logo,
+    // photos from /public) is revalidated after an hour. The HTML shell is served separately
+    // below and is never cached, so a new deploy is picked up immediately.
+    const HASHED_ASSET = /\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.[A-Za-z0-9]+$/;
     app.use(
-      express.static(distPath, { index: false })
+      express.static(distPath, {
+        index: false,
+        setHeaders: (res, filePath) => {
+          const normalised = filePath.split(path.sep).join('/');
+          res.setHeader(
+            'Cache-Control',
+            HASHED_ASSET.test(normalised) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600'
+          );
+        },
+      })
     );
 
     app.get('*', (req, res) => {
       // Only the home page is meant to be indexed; any other path (e.g. a reset link) is not.
       if (req.path !== '/') res.setHeader('X-Robots-Tag', 'noindex');
+      res.setHeader('Cache-Control', 'no-cache');
       res.type('html').send(renderIndex());
     });
   }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { RESOURCE_CATEGORIES, RESOURCE_ARTICLES } from '../../data/mockData';
+import { RESOURCE_CATEGORIES, RESOURCE_ARTICLES } from '../../data/resources';
 import { ResourceArticle, PageView } from '../../types';
 import { 
   BookOpen, 

@@ -40,5 +40,8 @@ const leadSchema = new mongoose.Schema(
   }
 );
 
+// Admin list sorts by createdAt and the lead serial number counts leads up to a createdAt.
+leadSchema.index({ createdAt: 1 });
+
 export const Lead: mongoose.Model<any> =
   mongoose.models.Lead || mongoose.model('Lead', leadSchema);

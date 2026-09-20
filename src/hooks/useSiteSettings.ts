@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchPublicJson, peekPublicJson } from '../utils/publicCache';
 
 export interface SiteSettingsData {
   general: {
@@ -58,14 +59,14 @@ export interface SiteSettingsData {
 // rendering its own existing hardcoded content — the public site never
 // breaks because Site Settings is unavailable or not yet populated.
 export function useSiteSettings() {
-  const [settings, setSettings] = useState<SiteSettingsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = peekPublicJson('/api/site-settings');
+  const [settings, setSettings] = useState<SiteSettingsData | null>(cached?.success && cached.settings ? cached.settings : null);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/site-settings')
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Request failed'))))
+    fetchPublicJson('/api/site-settings')
       .then((data) => {
         if (!cancelled && data?.success && data.settings) {
           setSettings(data.settings);

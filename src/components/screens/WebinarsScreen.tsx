@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { SectionHeading } from '../common/SectionHeading';
+import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface WebinarsScreenProps {
   onSelectWebinar: (webinar: WebinarItem) => void;
@@ -33,6 +34,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
   onOpenCounselling,
   setActivePage
 }) => {
+  const entryPrice = useWebinarEntryPrice();
   const INITIAL_WEBINARS = useWebinars();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -79,7 +81,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
           }}
           backLabel="Home"
           nextLabel="View Featured Masterclass"
-          currentStepLabel={`Live Masterclasses & Webinars (₹${DEFAULT_SITE_CONFIG.webinarDefaultPriceINR})`}
+          currentStepLabel={`Live Masterclasses & Webinars (₹${entryPrice})`}
         />
 
         {/* Hero Banner */}
@@ -103,7 +105,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
             <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-bold text-white">
               <span className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/15">
                 <Sparkles className="w-3.5 h-3.5 text-[#79fd8d]" />
-                Standard All-Access Pass: ₹{DEFAULT_SITE_CONFIG.webinarDefaultPriceINR}
+                Standard All-Access Pass: ₹{entryPrice}
               </span>
               <span className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/15">
                 <Video className="w-3.5 h-3.5 text-[#79fd8d]" />
@@ -242,7 +244,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
                     onClick={() => onRegisterWebinar(webinar)}
                     className="flex-1 py-2.5 px-3 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
                   >
-                    <span>Register (₹{webinar.priceINR || DEFAULT_SITE_CONFIG.webinarDefaultPriceINR})</span>
+                    <span>Register (₹{webinar.priceINR || entryPrice})</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />
                   </button>
                 </div>

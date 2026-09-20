@@ -18,6 +18,7 @@ import {
 import { PageView } from '../../types';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { SectionHeading } from '../common/SectionHeading';
+import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface HowItWorksScreenProps {
   onStartMatching: () => void;
@@ -34,6 +35,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
   onBecomeMentor,
   setActivePage
 }) => {
+  const entryPrice = useWebinarEntryPrice();
   const handleCounselling = onOpenCounselling || onBookCounselling || (() => {});
   const [selectedStep, setSelectedStep] = useState<number>(1);
 
@@ -96,7 +98,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
               className="px-6 py-3 bg-[#006e29] hover:bg-[#00531d] text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2"
             >
               <Calendar className="w-4 h-4" />
-              <span>Step 1: Join Live Webinar (₹199)</span>
+              <span>Step 1: Join Live Webinar (₹{entryPrice})</span>
             </button>
             <button
               onClick={handleCounselling}
@@ -143,7 +145,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
                       {stepItem.title}
                     </h2>
                     <p className={`text-[11px] truncate ${isSelected ? 'text-white/80' : 'text-[#666a76]'}`}>
-                      {stepItem.subtitle}
+                      {withEntryPrice(stepItem.subtitle, entryPrice)}
                     </p>
                   </div>
 
@@ -171,7 +173,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
               </div>
 
               <span className="hidden sm:inline-block px-3 py-1 bg-[#dae2ff] text-[#001947] text-xs font-black rounded-full">
-                {activeStepData.subtitle}
+                {withEntryPrice(activeStepData.subtitle, entryPrice)}
               </span>
             </div>
 
@@ -186,7 +188,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
               </h3>
               <div className="flex items-start gap-2.5 text-xs font-bold text-[#061b3b]">
                 <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0 mt-0.5" />
-                <span>{activeStepData.deliverable}</span>
+                <span>{withEntryPrice(activeStepData.deliverable, entryPrice)}</span>
               </div>
             </div>
 
@@ -223,7 +225,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
                   onClick={() => setActivePage('webinars')}
                   className="px-4 py-2 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl shadow-xs cursor-pointer"
                 >
-                  Join ₹199 Webinar
+                  Join ₹{entryPrice} Webinar
                 </button>
 
                 <button

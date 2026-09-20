@@ -33,5 +33,8 @@ const paymentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Admin payment list is sorted newest-first.
+paymentSchema.index({ createdAt: -1 });
+
 export const Payment: mongoose.Model<any> =
   mongoose.models.Payment || mongoose.model('Payment', paymentSchema);

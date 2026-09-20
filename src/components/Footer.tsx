@@ -5,6 +5,7 @@ import { BrandLogo } from './BrandLogo';
 import { HandshakeIcon } from './common/HandshakeIcon';
 import { SiteSettingsData, pickText } from '../hooks/useSiteSettings';
 import { ModalA11y } from './common/ModalA11y';
+import { getContactInfo } from '../utils/contactInfo';
 import { 
   Users, 
   Map, 
@@ -92,8 +93,7 @@ export const Footer: React.FC<FooterProps> = ({
   const [showThankYouModal, setShowThankYouModal] = useState(false);
 
   // WhatsApp configuration
-  const rawWhatsAppNumber = pickText(siteSettings?.general?.whatsappNumber, '919310288270');
-  const WHATSAPP_NUMBER = rawWhatsAppNumber.replace(/[^0-9]/g, '') || '919310288270';
+  const contact = getContactInfo(siteSettings);
   const WHATSAPP_MESSAGE = `Hello CareerBuddies,
 
 I visited the CareerBuddies website and would like to know more about your programmes and career guidance services.
@@ -104,7 +104,7 @@ Please connect with me and help me with the relevant details.
 
 Thank you!`;
 
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+  const whatsappUrl = contact.whatsappLink(WHATSAPP_MESSAGE);
 
   const handleWhatsAppClick = () => {
     setShowThankYouModal(true);
@@ -575,7 +575,7 @@ Thank you!`;
               {SOCIAL_MEDIA_LINKS.map((social) => (
                 <a
                   key={social.name}
-                  href={social.url}
+                  href={siteSettings?.footer?.socialLinks?.find((l) => l.platform?.trim().toLowerCase() === social.name.toLowerCase() && /^https?:\/\//i.test(l.url || ''))?.url || social.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.ariaLabel}

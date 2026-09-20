@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2, ShieldCheck, MessageSquare } from 'lucide-react';
-import { OFFICE_DETAILS } from '../../data/mockData';
+import { getContactInfo } from '../../utils/contactInfo';
+import { SiteSettingsData } from '../../hooks/useSiteSettings';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
 import { submitLead } from '../../utils/submitLead';
 import { ModalA11y } from '../common/ModalA11y';
 
 interface CounsellingModalProps {
+  siteSettings?: SiteSettingsData | null;
   isOpen: boolean;
   onClose: () => void;
   initialPlan?: string;
@@ -20,8 +22,10 @@ export const CounsellingModal: React.FC<CounsellingModalProps> = ({
   initialPlan,
   initialService,
   onSuccess,
-  onLeadSubmitted
+  onLeadSubmitted,
+  siteSettings
 }) => {
+  const contact = getContactInfo(siteSettings);
   const [submittedName, setSubmittedName] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -129,13 +133,13 @@ export const CounsellingModal: React.FC<CounsellingModalProps> = ({
                   Need an urgent answer or wish to connect with an advisor immediately? You can also message our counselling desk directly on WhatsApp.
                 </p>
                 <a
-                  href={OFFICE_DETAILS.whatsappLink}
+                  href={contact.whatsappLink()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>Chat on WhatsApp (+91 9310288270)</span>
+                  <span>Chat on WhatsApp ({contact.whatsappPrimary})</span>
                 </a>
               </div>
 

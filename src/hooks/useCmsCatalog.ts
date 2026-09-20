@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { PROGRAMMES_CATALOGUE } from '../config/programmes';
 import { INITIAL_WEBINARS } from '../config/siteConfig';
+import { WEBINAR_ENTRY_PRICE_INR } from '../config/webinars';
 import { SUCCESS_STORIES } from '../config/testimonials';
 import { STRUCTURED_SERVICES, CAREER_PLANS, MOCK_MENTORS } from '../data/mockData';
 
@@ -184,4 +185,23 @@ export function useMentors(): Mentor[] {
       reviews: m.reviews || [],
     }));
   }, [items]);
+}
+
+// ---------------------------------------------------------------------------
+// Webinar entry price: one source of truth for the "₹199"-style price mentioned across the site.
+// It follows the live webinar prices in the CMS (the lowest one); if the CMS is empty or
+// unreachable it is the built-in WEBINAR_ENTRY_PRICE_INR.
+// ---------------------------------------------------------------------------
+export function useWebinarEntryPrice(): number {
+  const webinars = useWebinars();
+  return useMemo(() => {
+    const prices = webinars.map((w) => w.priceINR).filter((p) => typeof p === 'number' && p > 0);
+    return prices.length ? Math.min(...prices) : WEBINAR_ENTRY_PRICE_INR;
+  }, [webinars]);
+}
+
+// Static copy (FAQs, step descriptions) is written with the built-in entry price; this swaps it for
+// the current one at render time, so the text can never disagree with the CMS price.
+export function withEntryPrice(text: string, price: number): string {
+  return price === WEBINAR_ENTRY_PRICE_INR ? text : text.split(`₹${WEBINAR_ENTRY_PRICE_INR}`).join(`₹${price}`);
 }

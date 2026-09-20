@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { buttonProps } from '../../utils/a11y';
+import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface CareerCheckInScreenProps {
   onNavigate: (page: PageView) => void;
@@ -26,6 +27,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
   onNavigate,
   onOpenCounselling
 }) => {
+  const entryPrice = useWebinarEntryPrice();
   const [step, setStep] = useState<number>(1);
   const [stage, setStage] = useState<string>('');
   const [direction, setDirection] = useState<string>('');
@@ -57,7 +59,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
 
   const supportOptions = [
     { id: '1on1', title: 'Dedicated Master Sessions & Guidance', desc: 'Ongoing strategic sessions, code/architecture teardowns, and mock interviews' },
-    { id: 'webinars', title: 'Live Interactive Masterclasses & Webinars', desc: 'Affordable (₹199) deep-dive weekend workshops on specific topics' },
+    { id: 'webinars', title: 'Live Interactive Masterclasses & Webinars', desc: `Affordable (₹${entryPrice}) deep-dive weekend workshops on specific topics` },
     { id: 'counselling', title: 'Free 30-Min Diagnostic Counselling', desc: 'Quick assessment call with our team to diagnose roadblocks and next steps' },
     { id: 'resources', title: 'Self-Paced Playbooks & Frameworks', desc: 'Curated promotion rubrics, salary negotiation scripts, and system design templates' }
   ];
@@ -413,7 +415,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                         <GraduationCap className="w-4 h-4" />
                       </div>
                       <span className="px-2 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-[11px] font-bold">
-                        ₹199 Access
+                        ₹{entryPrice} Access
                       </span>
                     </div>
                     <h4 className="font-bold text-sm text-[#061b3b] group-hover:text-[#006e29] transition-colors">

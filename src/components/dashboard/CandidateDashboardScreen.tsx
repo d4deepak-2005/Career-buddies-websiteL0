@@ -1,38 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { CandidateProfile, candidateFetch, setCandidateToken } from '../../utils/candidateAuth';
+import { CandidateProfile, candidateFetch } from '../../utils/candidateAuth';
 import { PageView } from '../../types';
 import { DEFAULT_SITE_CONFIG } from '../../config/siteConfig';
 import { PageBottomNav } from '../common/PageBottomNav';
 import { ModalA11y } from '../common/ModalA11y';
-import { 
-  User, 
-  Sparkles, 
-  Calendar, 
-  FileText, 
-  CreditCard, 
-  Download, 
-  CheckCircle2, 
-  Video, 
-  Headphones, 
-  MessageSquare, 
-  Bell, 
-  Edit3, 
-  Save, 
-  Eye, 
-  X, 
-  Send, 
-  Layers,
-  ArrowRight,
-  ShieldCheck,
-  FolderDown,
-  Printer,
-  Lock,
-  Globe,
-  Settings,
-  HelpCircle,
-  ExternalLink,
-  AlertTriangle
-} from 'lucide-react';
+import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
+import { SettingsTab } from './SettingsTab';
+import { EnquiriesTab } from './EnquiriesTab';
+import { ProfileTab } from './ProfileTab';
+import { COMPLETE_PROFILE, EmptyState, EnquiryRecord, NOT_AVAILABLE, PAYMENT_STATUS_LABEL, PaymentRecord, WebinarRecord, formatDate, formatINR } from './dashboardShared';
+import { User, Sparkles, Calendar, FileText, CreditCard, Download, CheckCircle2, Video, Headphones, MessageSquare, Bell, Eye, X, Send, Layers, ArrowRight, FolderDown, Printer, Lock, Settings } from 'lucide-react';
 
 interface CandidateDashboardScreenProps {
   setActivePage: (page: PageView) => void;
@@ -55,59 +32,6 @@ type DashboardTab =
   | 'support'
   | 'settings';
 
-interface PaymentRecord {
-  id: string;
-  itemType: string;
-  itemName: string;
-  status: string;
-  amount: number | null;
-  currency: string;
-  createdAt: string;
-}
-
-interface EnquiryRecord {
-  id: string;
-  createdAt: string;
-  subject: string;
-  category: string;
-  status: string;
-  resolved: boolean;
-}
-
-interface WebinarRecord {
-  id: string;
-  title: string;
-  speaker: string;
-  date: string;
-  time: string;
-  description: string;
-  link: string;
-  amount: number | null;
-}
-
-const NOT_AVAILABLE = 'Not available yet';
-const COMPLETE_PROFILE = 'Complete your profile to see this';
-
-const formatINR = (amount: number | null) =>
-  amount === null ? NOT_AVAILABLE : `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-
-const formatDate = (iso: string) =>
-  iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  succeeded: 'Paid & Verified',
-  created: 'Payment Pending',
-  processing: 'Payment Processing',
-  failed: 'Payment Failed',
-  cancelled: 'Cancelled',
-};
-
-const EmptyState: React.FC<{ title: string; hint?: string }> = ({ title, hint }) => (
-  <div className="p-8 rounded-2xl bg-[#f9f9ff] border border-dashed border-[#cbdaff] text-center">
-    <p className="text-sm font-black text-[#061b3b]">{title}</p>
-    {hint && <p className="text-xs text-[#434652] mt-1">{hint}</p>}
-  </div>
-);
 
 export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> = ({
   setActivePage,
@@ -115,28 +39,12 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
   onCandidateUpdate,
   onLogout
 }) => {
+  const entryPrice = useWebinarEntryPrice();
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
   // Profile: the source of truth is the authenticated candidate saved in MongoDB.
   const candidateProfile = candidate;
-  const profileToForm = (c: CandidateProfile) => ({
-    firstName: c.firstName,
-    lastName: c.lastName,
-    mobile: c.mobile,
-    alternateNumber: c.alternateNumber,
-    alternateEmail: c.alternateEmail,
-    currentDesignation: c.currentDesignation,
-    totalExperience: c.totalExperience,
-    targetRole: c.targetRole,
-    linkedinUrl: c.linkedinUrl,
-    portfolioUrl: c.portfolioUrl,
-    bio: c.bio
-  });
 
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editForm, setEditForm] = useState(() => profileToForm(candidate));
-  const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Records that belong to this candidate (payments, enquiries, paid webinars).
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -182,19 +90,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
     sacCode: string;
   } | null>(null);
 
-  // Enquiry Submission State
-  const [enquirySubject, setEnquirySubject] = useState('');
-  const [enquiryCategory, setEnquiryCategory] = useState('Career Plan & Milestones');
-  const [enquiryMessage, setEnquiryMessage] = useState('');
-  const [enquirySuccess, setEnquirySuccess] = useState(false);
-  const [enquiryError, setEnquiryError] = useState<string | null>(null);
 
-  // Security / Settings State
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // No notification records exist yet — nothing is invented.
   const notifications: { id: string; title: string; description: string; time: string; read: boolean }[] = [];
@@ -241,7 +137,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
   const journeyDone = [hasWebinarPass, hasEnquiry, advisorEngaged, isEnrolled, false, false, false];
   const activeStageIdx = journeyDone.findIndex((d) => !d);
   const journeySteps = [
-    { stage: 'Step 1', title: 'Live Mentor-Led Webinar (₹199 Entry)', desc: hasWebinarPass ? 'You have registered for a live webinar.' : 'Register for a live webinar to begin your journey.' },
+    { stage: 'Step 1', title: `Live Mentor-Led Webinar (₹${entryPrice} Entry)`, desc: hasWebinarPass ? 'You have registered for a live webinar.' : 'Register for a live webinar to begin your journey.' },
     { stage: 'Step 2', title: 'Expressed Interest & Profile Diagnosis', desc: hasEnquiry ? 'Your enquiry has been shared with CareerBuddies advisors.' : 'Share your goals with our advisors to get started.' },
     { stage: 'Step 3', title: 'Advisor Requirements Discussion', desc: advisorEngaged ? 'An advisor has picked up your enquiry.' : 'Your advisor will discuss your requirements with you.' },
     { stage: 'Step 4', title: 'Plan Selection & Enrolment', desc: isEnrolled ? `Enrolled in ${planPayment!.itemName}.` : 'Choose and enrol in the plan that fits your goals.' },
@@ -269,92 +165,8 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
     { id: 'settings', label: 'Account Settings', icon: Lock }
   ];
 
-  const handleProfileSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setProfileError(null);
-    try {
-      const res = await candidateFetch('/api/candidate/me', {
-        method: 'PUT',
-        body: JSON.stringify(editForm)
-      });
-      const body = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        onLogout();
-        return;
-      }
-      if (!res.ok || !body.success) {
-        setProfileError(body.error || 'Could not save your profile. Please try again.');
-        return;
-      }
-      onCandidateUpdate(body.candidate);
-      setIsEditingProfile(false);
-      setProfileSaveSuccess(true);
-      setTimeout(() => setProfileSaveSuccess(false), 4000);
-    } catch {
-      setProfileError('Could not save your profile. Please check your connection and try again.');
-    }
-  };
 
-  const handleEnquirySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!enquirySubject.trim() || !enquiryMessage.trim()) return;
-    setEnquiryError(null);
 
-    try {
-      const res = await candidateFetch('/api/candidate/enquiries', {
-        method: 'POST',
-        body: JSON.stringify({ subject: enquirySubject, category: enquiryCategory, message: enquiryMessage })
-      });
-      const body = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        onLogout();
-        return;
-      }
-      if (!res.ok || !body.success) {
-        setEnquiryError(body.error || 'Could not send your enquiry. Please try again.');
-        return;
-      }
-      setEnquiries([body.enquiry, ...enquiries]);
-      setEnquirySubject('');
-      setEnquiryMessage('');
-      setEnquirySuccess(true);
-      setTimeout(() => setEnquirySuccess(false), 4000);
-    } catch {
-      setEnquiryError('Could not send your enquiry. Please check your connection and try again.');
-    }
-  };
-
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentPassword || !newPassword || newPassword !== confirmPassword) {
-      setPasswordError('Please ensure all fields are filled and new passwords match.');
-      setTimeout(() => setPasswordError(null), 4000);
-      return;
-    }
-    setPasswordError(null);
-
-    try {
-      const res = await candidateFetch('/api/candidate/change-password', {
-        method: 'POST',
-        body: JSON.stringify({ currentPassword, newPassword })
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body.success) {
-        setPasswordError(body.error || 'Could not update your password.');
-        setTimeout(() => setPasswordError(null), 5000);
-        return;
-      }
-      setCandidateToken(body.token, body.expiresAt);
-      setPasswordSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setTimeout(() => setPasswordSuccess(false), 4000);
-    } catch {
-      setPasswordError('Could not update your password. Please try again.');
-      setTimeout(() => setPasswordError(null), 5000);
-    }
-  };
 
   const handleDownloadDoc = (docTitle: string) => {
     const element = document.createElement('a');
@@ -655,279 +467,17 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
         {/* ============================================================ */}
         {/* SECTION B: MY PROFILE */}
         {/* ============================================================ */}
-        {activeTab === 'profile' && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-6 animate-in fade-in">
-            <div className="flex items-center justify-between border-b border-[#cbdaff] pb-5">
-              <div>
-                <h2 className="text-xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
-                  Candidate Profile & Career Credentials
-                </h2>
-                <p className="text-xs sm:text-sm text-[#434652]">
-                  Keep your work experience and target roles updated for the profile engineering team.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setEditForm(profileToForm(candidate));
-                  setProfileError(null);
-                  setIsEditingProfile(!isEditingProfile);
-                }}
-                className="px-4 py-2 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>{isEditingProfile ? 'Cancel Editing' : 'Edit Profile Information'}</span>
-              </button>
-            </div>
-
-            {profileSaveSuccess && (
-              <div className="p-4 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-2xl flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Candidate profile updated successfully!</span>
-              </div>
-            )}
-
-            {profileError && (
-              <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-2xl">
-                {profileError}
-              </div>
-            )}
-
-            {isEditingProfile ? (
-              /* Editable Profile Form */
-              <form onSubmit={handleProfileSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="dash-field-1" className="block text-xs font-black text-[#061b3b] mb-1">First Name *</label>
-                  <input id="dash-field-1"
-                    type="text"
-                    required
-                    value={editForm.firstName}
-                    onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-2" className="block text-xs font-black text-[#061b3b] mb-1">Last Name *</label>
-                  <input id="dash-field-2"
-                    type="text"
-                    required
-                    value={editForm.lastName}
-                    onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-3" className="block text-xs font-black text-[#061b3b] mb-1">Email Address *</label>
-                  <input id="dash-field-3"
-                    type="email"
-                    value={candidateProfile.email}
-                    readOnly
-                    disabled
-                    className="w-full px-3.5 py-2.5 bg-[#f1f3ff] border border-[#cbdaff] rounded-xl text-xs text-[#666a76]"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-4" className="block text-xs font-black text-[#061b3b] mb-1">Mobile Number *</label>
-                  <input id="dash-field-4"
-                    type="tel"
-                    required
-                    value={editForm.mobile}
-                    onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-5" className="block text-xs font-medium text-[#434652] mb-1">Alternate Number (Optional)</label>
-                  <input id="dash-field-5"
-                    type="tel"
-                    value={editForm.alternateNumber}
-                    onChange={(e) => setEditForm({ ...editForm, alternateNumber: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-6" className="block text-xs font-medium text-[#434652] mb-1">Alternate Email ID (Optional)</label>
-                  <input id="dash-field-6"
-                    type="email"
-                    value={editForm.alternateEmail}
-                    onChange={(e) => setEditForm({ ...editForm, alternateEmail: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-7" className="block text-xs font-black text-[#061b3b] mb-1">Current Designation *</label>
-                  <input id="dash-field-7"
-                    type="text"
-                    required
-                    value={editForm.currentDesignation}
-                    onChange={(e) => setEditForm({ ...editForm, currentDesignation: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-8" className="block text-xs font-black text-[#061b3b] mb-1">Target Role *</label>
-                  <input id="dash-field-8"
-                    type="text"
-                    required
-                    value={editForm.targetRole}
-                    onChange={(e) => setEditForm({ ...editForm, targetRole: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-9" className="block text-xs font-black text-[#061b3b] mb-1">Total Work Experience *</label>
-                  <input id="dash-field-9"
-                    type="text"
-                    required
-                    value={editForm.totalExperience}
-                    onChange={(e) => setEditForm({ ...editForm, totalExperience: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-10" className="block text-xs font-medium text-[#434652] mb-1">LinkedIn Profile Link (Optional)</label>
-                  <input id="dash-field-10"
-                    type="url"
-                    value={editForm.linkedinUrl}
-                    onChange={(e) => setEditForm({ ...editForm, linkedinUrl: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-11" className="block text-xs font-medium text-[#434652] mb-1">Portfolio / GitHub (Optional)</label>
-                  <input id="dash-field-11"
-                    type="url"
-                    value={editForm.portfolioUrl}
-                    onChange={(e) => setEditForm({ ...editForm, portfolioUrl: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label htmlFor="dash-field-12" className="block text-xs font-black text-[#061b3b] mb-1">Additional Information / Target Goal</label>
-                  <textarea id="dash-field-12"
-                    rows={3}
-                    value={editForm.bio}
-                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div className="sm:col-span-2 flex justify-end gap-3 pt-3 border-t border-[#cbdaff]">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingProfile(false)}
-                    className="px-5 py-2.5 border border-[#cbdaff] text-xs font-bold rounded-xl text-[#434652] hover:bg-[#f1f3ff] cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>Save & Update Profile</span>
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Static Profile Details Display */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Full Name</span>
-                  <strong className="text-sm font-black text-[#061b3b] block mt-0.5">
-                    {fullName}
-                  </strong>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Registered Email Address</span>
-                  <strong className="text-xs font-bold text-[#002869] block mt-0.5 break-all">
-                    {candidateProfile.email}
-                  </strong>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Primary Contact Mobile</span>
-                  <strong className="text-xs font-bold text-[#061b3b] block mt-0.5">
-                    {candidateProfile.mobile || 'Not Provided'}
-                  </strong>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Alternate Mobile Number</span>
-                  <span className="text-xs font-medium text-[#434652] block mt-0.5">
-                    {candidateProfile.alternateNumber || 'Not Provided'}
-                  </span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Alternate Email ID</span>
-                  <span className="text-xs font-medium text-[#434652] block mt-0.5 break-all">
-                    {candidateProfile.alternateEmail || 'Not Provided'}
-                  </span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Current Role & Level</span>
-                  <strong className="text-xs font-bold text-[#061b3b] block mt-0.5">
-                    {candidateProfile.currentDesignation || 'Not Provided'}
-                  </strong>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Target Role</span>
-                  <strong className="text-xs font-bold text-[#061b3b] block mt-0.5">
-                    {candidateProfile.targetRole || 'Not Provided'}
-                  </strong>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Total Work Experience</span>
-                  <strong className="text-xs font-bold text-[#061b3b] block mt-0.5">
-                    {candidateProfile.totalExperience || 'Not Provided'}
-                  </strong>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">LinkedIn Profile URL</span>
-                  {candidateProfile.linkedinUrl ? (
-                    <a
-                      href={candidateProfile.linkedinUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-bold text-[#002869] hover:underline block mt-0.5 truncate"
-                    >
-                      {candidateProfile.linkedinUrl}
-                    </a>
-                  ) : (
-                    <span className="text-xs font-medium text-[#434652] block mt-0.5">Not Provided</span>
-                  )}
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff]">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Portfolio / Code Repositories</span>
-                  {candidateProfile.portfolioUrl ? (
-                    <a
-                      href={candidateProfile.portfolioUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-bold text-[#002869] hover:underline block mt-0.5 truncate"
-                    >
-                      {candidateProfile.portfolioUrl}
-                    </a>
-                  ) : (
-                    <span className="text-xs font-medium text-[#434652] block mt-0.5">Not Provided</span>
-                  )}
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] md:col-span-2 lg:col-span-3">
-                  <span className="text-[#666a76] block text-[11px] font-semibold">Candidate Target Narrative & Bio</span>
-                  <p className="text-xs text-[#434652] mt-1 leading-relaxed">
-                    {candidateProfile.bio || COMPLETE_PROFILE}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <div hidden={activeTab !== 'profile'}>
+          <ProfileTab
+            candidate={candidate}
+            onCandidateUpdate={onCandidateUpdate}
+            onLogout={onLogout}
+            completionPct={completionPct}
+            fullName={fullName}
+            initials={initials}
+            joinedDate={joinedDate}
+          />
+        </div>
 
         {/* ============================================================ */}
         {/* SECTION C: MY PLAN */}
@@ -1112,119 +662,15 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
         {/* ============================================================ */}
         {/* SECTION F: ENQUIRY HISTORY */}
         {/* ============================================================ */}
-        {activeTab === 'enquiries' && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-6 animate-in fade-in">
-            <div className="flex items-center justify-between border-b border-[#cbdaff] pb-5">
-              <div>
-                <h2 className="text-xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
-                  Enquiry History & Ticket Support
-                </h2>
-                <p className="text-xs sm:text-sm text-[#434652]">
-                  Track previous enquiries, roadmap queries, and advisor recommendations.
-                </p>
-              </div>
-            </div>
-
-            {/* Submit New Query Box */}
-            <form onSubmit={handleEnquirySubmit} className="p-5 rounded-2xl bg-[#f1f3ff] border border-[#cbdaff] flex flex-col gap-3.5">
-              <h3 className="text-xs font-black uppercase text-[#002869] tracking-wider">
-                Submit New Enquiry / Ticket to Career Advisor
-              </h3>
-
-              {enquiryError && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl">
-                  {enquiryError}
-                </div>
-              )}
-
-              {enquirySuccess && (
-                <div className="p-3 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-xl flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Enquiry sent! The CareerBuddies team will get back to you.</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <label htmlFor="dash-field-13" className="block text-xs font-bold text-[#061b3b] mb-1">Subject / Question *</label>
-                  <input id="dash-field-13"
-                    type="text"
-                    required
-                    value={enquirySubject}
-                    onChange={(e) => setEnquirySubject(e.target.value)}
-                    placeholder="e.g. Question on System Design Mock Scheduling"
-                    className="w-full px-3.5 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-field-14" className="block text-xs font-bold text-[#061b3b] mb-1">Category *</label>
-                  <select id="dash-field-14"
-                    value={enquiryCategory}
-                    onChange={(e) => setEnquiryCategory(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs cursor-pointer"
-                  >
-                    <option value="Career Plan & Milestones">Career Plan & Milestones</option>
-                    <option value="Profile Engineering">Profile Engineering</option>
-                    <option value="Master Session Scheduling">Master Session Scheduling</option>
-                    <option value="Billing & Invoices">Billing & Invoices</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="dash-field-15" className="block text-xs font-bold text-[#061b3b] mb-1">Detailed Message *</label>
-                <textarea id="dash-field-15"
-                  rows={2}
-                  required
-                  value={enquiryMessage}
-                  onChange={(e) => setEnquiryMessage(e.target.value)}
-                  placeholder="Provide context on your question..."
-                  className="w-full px-3.5 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send Ticket to Advisor</span>
-                </button>
-              </div>
-            </form>
-
-            {/* Enquiries Log */}
-            <div className="flex flex-col gap-3.5">
-              {enquiries.length === 0 && (
-                <EmptyState
-                  title={dataLoading ? 'Loading your enquiries…' : dataError ? 'Could not load your enquiries' : 'No enquiries yet'}
-                  hint={dataLoading || dataError ? undefined : 'Enquiries you submit will appear here.'}
-                />
-              )}
-              {enquiries.map((enq) => (
-                <div key={enq.id} className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-[#002869]">ENQ-{enq.id.slice(-6).toUpperCase()}</span>
-                      <span className="text-[11px] px-2 py-0.5 bg-[#dae2ff] text-[#001947] rounded-full font-bold">
-                        {enq.category}
-                      </span>
-                    </div>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
-                      enq.resolved ? 'bg-[#79fd8d]/30 text-[#00531d]' : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      {enq.status}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xs font-bold text-[#061b3b]">{enq.subject}</h3>
-                  <span className="text-[11px] text-[#666a76]">{formatDate(enq.createdAt)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <div hidden={activeTab !== 'enquiries'}>
+          <EnquiriesTab
+            enquiries={enquiries}
+            loading={dataLoading}
+            loadError={dataError}
+            onCreated={(enquiry) => setEnquiries((prev) => [enquiry, ...prev])}
+            onLogout={onLogout}
+          />
+        </div>
 
         {/* ============================================================ */}
         {/* SECTION G: WEBINARS */}
@@ -1237,7 +683,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   Webinars & Live Masterclasses
                 </h2>
                 <p className="text-xs sm:text-sm text-[#434652]">
-                  Access your registered ₹199 live webinars, view schedule details, and join links.
+                  Access your registered ₹{entryPrice} live webinars, view schedule details, and join links.
                 </p>
               </div>
               <button
@@ -1576,114 +1022,10 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
         {/* ============================================================ */}
         {/* SECTION L: ACCOUNT SETTINGS */}
         {/* ============================================================ */}
-        {activeTab === 'settings' && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-6 animate-in fade-in">
-            <div className="flex items-center justify-between border-b border-[#cbdaff] pb-5">
-              <div>
-                <h2 className="text-xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
-                  Account Settings & Security Preferences
-                </h2>
-                <p className="text-xs sm:text-sm text-[#434652]">
-                  Manage authentication credentials, notification channels, and privacy preferences.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Password & Authentication */}
-              <div className="p-6 rounded-3xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col gap-4">
-                <h3 className="text-base font-black text-[#061b3b] flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-[#002869]" />
-                  <span>Update Password</span>
-                </h3>
-
-                {passwordSuccess && (
-                  <div className="p-3 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-xl flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Password updated successfully!</span>
-                  </div>
-                )}
-
-                {passwordError && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{passwordError}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handlePasswordChange} className="flex flex-col gap-3">
-                  <div>
-                    <label htmlFor="dash-field-16" className="block text-xs font-bold text-[#061b3b] mb-1">Current Password *</label>
-                    <input id="dash-field-16"
-                      type="password"
-                      required
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-3.5 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="dash-field-17" className="block text-xs font-bold text-[#061b3b] mb-1">New Password *</label>
-                    <input id="dash-field-17"
-                      type="password"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-3.5 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="dash-field-18" className="block text-xs font-bold text-[#061b3b] mb-1">Confirm New Password *</label>
-                    <input id="dash-field-18"
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-3.5 py-2 bg-white border border-[#cbdaff] rounded-xl text-xs"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="mt-2 py-2.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl shadow-xs cursor-pointer"
-                  >
-                    Save New Password
-                  </button>
-                </form>
-              </div>
-
-              {/* Notification Preferences & 2FA */}
-              <div className="p-6 rounded-3xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col justify-between gap-5">
-                <div>
-                  <h3 className="text-base font-black text-[#061b3b] flex items-center gap-2 mb-4">
-                    <ShieldCheck className="w-4 h-4 text-[#006e29]" />
-                    <span>Security & Notification Alerts</span>
-                  </h3>
-
-                  <div className="flex flex-col gap-4 text-xs">
-                    {[
-                      { title: 'WhatsApp Session Reminders', note: 'Session reminders are not available yet.' },
-                      { title: 'Email Invoice & Deliverable Updates', note: 'Email updates are not available yet.' },
-                      { title: 'Two-Factor Authentication (2FA)', note: 'Two-factor authentication is not available yet. Your account is protected by your password only.' },
-                    ].map((item) => (
-                      <div key={item.title} className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white border border-[#e0e8ff]">
-                        <div>
-                          <strong className="text-[#061b3b] block">{item.title}</strong>
-                          <span className="text-[#666a76] text-[11px]">{item.note}</span>
-                        </div>
-                        <span className="shrink-0 text-[11px] font-black uppercase tracking-wide text-[#666a76] bg-[#f1f3ff] border border-[#cbdaff] rounded-full px-2 py-0.5">Not available</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
+        {/* These three tabs stay mounted (hidden) so half-typed forms survive switching tabs, as before. */}
+        <div hidden={activeTab !== 'settings'}>
+          <SettingsTab />
+        </div>
 
       </div>
 

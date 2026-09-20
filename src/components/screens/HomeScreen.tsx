@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { submitLead } from '../../utils/submitLead';
 import { buttonProps } from '../../utils/a11y';
+import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface HomeScreenProps {
   onSelectMentor: (mentor: Mentor) => void;
@@ -62,6 +63,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onSelectLeader,
   siteSettings
 }) => {
+  const entryPrice = useWebinarEntryPrice();
   const STRUCTURED_SERVICES = useServices();
   const CAREER_PLANS = usePlans();
   const previewServices = STRUCTURED_SERVICES.slice(0, 6);
@@ -199,7 +201,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 className="w-full sm:w-auto justify-center px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
               >
                 <Calendar className="w-4 h-4 text-[#79fd8d]" />
-                <span>Join Live Webinar (₹{DEFAULT_SITE_CONFIG.webinarDefaultPriceINR})</span>
+                <span>Join Live Webinar (₹{entryPrice})</span>
               </button>
 
               <button
@@ -422,7 +424,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               {
                 step: "01",
                 title: "Live Mentor Webinar",
-                badge: "₹199 Entry",
+                badge: `₹${entryPrice} Entry`,
                 desc: "Start with an affordable 90-minute live masterclass led by senior mentors from top tech companies.",
                 icon: Calendar,
                 color: "green"
@@ -534,7 +536,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 onClick={() => setActivePage('webinars')}
                 className="mt-5 w-full py-2.5 rounded-xl bg-[#79fd8d] hover:bg-[#5cf272] text-[#002869] font-black text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Join Live Webinar (₹{DEFAULT_SITE_CONFIG.webinarDefaultPriceINR})</span>
+                <span>Join Live Webinar (₹{entryPrice})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -567,7 +569,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 Choose the Right CareerBuddies Plan for Your Stage
               </h2>
               <p className="text-sm text-[#434652] leading-relaxed">
-                After attending your ₹199 webinar, your Career Advisor will match you with one of our three structured plans. Dedicated profile work begins immediately upon enrolment.
+                After attending your ₹{entryPrice} webinar, your Career Advisor will match you with one of our three structured plans. Dedicated profile work begins immediately upon enrolment.
               </p>
             </div>
 
@@ -673,7 +675,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 Join High-Impact Weekend Masterclasses
               </h2>
               <p className="text-sm text-[#434652] leading-relaxed">
-                Focused 90-minute live deep dives with staff practitioners covering system design, AI architectures, and product strategy. Accessible at ₹{DEFAULT_SITE_CONFIG.webinarDefaultPriceINR} per session.
+                Focused 90-minute live deep dives with staff practitioners covering system design, AI architectures, and product strategy. Accessible at ₹{entryPrice} per session.
               </p>
             </div>
 
@@ -878,14 +880,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     className="w-full px-6 py-4 sm:py-4.5 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-gray-50/50"
                   >
                     <span className="text-sm sm:text-base font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
-                      {faq.question}
+                      {withEntryPrice(faq.question, entryPrice)}
                     </span>
                     <ChevronDown className={`w-4 h-4 text-[#002869] transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {isOpen && (
                     <div className="px-6 pb-5 pt-2 text-xs sm:text-sm text-[#434652] leading-relaxed border-t border-gray-100">
-                      {faq.answer}
+                      {withEntryPrice(faq.answer, entryPrice)}
                     </div>
                   )}
                 </div>
@@ -908,7 +910,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </h2>
 
           <p className="text-sm sm:text-base text-[#434652] max-w-xl leading-relaxed">
-            Begin with an accessible ₹{DEFAULT_SITE_CONFIG.webinarDefaultPriceINR} live mentor-led masterclass, connect with a dedicated Career Advisor, and accelerate with our proven 3-tier career plans.
+            Begin with an accessible ₹{entryPrice} live mentor-led masterclass, connect with a dedicated Career Advisor, and accelerate with our proven 3-tier career plans.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 pt-2">
@@ -916,7 +918,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onClick={() => setActivePage('webinars')}
               className="px-8 py-3.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-[#002869]/20 transition-all cursor-pointer flex items-center gap-2"
             >
-              <span>Join Live Mentor Webinar (₹{DEFAULT_SITE_CONFIG.webinarDefaultPriceINR})</span>
+              <span>Join Live Mentor Webinar (₹{entryPrice})</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 

@@ -1,3 +1,4 @@
+import { clearPublicCache } from './publicCache';
 const TOKEN_KEY = 'cb_admin_token';
 const EXPIRES_KEY = 'cb_admin_token_expires';
 
@@ -45,6 +46,10 @@ export async function adminFetch(
     clearAdminToken();
     window.location.reload();
   }
+
+  // Any successful change made by an admin may alter public content: drop the shared public cache.
+  const method = (init.method || 'GET').toUpperCase();
+  if (response.ok && method !== 'GET' && method !== 'HEAD') clearPublicCache();
 
   return response;
 }

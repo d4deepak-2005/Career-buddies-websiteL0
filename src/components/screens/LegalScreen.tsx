@@ -1,13 +1,15 @@
 import React from 'react';
 import { PageView } from '../../types';
 import { PageNavigationControls } from '../common/PageNavigationControls';
-import { COMPANY_CONFIG } from '../../config/company';
+import { getContactInfo } from '../../utils/contactInfo';
+import { SiteSettingsData } from '../../hooks/useSiteSettings';
 
 export type LegalKind = 'privacy' | 'terms' | 'refund';
 
 interface LegalScreenProps {
   kind: LegalKind;
   setActivePage: (page: PageView) => void;
+  siteSettings?: SiteSettingsData | null;
 }
 
 interface LegalSection {
@@ -18,7 +20,8 @@ interface LegalSection {
 // NOTE: These policies are DRAFT placeholder text based only on what the site already
 // states. They contain no certifications, registrations or compliance claims and must
 // be reviewed by the company's legal advisor before being treated as final.
-const CONTACT_LINE = `${COMPANY_CONFIG.companyName}, ${COMPANY_CONFIG.officeAddress}. Email: ${COMPANY_CONFIG.supportEmail}.`;
+// %%EMAIL%% / %%ADDRESS%% are filled from Site Settings (or the built-in defaults) when the page renders.
+const CONTACT_LINE = 'CareerBuddies, %%ADDRESS%%. Email: %%EMAIL%%.';
 
 const DOCUMENTS: Record<LegalKind, { title: string; intro: string; sections: LegalSection[] }> = {
   privacy: {
@@ -59,7 +62,7 @@ const DOCUMENTS: Record<LegalKind, { title: string; intro: string; sections: Leg
       {
         heading: 'Your choices',
         body: [
-          `To ask about, correct or delete your information, contact us at ${COMPANY_CONFIG.supportEmail}.`,
+          `To ask about, correct or delete your information, contact us at %%EMAIL%%.`,
         ],
       },
       {
@@ -133,7 +136,7 @@ const DOCUMENTS: Record<LegalKind, { title: string; intro: string; sections: Leg
       {
         heading: 'How to request a refund',
         body: [
-          `Email ${COMPANY_CONFIG.supportEmail} with your name, the email you used and the service concerned. Approved refunds are returned to the original payment method.`,
+          `Email %%EMAIL%% with your name, the email you used and the service concerned. Approved refunds are returned to the original payment method.`,
         ],
       },
       {
@@ -144,8 +147,10 @@ const DOCUMENTS: Record<LegalKind, { title: string; intro: string; sections: Leg
   },
 };
 
-export const LegalScreen: React.FC<LegalScreenProps> = ({ kind, setActivePage }) => {
+export const LegalScreen: React.FC<LegalScreenProps> = ({ kind, setActivePage, siteSettings }) => {
   const doc = DOCUMENTS[kind];
+  const contact = getContactInfo(siteSettings);
+  const fill = (text: string) => text.split('%%EMAIL%%').join(contact.supportEmail).split('%%ADDRESS%%').join(contact.address);
   const go = (page: PageView) => {
     setActivePage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -166,14 +171,14 @@ export const LegalScreen: React.FC<LegalScreenProps> = ({ kind, setActivePage })
           <p className="mt-2 text-xs font-bold text-[#666a76]">
             Draft — pending legal review. Last updated: to be confirmed.
           </p>
-          <p className="mt-4 text-sm text-[#434652] leading-relaxed">{doc.intro}</p>
+          <p className="mt-4 text-sm text-[#434652] leading-relaxed">{fill(doc.intro)}</p>
 
           <div className="mt-6 flex flex-col gap-6">
             {doc.sections.map((section) => (
               <section key={section.heading}>
                 <h2 className="text-base sm:text-lg font-black text-[#061b3b]">{section.heading}</h2>
                 {section.body.map((text, i) => (
-                  <p key={i} className="mt-2 text-sm text-[#434652] leading-relaxed break-words">{text}</p>
+                  <p key={i} className="mt-2 text-sm text-[#434652] leading-relaxed break-words">{fill(text)}</p>
                 ))}
               </section>
             ))}

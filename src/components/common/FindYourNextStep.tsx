@@ -2,6 +2,7 @@ import React from 'react';
 import { NEXT_STEP_OPTIONS } from '../../config/siteConfig';
 import { PageView } from '../../types';
 import { buttonProps } from '../../utils/a11y';
+import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
 import { 
   Compass, 
   RefreshCw, 
@@ -20,6 +21,7 @@ export const FindYourNextStep: React.FC<FindYourNextStepProps> = ({
   onNavigate,
   onOpenCounselling
 }) => {
+  const entryPrice = useWebinarEntryPrice();
   const getIcon = (id: string) => {
     switch (id) {
       case 'clarity':
@@ -97,7 +99,7 @@ export const FindYourNextStep: React.FC<FindYourNextStepProps> = ({
                     <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                       isGreen ? 'bg-[#79fd8d]/25 text-[#00531d]' : 'bg-[#dae2ff] text-[#001947]'
                     }`}>
-                      {opt.badge}
+                      {opt.badge ? withEntryPrice(opt.badge, entryPrice) : opt.badge}
                     </span>
                   </div>
 
@@ -111,7 +113,7 @@ export const FindYourNextStep: React.FC<FindYourNextStepProps> = ({
                   </p>
 
                   <p className="text-xs text-[#434652] leading-relaxed mb-4">
-                    {opt.description}
+                    {withEntryPrice(opt.description, entryPrice)}
                   </p>
                 </div>
 
