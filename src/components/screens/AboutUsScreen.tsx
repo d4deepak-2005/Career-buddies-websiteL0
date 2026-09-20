@@ -8,6 +8,7 @@ import { PageView } from '../../types';
 import { LeadershipSection } from '../common/LeadershipSection';
 import { SectionHeading } from '../common/SectionHeading';
 import { PageNavigationControls } from '../common/PageNavigationControls';
+import { SiteSettingsData, pickText } from '../../hooks/useSiteSettings';
 import { 
   HeartHandshake, 
   Compass, 
@@ -26,12 +27,14 @@ interface AboutUsScreenProps {
   onBecomeMentor?: () => void;
   onOpenCounselling?: () => void;
   onSelectLeader?: (slug: string) => void;
+  siteSettings?: SiteSettingsData | null;
 }
 
 export const AboutUsScreen: React.FC<AboutUsScreenProps> = ({
   setActivePage,
   onOpenCounselling,
-  onSelectLeader
+  onSelectLeader,
+  siteSettings
 }) => {
   return (
     <div className="w-full bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
@@ -64,11 +67,14 @@ export const AboutUsScreen: React.FC<AboutUsScreenProps> = ({
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#061b3b] tracking-tight font-['Plus_Jakarta_Sans',sans-serif] leading-tight">
-            Grounded Career Guidance for Ambitious Minds.
+            {pickText(siteSettings?.about?.title, 'Grounded Career Guidance for Ambitious Minds.')}
           </h1>
 
           <p className="text-sm sm:text-base text-[#434652] leading-relaxed max-w-2xl font-medium">
-            Career decisions are among the most pivotal choices we make in life. We build human-centric mentorship, practical masterclasses, and structured diagnostics so no professional has to navigate career dilemmas alone.
+            {pickText(
+              siteSettings?.about?.mission,
+              'Career decisions are among the most pivotal choices we make in life. We build human-centric mentorship, practical masterclasses, and structured diagnostics so no professional has to navigate career dilemmas alone.'
+            )}
           </p>
         </div>
 

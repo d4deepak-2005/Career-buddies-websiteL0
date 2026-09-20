@@ -18,6 +18,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
+import { adminFetch } from '../../utils/adminAuth';
 
 interface LeadsDashboardScreenProps {
   setActivePage?: (page: any) => void;
@@ -36,7 +37,7 @@ export const LeadsDashboardScreen: React.FC<LeadsDashboardScreenProps> = ({ setA
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/leads');
+      const response = await adminFetch('/api/leads');
       const data = await response.json();
       if (data.leads) {
         setLeads(data.leads);
@@ -54,7 +55,7 @@ export const LeadsDashboardScreen: React.FC<LeadsDashboardScreenProps> = ({ setA
 
   const handleUpdateStatus = async (leadId: string, newStatus: Lead['status']) => {
     try {
-      const res = await fetch(`/api/leads/${leadId}`, {
+      const res = await adminFetch(`/api/leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -73,7 +74,7 @@ export const LeadsDashboardScreen: React.FC<LeadsDashboardScreenProps> = ({ setA
     if (!selectedLead) return;
     setUpdating(true);
     try {
-      const res = await fetch(`/api/leads/${selectedLead.id}`, {
+      const res = await adminFetch(`/api/leads/${selectedLead.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: notesText })

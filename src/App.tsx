@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSiteSettings } from './hooks/useSiteSettings';
 import { 
   PageView, 
   Mentor, 
@@ -12,6 +13,7 @@ import {
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AICareerAssistant } from './components/AICareerAssistant';
+import { AdminAuthGate } from './components/common/AdminAuthGate';
 
 // Screens
 import { HomeScreen } from './components/screens/HomeScreen';
@@ -47,6 +49,26 @@ import { WebinarDetailModal } from './components/modals/WebinarDetailModal';
 import { WebinarCheckoutModal } from './components/modals/WebinarCheckoutModal';
 
 export default function App() {
+  // Site Settings (MongoDB-backed CMS) — fetched once, null while loading or
+  // unavailable, in which case every consumer below falls back to its
+  // existing hardcoded content.
+  const { settings: siteSettings } = useSiteSettings();
+
+  // Client-side document title / meta description from Site Settings (SEO tab).
+  // This is a Vite SPA with a static index.html, so this updates what the
+  // browser tab shows but not what search-engine crawlers see pre-render.
+  useEffect(() => {
+    if (siteSettings?.seo?.metaTitle?.trim()) {
+      document.title = siteSettings.seo.metaTitle;
+    }
+    if (siteSettings?.seo?.metaDescription?.trim()) {
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) {
+        meta.setAttribute('content', siteSettings.seo.metaDescription);
+      }
+    }
+  }, [siteSettings]);
+
   // Navigation Page State
   const [activePage, setActivePage] = useState<PageView>('home');
 
@@ -175,6 +197,7 @@ export default function App() {
       <Navbar
         activePage={activePage}
         setActivePage={setActivePage}
+        siteSettings={siteSettings}
         onOpenLogin={handleOpenLogin}
         onOpenSignup={handleOpenSignup}
         onOpenUserDashboard={() => {
@@ -200,6 +223,7 @@ export default function App() {
             onSelectPlan={handleSelectPlan}
             setActivePage={setActivePage}
             onSelectLeader={handleSelectLeader}
+            siteSettings={siteSettings}
           />
         )}
 
@@ -303,14 +327,16 @@ export default function App() {
             onBecomeMentor={() => setIsBecomeMentorOpen(true)}
             onOpenCounselling={() => handleOpenCounsellingWithPlan()}
             onSelectLeader={handleSelectLeader}
+            siteSettings={siteSettings}
           />
         )}
 
         {/* 13. CONTACT US SCREEN */}
         {activePage === 'contact' && (
-          <ContactScreen 
-            onLeadSubmitted={() => setLeadCounter(prev => prev + 1)} 
+          <ContactScreen
+            onLeadSubmitted={() => setLeadCounter(prev => prev + 1)}
             setActivePage={setActivePage}
+            siteSettings={siteSettings}
           />
         )}
 
@@ -324,12 +350,16 @@ export default function App() {
 
         {/* 15. ADMIN WORKSPACE */}
         {activePage === 'admin' && (
-          <AdminScreen setActivePage={setActivePage} />
+          <AdminAuthGate>
+            <AdminScreen setActivePage={setActivePage} />
+          </AdminAuthGate>
         )}
 
         {/* 16. LEADS DASHBOARD */}
         {activePage === 'leads-dashboard' && (
-          <LeadsDashboardScreen setActivePage={setActivePage} />
+          <AdminAuthGate>
+            <LeadsDashboardScreen setActivePage={setActivePage} />
+          </AdminAuthGate>
         )}
 
         {/* 17. INDIVIDUAL LEADER PROFILE SCREEN */}
@@ -356,6 +386,7 @@ export default function App() {
       {/* Footer */}
       <Footer
         setActivePage={setActivePage}
+        siteSettings={siteSettings}
         onOpenContact={() => {
           setActivePage('contact');
           window.scrollTo({ top: 0, behavior: 'smooth' });

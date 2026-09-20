@@ -11,7 +11,7 @@ import {
   Quote
 } from 'lucide-react';
 import { PageView } from '../../types';
-import { SUCCESS_STORIES } from '../../config/testimonials';
+import { useSuccessStories } from '../../hooks/useCmsCatalog';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
 
@@ -24,6 +24,7 @@ export const SuccessStoriesScreen: React.FC<SuccessStoriesScreenProps> = ({
   onNavigate,
   onOpenCounselling
 }) => {
+  const SUCCESS_STORIES = useSuccessStories();
   const [activeFilter, setActiveFilter] = useState<'all' | 'promotion' | 'transition' | 'hike'>('all');
 
   const filteredStories = activeFilter === 'all'

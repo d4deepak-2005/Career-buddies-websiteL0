@@ -16,8 +16,7 @@ import {
   Zap
 } from 'lucide-react';
 import { PageView, ProgrammeItem } from '../../types';
-import { PROGRAMMES_CATALOGUE } from '../../config/programmes';
-import { CAREER_PLANS } from '../../data/mockData';
+import { useProgrammes, usePlans } from '../../hooks/useCmsCatalog';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
 
@@ -30,6 +29,8 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
   onNavigate,
   onOpenCounselling
 }) => {
+  const PROGRAMMES_CATALOGUE = useProgrammes();
+  const CAREER_PLANS = usePlans();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [expandedCurriculumId, setExpandedCurriculumId] = useState<string | null>(null);
 

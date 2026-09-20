@@ -21,6 +21,11 @@ import {
   Save
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
+import { adminFetch } from '../../utils/adminAuth';
+import { SiteSettingsPanel } from './admin/SiteSettingsPanel';
+import { PeopleMentorsPanel } from './admin/PeopleMentorsPanel';
+import { CatalogPanel, WEBINAR_FIELDS } from './admin/CatalogPanel';
+import { RecordListEditor } from './admin/RecordListEditor';
 
 interface AdminScreenProps {
   onOpenLeadDetail?: (lead: Lead) => void;
@@ -28,23 +33,14 @@ interface AdminScreenProps {
 }
 
 export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'webinars' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'webinars' | 'catalog' | 'people' | 'settings'>('overview');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [webinars, setWebinars] = useState<WebinarItem[]>(INITIAL_WEBINARS);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(DEFAULT_SITE_CONFIG);
   const [isLoading, setIsLoading] = useState(false);
   const [searchLead, setSearchLead] = useState('');
   const [leadStatusFilter, setLeadStatusFilter] = useState('all');
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // New webinar form modal state
-  const [isAddingWebinar, setIsAddingWebinar] = useState(false);
-  const [newWebinarTitle, setNewWebinarTitle] = useState('');
-  const [newWebinarSpeaker, setNewWebinarSpeaker] = useState('');
-  const [newWebinarRole, setNewWebinarRole] = useState('');
-  const [newWebinarDate, setNewWebinarDate] = useState('');
-  const [newWebinarTime, setNewWebinarTime] = useState('');
-  const [newWebinarPrice, setNewWebinarPrice] = useState(siteConfig.webinarDefaultPriceINR);
 
   // Fetch leads on mount
   useEffect(() => {
@@ -54,7 +50,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
   const fetchLeads = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/leads');
+      const res = await adminFetch('/api/leads');
       if (res.ok) {
         const data = await res.json();
         if (data.leads) setLeads(data.leads);
@@ -68,7 +64,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
 
   const handleUpdateLeadStatus = async (leadId: string, status: 'new' | 'contacted' | 'scheduled' | 'converted') => {
     try {
-      await fetch(`/api/leads/${leadId}/status`, {
+      await adminFetch(`/api/leads/${leadId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -77,55 +73,6 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
     } catch (err) {
       console.error('Failed to update status:', err);
     }
-  };
-
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2500);
-  };
-
-  const handleCreateWebinar = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newWebinarTitle || !newWebinarSpeaker) return;
-
-    const newW: WebinarItem = {
-      id: `web-${Date.now()}`,
-      title: newWebinarTitle,
-      tagline: `Interactive masterclass led by ${newWebinarSpeaker}`,
-      category: 'Engineering & Architecture',
-      speaker: {
-        name: newWebinarSpeaker,
-        role: newWebinarRole || 'Industry Leader',
-        company: 'CareerBuddies Masterclass',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-        bio: 'Senior practitioner with deep industry experience.'
-      },
-      date: newWebinarDate || 'Saturday, Upcoming',
-      time: newWebinarTime || '06:00 PM IST',
-      duration: '90 Mins',
-      description: 'Comprehensive masterclass covering real-world architecture and industry insights.',
-      whatYouWillLearn: [
-        'Core architectural patterns and trade-offs',
-        'Staff-level problem solving methodology',
-        'Live Q&A with speaker'
-      ],
-      targetAudience: ['Engineers and aspiring leaders'],
-      priceINR: Number(newWebinarPrice) || siteConfig.webinarDefaultPriceINR,
-      originalPriceINR: 999,
-      capacity: 100,
-      registeredCount: 0,
-      status: 'upcoming',
-      recordingIncluded: true,
-      certificateProvided: true,
-      badge: 'New'
-    };
-
-    setWebinars([newW, ...webinars]);
-    setIsAddingWebinar(false);
-    setNewWebinarTitle('');
-    setNewWebinarSpeaker('');
-    setNewWebinarRole('');
   };
 
   const exportLeadsCSV = () => {
@@ -262,6 +209,30 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
             <span className="px-1.5 py-0.2 rounded-full bg-[#dae2ff] text-[#001947] text-[10px]">
               {webinars.length}
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('catalog')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'catalog'
+                ? 'bg-[#002869] text-white'
+                : 'bg-white text-[#434652] hover:bg-[#e0e8ff] border border-[#e0e8ff]'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Programmes & Catalog</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('people')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'people'
+                ? 'bg-[#002869] text-white'
+                : 'bg-white text-[#434652] hover:bg-[#e0e8ff] border border-[#e0e8ff]'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>People & Mentors</span>
           </button>
 
           <button
@@ -485,238 +456,32 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
           </div>
         )}
 
-        {/* TAB 3: WEBINARS MANAGEMENT */}
+        {/* TAB 3: WEBINARS MANAGEMENT (MongoDB-backed CMS) */}
         {activeTab === 'webinars' && (
-          <div className="flex flex-col gap-6">
-            
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-4">
+            <div>
               <h3 className="text-lg font-bold text-[#061b3b]">Masterclasses & Webinar Schedule</h3>
-              <button
-                onClick={() => setIsAddingWebinar(true)}
-                className="px-4 py-2 bg-[#002869] text-white text-xs font-bold rounded-xl hover:bg-[#0b3d91] flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add New Webinar</span>
-              </button>
+              <p className="text-xs text-[#747783]">Changes appear on the public Webinars page. If this list is empty the site keeps showing its built-in webinars.</p>
             </div>
-
-            {/* Add Webinar Form Modal */}
-            {isAddingWebinar && (
-              <form onSubmit={handleCreateWebinar} className="p-6 rounded-2xl bg-white border border-[#cbdaff] shadow-sm flex flex-col gap-4">
-                <h4 className="font-bold text-sm text-[#061b3b]">Create New Masterclass</h4>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#061b3b] mb-1">Webinar Title</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Distributed Consensus in Cloud Native"
-                      value={newWebinarTitle}
-                      onChange={(e) => setNewWebinarTitle(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#061b3b] mb-1">Speaker Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Elena Rostova"
-                      value={newWebinarSpeaker}
-                      onChange={(e) => setNewWebinarSpeaker(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#061b3b] mb-1">Speaker Designation</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Staff Engineer @ Google"
-                      value={newWebinarRole}
-                      onChange={(e) => setNewWebinarRole(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#061b3b] mb-1">Date</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Saturday, Sep 19, 2026"
-                      value={newWebinarDate}
-                      onChange={(e) => setNewWebinarDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#061b3b] mb-1">Price (INR)</label>
-                    <input
-                      type="number"
-                      value={newWebinarPrice}
-                      onChange={(e) => setNewWebinarPrice(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs font-bold text-[#006e29]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-[#006e29] text-white text-xs font-bold rounded-xl hover:bg-[#00531d] cursor-pointer"
-                  >
-                    Save & Publish
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingWebinar(false)}
-                    className="px-4 py-2 bg-gray-200 text-[#434652] text-xs font-bold rounded-xl cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* List of Webinars */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {webinars.map(w => (
-                <div key={w.id} className="p-5 rounded-2xl bg-white border border-[#cbdaff] flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#dae2ff] text-[#001947]">
-                        {w.category}
-                      </span>
-                      <span className="text-base font-extrabold text-[#006e29]">
-                        ₹{w.priceINR}
-                      </span>
-                    </div>
-                    <h4 className="font-bold text-sm text-[#061b3b] mb-1">{w.title}</h4>
-                    <p className="text-xs text-[#747783] mb-3">Speaker: {w.speaker.name} • {w.date}</p>
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-[#434652]">
-                    <span>Registered: {w.registeredCount}/{w.capacity}</span>
-                    <span className="font-bold text-[#002869]">Live Status: Active</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
+            <RecordListEditor
+              apiBase="/api/webinars"
+              labelSingular="Webinar"
+              fields={WEBINAR_FIELDS}
+              emptyRecord={{ title: '', status: 'upcoming', featured: false, priceINR: DEFAULT_SITE_CONFIG.webinarDefaultPriceINR }}
+              titleField="title"
+              subtitleField="date"
+            />
           </div>
         )}
 
-        {/* TAB 4: SETTINGS & PRICING */}
-        {activeTab === 'settings' && (
-          <form onSubmit={handleSaveSettings} className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-[#061b3b]">Central System Configuration</h3>
-                <p className="text-xs text-[#747783]">
-                  Changes made here update the single source of truth for pricing, addresses, and contacts across all pages.
-                </p>
-              </div>
+        {/* TAB 3b: CATALOG (Programmes, Stories, Services, Plans — MongoDB-backed CMS) */}
+        {activeTab === 'catalog' && <CatalogPanel />}
 
-              {saveSuccess && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#79fd8d]/30 text-[#00531d] text-xs font-bold">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Settings Saved Successfully!</span>
-                </div>
-              )}
-            </div>
+        {/* TAB 4: PEOPLE & MENTORS (MongoDB-backed CMS) */}
+        {activeTab === 'people' && <PeopleMentorsPanel />}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">Company Name</label>
-                <input
-                  type="text"
-                  value={siteConfig.companyName}
-                  onChange={(e) => setSiteConfig({ ...siteConfig, companyName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">Brand Tagline</label>
-                <input
-                  type="text"
-                  value={siteConfig.brandTagline}
-                  onChange={(e) => setSiteConfig({ ...siteConfig, brandTagline: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs font-bold text-[#002869]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
-                  Default Webinar Fee (INR) - Central Price
-                </label>
-                <input
-                  type="number"
-                  value={siteConfig.webinarDefaultPriceINR}
-                  onChange={(e) => setSiteConfig({ ...siteConfig, webinarDefaultPriceINR: Number(e.target.value) })}
-                  className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs font-extrabold text-[#006e29]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">Primary Support Email</label>
-                <input
-                  type="email"
-                  value={siteConfig.supportEmail}
-                  onChange={(e) => setSiteConfig({ ...siteConfig, supportEmail: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">WhatsApp Admin Mobile 1</label>
-                <input
-                  type="text"
-                  value={siteConfig.primaryWhatsApp}
-                  onChange={(e) => setSiteConfig({ ...siteConfig, primaryWhatsApp: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">WhatsApp Admin Mobile 2</label>
-                <input
-                  type="text"
-                  value={siteConfig.secondaryWhatsApp}
-                  onChange={(e) => setSiteConfig({ ...siteConfig, secondaryWhatsApp: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs font-mono"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#061b3b] mb-1">Registered Office Address</label>
-              <textarea
-                rows={2}
-                value={siteConfig.officeAddress}
-                onChange={(e) => setSiteConfig({ ...siteConfig, officeAddress: e.target.value })}
-                className="w-full px-3.5 py-2 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b]"
-              />
-            </div>
-
-            <div className="pt-4 border-t border-gray-100 flex justify-end">
-              <button
-                type="submit"
-                className="px-6 py-2.5 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Save Site Settings</span>
-              </button>
-            </div>
-
-          </form>
-        )}
+        {/* TAB 5: SITE SETTINGS (MongoDB-backed CMS) */}
+        {activeTab === 'settings' && <SiteSettingsPanel />}
 
       </div>
     </div>

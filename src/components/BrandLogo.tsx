@@ -6,16 +6,20 @@ interface BrandLogoProps {
   showTagline?: boolean; // kept for interface compatibility
   className?: string;
   onClick?: () => void;
+  // Optional Site Settings override. Defaults to the original logo asset
+  // unchanged, so nothing changes visually until an admin sets a value.
+  src?: string;
 }
 
 export const BrandLogo: React.FC<BrandLogoProps> = ({
   size = 'md',
   variant = 'light',
   className = '',
-  onClick
+  onClick,
+  src
 }) => {
   // Official Single Source of Truth Brand Asset - 100% Unchanged Original Design
-  const LOGO_SRC = '/logo.png';
+  const LOGO_SRC = src && src.trim() ? src : '/logo.png';
 
   // Responsive sizing presets with strictly locked aspect ratio (object-fit: contain)
   // Sized prominently so CareerBuddies name, staircase, and tagline directly below are broader and prominent

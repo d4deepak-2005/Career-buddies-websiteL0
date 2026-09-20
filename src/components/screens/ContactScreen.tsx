@@ -17,15 +17,18 @@ import {
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
+import { SiteSettingsData, pickText } from '../../hooks/useSiteSettings';
 
 interface ContactScreenProps {
   onLeadSubmitted?: () => void;
   setActivePage?: (page: PageView) => void;
+  siteSettings?: SiteSettingsData | null;
 }
 
-export const ContactScreen: React.FC<ContactScreenProps> = ({ 
+export const ContactScreen: React.FC<ContactScreenProps> = ({
   onLeadSubmitted,
-  setActivePage
+  setActivePage,
+  siteSettings
 }) => {
   const [openFaq, setOpenFaq] = useState<string | null>('faq1');
   const [faqCategory, setFaqCategory] = useState<string>('all');
@@ -172,7 +175,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
                 <div>
                   <span className="text-xs font-black text-[#061b3b] block">Registered Office</span>
                   <p className="text-xs text-[#434652] leading-relaxed mt-0.5 font-medium">
-                    {OFFICE_DETAILS.address}
+                    {pickText(siteSettings?.contact?.address, OFFICE_DETAILS.address)}
                   </p>
                 </div>
               </div>
@@ -195,8 +198,11 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
                 </div>
                 <div>
                   <span className="text-xs font-black text-[#061b3b] block">Email Enquiries</span>
-                  <a href="mailto:support@careerbuddies.in" className="text-xs text-[#002869] hover:underline font-bold block">
-                    support@careerbuddies.in
+                  <a
+                    href={`mailto:${pickText(siteSettings?.contact?.email, 'support@careerbuddies.in')}`}
+                    className="text-xs text-[#002869] hover:underline font-bold block"
+                  >
+                    {pickText(siteSettings?.contact?.email, 'support@careerbuddies.in')}
                   </a>
                   <span className="text-[11px] text-[#555966] font-medium block mt-0.5">
                     For student support, corporate sales, programmes, and business enquiries.

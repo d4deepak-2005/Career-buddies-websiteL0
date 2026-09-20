@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { STRUCTURED_SERVICES, CAREER_PLANS, MOCK_FAQS } from '../../data/mockData';
+import { MOCK_FAQS } from '../../data/mockData';
+import { useServices, usePlans } from '../../hooks/useCmsCatalog';
 import { DEFAULT_SITE_CONFIG, JOURNEY_TIMELINE } from '../../config/siteConfig';
 import { Mentor, PageView, ServiceItem, PlanItem } from '../../types';
 import { BrandTagline } from '../BrandTagline';
@@ -7,6 +8,7 @@ import { FindYourNextStep } from '../common/FindYourNextStep';
 import { WhyTrustSection } from '../common/WhyTrustSection';
 import { LeadershipSection } from '../common/LeadershipSection';
 import { SectionHeading } from '../common/SectionHeading';
+import { SiteSettingsData, pickText } from '../../hooks/useSiteSettings';
 import { 
   ShieldCheck, 
   TrendingUp, 
@@ -43,6 +45,7 @@ interface HomeScreenProps {
   onSelectPlan: (plan: PlanItem) => void;
   setActivePage: (page: PageView) => void;
   onSelectLeader?: (slug: string) => void;
+  siteSettings?: SiteSettingsData | null;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -54,8 +57,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onSelectService,
   onSelectPlan,
   setActivePage,
-  onSelectLeader
+  onSelectLeader,
+  siteSettings
 }) => {
+  const STRUCTURED_SERVICES = useServices();
+  const CAREER_PLANS = usePlans();
   const previewServices = STRUCTURED_SERVICES.slice(0, 6);
 
   // Quick Hero Lead Capture Form state
@@ -148,22 +154,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-1.5 shadow-xs hover:bg-white/15 transition-all">
                 <Sparkles className="w-3.5 h-3.5 text-[#79fd8d]" />
                 <span className="text-xs font-bold text-[#dae2ff] tracking-wide">
-                  Bridging the gap between aspiration and achievement
+                  {pickText(
+                    siteSettings?.home?.heroSubtitle,
+                    'Bridging the gap between aspiration and achievement'
+                  )}
                 </span>
               </div>
             </div>
 
             {/* 2. Main Hero Headline */}
             <h1 className="text-3xl sm:text-4xl md:text-4.5xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.16] font-['Plus_Jakarta_Sans',sans-serif]">
-              Accelerate Your Career with{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#dae2ff] to-[#79fd8d]">
-                Structured Practitioner Guidance
-              </span>
+              {siteSettings?.home?.heroTitle?.trim() ? (
+                siteSettings.home.heroTitle
+              ) : (
+                <>
+                  Accelerate Your Career with{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#dae2ff] to-[#79fd8d]">
+                    Structured Practitioner Guidance
+                  </span>
+                </>
+              )}
             </h1>
 
             {/* 3. Supporting Description */}
             <p className="text-sm sm:text-base text-[#dae2ff]/90 leading-relaxed max-w-xl font-normal">
-              Navigate career transitions, level up to Senior and Staff engineering, and master system design with verified leaders from top global technology ecosystems.
+              {pickText(
+                siteSettings?.home?.heroDescription,
+                'Navigate career transitions, level up to Senior and Staff engineering, and master system design with verified leaders from top global technology ecosystems.'
+              )}
             </p>
 
             {/* 4 & 5. Primary and Secondary CTAs */}
@@ -173,7 +191,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 onClick={onOpenCounselling}
                 className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-xl bg-[#006e29] hover:bg-[#00531d] text-white text-xs sm:text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 whitespace-nowrap"
               >
-                <span>Connect with Our Advisor</span>
+                <span>{pickText(siteSettings?.home?.heroCtaText, 'Connect with Our Advisor')}</span>
                 <ArrowRight className="w-4 h-4 text-[#79fd8d]" />
               </button>
 

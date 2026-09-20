@@ -5,6 +5,7 @@ import { SectionHeading } from './SectionHeading';
 import { LeadershipProfileModal } from '../modals/LeadershipProfileModal';
 import { HandshakeIcon } from './HandshakeIcon';
 import { LeaderPortrait } from './LeaderPortrait';
+import { usePeople } from '../../hooks/usePeople';
 import { 
   Quote, 
   Mail, 
@@ -24,6 +25,14 @@ interface LeadershipSectionProps {
   setActivePage?: (page: PageView) => void;
 }
 
+// The fields this section actually renders — a subset of the richer
+// LeaderProfile shape, so CMS-backed records (which don't carry
+// experienceHighlights/philosophy/etc.) can be displayed the same way.
+type DisplayLeader = Pick<
+  LeaderProfile,
+  'id' | 'profileSlug' | 'name' | 'role' | 'title' | 'yearsOfExperience' | 'image' | 'shortBio' | 'expertise' | 'email' | 'linkedIn'
+> & { roleAtCareerBuddies?: string };
+
 export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
   onOpenCounselling,
   onBackToHome,
@@ -31,8 +40,31 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
   setActivePage
 }) => {
   const [modalFounder, setModalFounder] = useState<FounderInfo | null>(null);
+  const { people } = usePeople();
 
-  const handleViewProfile = (leader: LeaderProfile) => {
+  // CMS-backed Founder/Co-Founder records take over once an admin has added
+  // any; an empty or unavailable `people` collection falls back to the
+  // existing hardcoded LEADERSHIP_DATA exactly as before.
+  const founderRecords = people.filter((p) => p.role === 'founder' || p.role === 'co-founder');
+  const displayLeaders: DisplayLeader[] =
+    founderRecords.length > 0
+      ? founderRecords.map((p) => ({
+          id: p._id,
+          profileSlug: p.slug || p.name.toLowerCase().replace(/\s+/g, '-'),
+          name: p.name,
+          role: p.role === 'founder' ? 'Founder' : 'Co-Founder',
+          title: p.title,
+          yearsOfExperience: p.yearsOfExperience,
+          image: p.photoUrl,
+          shortBio: p.shortBio,
+          expertise: p.expertise,
+          email: p.email,
+          linkedIn: p.linkedIn,
+          roleAtCareerBuddies: p.longBio,
+        }))
+      : LEADERSHIP_DATA;
+
+  const handleViewProfile = (leader: DisplayLeader) => {
     if (onSelectLeader) {
       onSelectLeader(leader.profileSlug);
     } else if (setActivePage) {
@@ -46,7 +78,7 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
         email: leader.email,
         avatar: leader.image,
         bio: leader.shortBio,
-        contribution: leader.roleAtCareerBuddies,
+        contribution: leader.roleAtCareerBuddies || leader.shortBio,
         expertise: leader.expertise,
         linkedIn: leader.linkedIn
       });
@@ -98,7 +130,7 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
 
         {/* Leaders Grid: 3 columns with equal visual importance, same dimensions and ratio */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch">
-          {LEADERSHIP_DATA.map((leader) => (
+          {displayLeaders.map((leader) => (
             <div
               key={leader.id}
               className="bg-white rounded-3xl border border-[#cbdaff] hover:border-[#002869]/60 transition-all duration-300 hover:shadow-xl flex flex-col justify-between overflow-hidden group h-full"

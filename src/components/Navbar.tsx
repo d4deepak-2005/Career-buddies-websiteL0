@@ -16,6 +16,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { DEFAULT_SITE_CONFIG } from '../config/siteConfig';
+import { SiteSettingsData } from '../hooks/useSiteSettings';
 
 interface NavbarProps {
   activePage: PageView;
@@ -25,6 +26,9 @@ interface NavbarProps {
   onOpenSignup: () => void;
   onOpenUserDashboard: () => void;
   bookedCount?: number;
+  // Site Settings singleton, fetched once in App.tsx. Undefined/null while
+  // loading or unavailable — every usage below falls back to today's content.
+  siteSettings?: SiteSettingsData | null;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -34,7 +38,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenLogin,
   onOpenSignup,
   onOpenUserDashboard,
-  bookedCount = 0
+  bookedCount = 0,
+  siteSettings
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
@@ -71,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#cbdaff]/70 shadow-[0_2px_14px_rgba(0,40,105,0.04)] transition-all">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-2.5 flex items-center justify-between gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-2.5 flex items-center justify-between gap-3 sm:gap-4 md:gap-6 lg:gap-8">
         
         {/* Left Side: Prominent, Wide Official CareerBuddies Logo Presentation Area */}
         <div className="flex items-center shrink-0">
@@ -86,6 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="relative z-10 flex items-center">
               <BrandLogo
                 size="header"
+                src={siteSettings?.header?.logoUrl}
                 className="cursor-pointer transition-transform duration-200 group-hover:scale-[1.01]"
               />
             </div>

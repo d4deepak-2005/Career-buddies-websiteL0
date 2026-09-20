@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { WebinarItem, PageView } from '../../types';
-import { INITIAL_WEBINARS, WEBINAR_FAQS, DEFAULT_SITE_CONFIG } from '../../config/siteConfig';
+import { WEBINAR_FAQS, DEFAULT_SITE_CONFIG } from '../../config/siteConfig';
+import { useWebinars } from '../../hooks/useCmsCatalog';
 import { 
   GraduationCap, 
   Calendar, 
@@ -32,6 +33,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
   onOpenCounselling,
   setActivePage
 }) => {
+  const INITIAL_WEBINARS = useWebinars();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [openFaq, setOpenFaq] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
         w.speaker.company.toLowerCase().includes(q);
       return matchCat && matchQuery;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, INITIAL_WEBINARS]);
 
   const toggleFaq = (id: string) => {
     setOpenFaq(openFaq === id ? null : id);

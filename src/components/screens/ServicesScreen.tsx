@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { STRUCTURED_SERVICES } from '../../data/mockData';
+import { useServices } from '../../hooks/useCmsCatalog';
 import { ServiceItem, PageView } from '../../types';
 import { 
   Compass, 
@@ -37,6 +37,7 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
   onStartMatching,
   setActivePage
 }) => {
+  const STRUCTURED_SERVICES = useServices();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -82,7 +83,7 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
         service.deliverables.some(d => d.toLowerCase().includes(q));
       return matchCat && matchQuery;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, STRUCTURED_SERVICES]);
 
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
@@ -188,7 +189,7 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
               <div>
                 <div className="flex items-center justify-between gap-2 mb-4">
                   <div className="w-12 h-12 rounded-2xl bg-[#dae2ff] text-[#002869] group-hover:bg-[#002869] group-hover:text-white transition-colors flex items-center justify-center shadow-xs shrink-0">
-                    {getServiceIcon(service.iconName)}
+                    {service.iconUrl ? <img src={service.iconUrl} alt={service.title} className="w-5 h-5 object-contain" /> : getServiceIcon(service.iconName)}
                   </div>
                   <span className="text-[11px] font-extrabold uppercase px-2.5 py-1 rounded-md bg-[#f1f3ff] text-[#002869] border border-[#cbdaff]/50">
                     {service.category}

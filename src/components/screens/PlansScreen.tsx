@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CAREER_PLANS } from '../../data/mockData';
+import { usePlans } from '../../hooks/useCmsCatalog';
 import { PlanItem, PageView } from '../../types';
 import { 
   Check, 
@@ -26,6 +26,7 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
   onOpenCounselling,
   setActivePage
 }) => {
+  const CAREER_PLANS = usePlans();
   const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
 
   return (

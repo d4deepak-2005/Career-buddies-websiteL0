@@ -3,6 +3,7 @@ import { DEFAULT_SITE_CONFIG } from '../config/siteConfig';
 import { PageView } from '../types';
 import { BrandLogo } from './BrandLogo';
 import { HandshakeIcon } from './common/HandshakeIcon';
+import { SiteSettingsData, pickText } from '../hooks/useSiteSettings';
 import { 
   Users, 
   Map, 
@@ -26,6 +27,7 @@ interface FooterProps {
   onOpenContact?: () => void;
   onOpenSignup?: () => void;
   onOpenCounselling?: () => void;
+  siteSettings?: SiteSettingsData | null;
 }
 
 // Official Social Media links in strict requested order: LinkedIn → Facebook → Instagram → YouTube → X
@@ -83,12 +85,14 @@ const SOCIAL_MEDIA_LINKS = [
 ];
 
 export const Footer: React.FC<FooterProps> = ({
-  setActivePage
+  setActivePage,
+  siteSettings
 }) => {
   const [showThankYouModal, setShowThankYouModal] = useState(false);
 
   // WhatsApp configuration
-  const WHATSAPP_NUMBER = '919310288270';
+  const rawWhatsAppNumber = pickText(siteSettings?.general?.whatsappNumber, '919310288270');
+  const WHATSAPP_NUMBER = rawWhatsAppNumber.replace(/[^0-9]/g, '') || '919310288270';
   const WHATSAPP_MESSAGE = `Hello CareerBuddies,
 
 I visited the CareerBuddies website and would like to know more about your programmes and career guidance services.
@@ -152,6 +156,7 @@ Thank you!`;
                     <BrandLogo
                       size="footer"
                       variant="white"
+                      src={siteSettings?.header?.logoUrl}
                       onClick={() => handleNav('home')}
                       className="cursor-pointer transition-transform duration-200 hover:scale-[1.01]"
                     />
@@ -160,7 +165,10 @@ Thank you!`;
               </div>
 
               <p className="text-xs sm:text-sm text-[#dae2ff] leading-relaxed font-medium">
-                CareerBuddies is India's practitioner-led career acceleration platform. We empower software engineers, technical leaders, and product managers through structured career progression plans, live masterclasses, and verified promotion roadmaps.
+                {pickText(
+                  siteSettings?.footer?.description,
+                  "CareerBuddies is India's practitioner-led career acceleration platform. We empower software engineers, technical leaders, and product managers through structured career progression plans, live masterclasses, and verified promotion roadmaps."
+                )}
               </p>
             </div>
 
@@ -652,7 +660,10 @@ Thank you!`;
           {/* Copyright Notice - Aligned Left */}
           <div className="md:flex-1 text-center md:text-left">
             <p className="font-medium text-[#dae2ff]/90">
-              © 2022–2026 {DEFAULT_SITE_CONFIG.companyName}. All rights reserved.
+              {pickText(
+                siteSettings?.footer?.copyrightText,
+                `© 2022–2026 ${DEFAULT_SITE_CONFIG.companyName}. All rights reserved.`
+              )}
             </p>
           </div>
 

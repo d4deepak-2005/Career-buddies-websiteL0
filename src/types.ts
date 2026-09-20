@@ -69,6 +69,7 @@ export interface ServiceItem {
   fullDescription: string;
   category: string;
   iconName: string;
+  iconUrl?: string; // optional admin-set image overriding iconName
   duration: string;
   deliverables: string[];
   idealFor: string[];

@@ -276,6 +276,9 @@ export function AICareerAssistant() {
 
         body: JSON.stringify({
           message,
+          history: messages
+            .filter((item) => item.content.trim())
+            .slice(-10),
         }),
       });
 
@@ -444,8 +447,44 @@ export function AICareerAssistant() {
             )}
           </div>
 
-          {/* INPUT AREA */}
+          {/* QUICK PROMPTS + INPUT AREA */}
           <div className="border-t border-slate-200 bg-white p-3">
+            <div className="mb-2 flex flex-wrap gap-2">
+              {[
+                'How can I move into AI?',
+                'What should I learn first?',
+                'Help me choose an AI career path',
+              ].map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => setInput(prompt)}
+                  disabled={isLoading}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-600 transition hover:border-[#0b2b5c] hover:text-[#0b2b5c] disabled:opacity-50"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between pb-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setMessages([
+                    {
+                      role: 'assistant',
+                      content:
+                        'Hi! I’m the CareerBuddies AI Career Assistant. Tell me about your career goal, experience, interview preparation, or mentorship requirement.',
+                    },
+                  ])
+                }
+                disabled={isLoading}
+                className="text-[11px] font-medium text-slate-400 hover:text-[#0b2b5c] disabled:opacity-50"
+              >
+                Clear chat
+              </button>
+            </div>
             <div className="flex gap-2">
               <input
                 type="text"
