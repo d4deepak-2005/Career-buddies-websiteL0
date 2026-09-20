@@ -183,15 +183,14 @@ const RESET_TTL_MINUTES = 30;
 const RESET_COOLDOWN_MS = 60 * 1000;
 const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
 
-// The reset link points at our own site. Never build it from an arbitrary Host
-// header (password-reset poisoning): use PUBLIC_BASE_URL, or accept only
-// localhost / trycloudflare test origins.
+// The reset link points at our own site. It is NEVER built from request headers
+// (Host / X-Forwarded-Host are attacker-controlled: password-reset poisoning).
+// Use PUBLIC_BASE_URL; only local development falls back to localhost.
 function trustedBaseUrl(req: Request): string | null {
   if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, '');
-  const proto = String(req.headers['x-forwarded-proto'] || req.protocol).split(',')[0].trim();
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
-  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) || /^[a-z0-9-]+\.trycloudflare\.com$/.test(host)) {
-    return `${proto}://${host}`;
+  const host = String(req.headers.host || '').toLowerCase();
+  if (process.env.NODE_ENV !== 'production' && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) {
+    return `http://${host}`;
   }
   return null;
 }
