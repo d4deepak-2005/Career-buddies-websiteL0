@@ -19,6 +19,7 @@ import {
 import { HandshakeIcon } from '../common/HandshakeIcon';
 import { LeaderPortrait } from '../common/LeaderPortrait';
 import { submitLead } from '../../utils/submitLead';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface LeadershipProfileModalProps {
   founder: FounderInfo | null;
@@ -75,10 +76,9 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#061b3b]/70 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      <ModalA11y label={`Message ${founder.name}`} onClose={onClose} />
       <div
         className="relative w-full max-w-3xl bg-white rounded-3xl border border-[#cbdaff] shadow-2xl overflow-hidden my-8 animate-in zoom-in-95 max-h-[90vh] flex flex-col"
-        role="dialog"
-        aria-modal="true"
       >
         {/* Modal Top Header with Navigation Bar */}
         <div className="flex items-center justify-between px-6 py-4 bg-[#f1f3ff] border-b border-[#cbdaff] shrink-0">
@@ -95,7 +95,7 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
                 <span>← Home</span>
               </button>
             )}
-            <span className="text-xs font-bold text-[#747783] hidden sm:inline">
+            <span className="text-xs font-bold text-[#666a76] hidden sm:inline">
               Leadership Profile
             </span>
           </div>
@@ -136,7 +136,7 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
                 <p className="text-sm font-bold text-[#006e29] mt-0.5">
                   {founder.title}
                 </p>
-                <p className="text-xs text-[#747783]">
+                <p className="text-xs text-[#666a76]">
                   CareerBuddies Core Leadership Team
                 </p>
               </div>
@@ -222,7 +222,7 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
                   Send a Message or Advisory Request to {founder.name}
                 </h4>
               </div>
-              <span className="text-[11px] text-[#747783] hidden sm:inline">
+              <span className="text-[11px] text-[#666a76] hidden sm:inline">
                 Direct Leadership Desk
               </span>
             </div>

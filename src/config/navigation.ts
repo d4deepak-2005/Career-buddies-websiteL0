@@ -27,11 +27,11 @@ export const PAGE_TITLES: Record<PageView, string> = {
   'services': 'Services',
   'programmes': 'Programmes',
   'webinars': 'Live Webinars',
-  'career-check-in': 'Career Check-In',
-  'leadership': 'Leadership Team',
+  'career-check-in': 'Career Check-in',
+  'leadership': 'Leadership',
   'leader-profile': 'Leader Profile',
   'success-stories': 'Success Stories',
-  'about-us': 'About CareerBuddies',
+  'about-us': 'About',
   'how-it-works': 'Our Journey',
   'mentors': 'Find a Mentor',
   'features': 'Platform Features',
@@ -58,10 +58,10 @@ export const MAIN_NAV_ITEMS: { id: PageView; label: string; badge?: string }[] =
 export const DROPDOWN_NAV_ITEMS: { id: PageView; label: string; description: string; badge?: string }[] = [
   { id: 'counselling', label: 'Free Counselling', description: 'Book 1:1 strategic diagnostic session', badge: 'Free' },
   { id: 'webinars', label: 'Live Webinars', description: 'Interactive weekend masterclasses for ₹199', badge: '₹199' },
-  { id: 'career-check-in', label: 'Career Journey Navigator', description: 'Personalized stage diagnostic tool', badge: 'Free' },
-  { id: 'leadership', label: 'Leadership & Mentors', description: 'Meet Founder & Co-Founders' },
+  { id: 'career-check-in', label: 'Career Check-in', description: 'Personalized stage diagnostic tool', badge: 'Free' },
+  { id: 'leadership', label: 'Leadership', description: 'Meet Founder & Co-Founders' },
   { id: 'success-stories', label: 'Success Stories', description: 'Real career transitions and promotion reviews' },
-  { id: 'about-us', label: 'About Us', description: 'Our story and mission since 2022' },
+  { id: 'about-us', label: 'About', description: 'Our story and mission since 2022' },
   { id: 'contact', label: 'Contact Support', description: 'Registered office and WhatsApp support' }
 ];
 

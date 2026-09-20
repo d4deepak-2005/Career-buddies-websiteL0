@@ -122,8 +122,8 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
             {/* Search Input */}
             <div className="relative w-full sm:w-96">
-              <Search className="w-4 h-4 text-[#747783] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
+              <Search className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input aria-label="Search webinars"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -159,9 +159,9 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
         {/* Webinars Grid */}
         {filteredWebinars.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center border border-[#cbdaff] flex flex-col items-center gap-3">
-            <Search className="w-8 h-8 text-[#747783]" />
-            <h3 className="text-lg font-bold text-[#061b3b]">No masterclasses found</h3>
-            <p className="text-xs text-[#747783]">Try changing your search keywords or category filters.</p>
+            <Search className="w-8 h-8 text-[#666a76]" />
+            <h2 className="text-lg font-bold text-[#061b3b]">No masterclasses found</h2>
+            <p className="text-xs text-[#666a76]">Try changing your search keywords or category filters.</p>
             <button
               onClick={() => {
                 setSelectedCategory('All');
@@ -192,9 +192,9 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
 
                   {/* Title & Tagline */}
                   <div className="p-6 flex flex-col gap-3">
-                    <h3 className="text-lg font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif] group-hover:text-[#002869] transition-colors leading-snug line-clamp-2">
+                    <h2 className="text-lg font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif] group-hover:text-[#002869] transition-colors leading-snug line-clamp-2">
                       {webinar.title}
-                    </h3>
+                    </h2>
                     <p className="text-xs text-[#434652] leading-relaxed line-clamp-2">
                       {webinar.tagline}
                     </p>
@@ -222,7 +222,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
                         <span className="text-xs font-bold text-[#061b3b] truncate">
                           {webinar.speaker.name}
                         </span>
-                        <span className="text-[11px] text-[#747783] truncate">
+                        <span className="text-[11px] text-[#666a76] truncate">
                           {webinar.speaker.role} • {webinar.speaker.company}
                         </span>
                       </div>
@@ -254,10 +254,10 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
         {/* Webinar FAQs Section */}
         <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
           <div className="text-center max-w-2xl mx-auto flex flex-col gap-2">
-            <h3 className="text-2xl sm:text-3xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
               Frequently Asked Questions about Masterclasses
-            </h3>
-            <p className="text-xs sm:text-sm text-[#747783]">
+            </h2>
+            <p className="text-xs sm:text-sm text-[#666a76]">
               Everything you need to know about access, recordings, live Q&A, and certificates.
             </p>
           </div>
@@ -276,7 +276,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
                   {openFaq === faq.id ? (
                     <ChevronUp className="w-4 h-4 text-[#002869] shrink-0" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-[#747783] shrink-0" />
+                    <ChevronDown className="w-4 h-4 text-[#666a76] shrink-0" />
                   )}
                 </button>
                 {openFaq === faq.id && (

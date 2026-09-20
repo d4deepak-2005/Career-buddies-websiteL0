@@ -157,7 +157,7 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
 
                   {/* Key Expertise Areas */}
                   <div className="flex flex-col gap-2">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#747783]">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#666a76]">
                       Key Expertise Areas:
                     </span>
                     <div className="flex flex-wrap gap-1.5">

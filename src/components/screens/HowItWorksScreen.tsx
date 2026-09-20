@@ -70,7 +70,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
             setActivePage('features');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          backLabel="About Us"
+          backLabel="About"
           nextLabel="Find a Mentor (1:1)"
           currentStepLabel="Our Journey & Methodology"
         />
@@ -139,10 +139,10 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <h4 className={`text-xs sm:text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-[#061b3b]'}`}>
+                    <h2 className={`text-xs sm:text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-[#061b3b]'}`}>
                       {stepItem.title}
-                    </h4>
-                    <p className={`text-[11px] truncate ${isSelected ? 'text-white/80' : 'text-[#747783]'}`}>
+                    </h2>
+                    <p className={`text-[11px] truncate ${isSelected ? 'text-white/80' : 'text-[#666a76]'}`}>
                       {stepItem.subtitle}
                     </p>
                   </div>
@@ -164,9 +164,9 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
                   <span className="text-[11px] font-black uppercase text-[#006e29] tracking-wider">
                     Stage 0{activeStepData.step} of 05
                   </span>
-                  <h3 className="text-xl sm:text-2xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+                  <h2 className="text-xl sm:text-2xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
                     {activeStepData.title}
-                  </h3>
+                  </h2>
                 </div>
               </div>
 
@@ -181,9 +181,9 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
 
             {/* Key Deliverables & Outcomes */}
             <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-3">
-              <h5 className="text-xs font-black uppercase tracking-wider text-[#002869]">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#002869]">
                 Core Deliverable at This Stage:
-              </h5>
+              </h3>
               <div className="flex items-start gap-2.5 text-xs font-bold text-[#061b3b]">
                 <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0 mt-0.5" />
                 <span>{activeStepData.deliverable}</span>

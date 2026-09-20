@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookedSession, Mentor } from '../../types';
 import { useMentors } from '../../hooks/useCmsCatalog';
+import { ModalA11y } from '../common/ModalA11y';
 import { 
   X, 
   Calendar, 
@@ -41,6 +42,7 @@ export const UserDashboardDrawer: React.FC<UserDashboardDrawerProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs animate-in fade-in">
+      <ModalA11y label="My dashboard and bookings" onClose={onClose} />
       <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col border-l border-[#e0e8ff] animate-in slide-in-from-right duration-300">
         
         {/* Header */}
@@ -54,7 +56,7 @@ export const UserDashboardDrawer: React.FC<UserDashboardDrawerProps> = ({
               <span className="text-xs text-[#dae2ff]">Enrolled Candidate • Active</span>
             </div>
           </div>
-          <button 
+          <button aria-label="Close" 
             onClick={onClose}
             className="p-1 rounded-lg text-[#dae2ff] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
@@ -109,7 +111,7 @@ export const UserDashboardDrawer: React.FC<UserDashboardDrawerProps> = ({
               <span className="flex items-center gap-1.5 text-[#006e29] font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5" /> System design mock completed
               </span>
-              <span className="flex items-center gap-1.5 text-[#747783]">
+              <span className="flex items-center gap-1.5 text-[#666a76]">
                 ○ Final executive promo packet alignment
               </span>
             </div>
@@ -126,7 +128,7 @@ export const UserDashboardDrawer: React.FC<UserDashboardDrawerProps> = ({
 
             {sessions.length === 0 ? (
               <div className="p-6 bg-[#f9f9ff] border border-[#e0e8ff] rounded-xl text-center flex flex-col items-center gap-2">
-                <Calendar className="w-8 h-8 text-[#747783] opacity-60" />
+                <Calendar className="w-8 h-8 text-[#666a76] opacity-60" />
                 <p className="text-xs font-bold text-[#061b3b]">No sessions scheduled yet</p>
                 <p className="text-[11px] text-[#434652] max-w-xs">
                   Schedule a 1:1 counseling or master session to receive tailored review on your career trajectory.
@@ -156,11 +158,11 @@ export const UserDashboardDrawer: React.FC<UserDashboardDrawerProps> = ({
                           className="w-10 h-10 rounded-lg object-cover border border-gray-100" 
                         />
                         <div>
-                          <h5 className="font-bold text-xs text-[#061b3b]">{sess.mentorName}</h5>
+                          <h4 className="font-bold text-xs text-[#061b3b]">{sess.mentorName}</h4>
                           <p className="text-[11px] text-[#434652]">{sess.mentorTitle}</p>
                         </div>
                       </div>
-                      <span className="bg-[#79fd8d]/30 text-[#00531d] text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      <span className="bg-[#79fd8d]/30 text-[#00531d] text-[11px] px-2 py-0.5 rounded-full font-bold">
                         Confirmed
                       </span>
                     </div>
@@ -170,7 +172,7 @@ export const UserDashboardDrawer: React.FC<UserDashboardDrawerProps> = ({
                         <span>{sess.date}</span>
                         <span className="text-[#002869]">{sess.timeSlot}</span>
                       </div>
-                      <p className="text-[11px] text-[#747783] truncate">Topic: {sess.topic}</p>
+                      <p className="text-[11px] text-[#666a76] truncate">Topic: {sess.topic}</p>
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
@@ -221,8 +223,8 @@ export const UserDashboardDrawer: React.FC<UserDashboardDrawerProps> = ({
                       className="w-10 h-10 rounded-lg object-cover" 
                     />
                     <div>
-                      <h5 className="font-bold text-xs text-[#061b3b]">{mentor.name}</h5>
-                      <p className="text-[10px] text-[#434652]">{mentor.title} @ {mentor.company}</p>
+                      <h4 className="font-bold text-xs text-[#061b3b]">{mentor.name}</h4>
+                      <p className="text-[11px] text-[#434652]">{mentor.title} @ {mentor.company}</p>
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-[#002869]" />

@@ -78,7 +78,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               onError={() => setBroken(true)}
             />
           ) : (
-            <div className="flex flex-col items-center gap-1 text-[#747783] text-[10px] font-semibold">
+            <div className="flex flex-col items-center gap-1 text-[#666a76] text-[11px] font-semibold">
               <ImageOff className="w-5 h-5" />
               <span>{value ? 'Cannot load' : 'No image'}</span>
             </div>
@@ -112,7 +112,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               </button>
             )}
 
-            <input
+            <input aria-label="Upload image"
               ref={fileRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -121,13 +121,13 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             />
           </div>
 
-          <p className="text-[11px] text-[#747783]">
+          <p className="text-[11px] text-[#666a76]">
             JPG, PNG or WebP, up to 8 MB. The new image appears on the website after you click Save.
           </p>
 
           {error && <p className="text-[11px] font-bold text-red-600">{error}</p>}
 
-          <input
+          <input aria-label="Image URL or path"
             type="text"
             value={value}
             onChange={(e) => {

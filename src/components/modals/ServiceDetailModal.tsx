@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, CheckCircle2, Clock, Users, ArrowRight, ShieldCheck, Sparkles, Target } from 'lucide-react';
 import { ServiceItem } from '../../types';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface ServiceDetailModalProps {
   service: ServiceItem | null;
@@ -17,6 +18,7 @@ export const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <ModalA11y label="Service details" onClose={onClose} />
       <div className="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl border border-[#e0e8ff] flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="bg-[#002869] text-white p-6 relative flex items-start justify-between">

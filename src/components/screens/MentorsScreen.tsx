@@ -106,7 +106,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
             }
           }}
           backLabel="Mentorship Tracks"
-          nextLabel="2-Min Career Check-In"
+          nextLabel="2-Min Career Check-in"
           currentStepLabel="Find a Mentor (1:1 Advisory)"
         />
 
@@ -140,8 +140,8 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-[#747783] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
+              <Search className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input aria-label="Search mentors"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -151,7 +151,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#747783] hover:text-[#061b3b]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#666a76] hover:text-[#061b3b]"
                 >
                   Clear
                 </button>
@@ -160,8 +160,8 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
 
             {/* Company Select */}
             <div className="flex items-center gap-2">
-              <Building className="w-4 h-4 text-[#747783] hidden sm:block" />
-              <select
+              <Building className="w-4 h-4 text-[#666a76] hidden sm:block" />
+              <select aria-label="Filter by company"
                 value={selectedCompany}
                 onChange={(e) => setSelectedCompany(e.target.value)}
                 className="bg-[#f9f9ff] border border-[#e0e8ff] rounded-lg px-3 py-2.5 text-xs sm:text-sm text-[#061b3b] focus:outline-none focus:border-[#002869]"
@@ -175,8 +175,8 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
 
             {/* Sort Select */}
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-[#747783] hidden sm:block" />
-              <select
+              <SlidersHorizontal className="w-4 h-4 text-[#666a76] hidden sm:block" />
+              <select aria-label="Sort mentors"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="bg-[#f9f9ff] border border-[#e0e8ff] rounded-lg px-3 py-2.5 text-xs sm:text-sm text-[#061b3b] focus:outline-none focus:border-[#002869]"
@@ -192,14 +192,14 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
             <div className="hidden sm:flex items-center border border-[#e0e8ff] rounded-lg p-1 bg-[#f9f9ff]">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow-xs text-[#002869]' : 'text-[#747783]'}`}
+                className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow-xs text-[#002869]' : 'text-[#666a76]'}`}
                 title="Grid View"
               >
                 <Grid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white shadow-xs text-[#002869]' : 'text-[#747783]'}`}
+                className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white shadow-xs text-[#002869]' : 'text-[#666a76]'}`}
                 title="List View"
               >
                 <List className="w-4 h-4" />
@@ -241,8 +241,8 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
         {/* Mentors Grid / List */}
         {filteredMentors.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center border border-[#e0e8ff]">
-            <Search className="w-12 h-12 text-[#747783] mx-auto mb-3 opacity-50" />
-            <h3 className="text-lg font-bold text-[#061b3b] mb-1">No mentors match your filter</h3>
+            <Search className="w-12 h-12 text-[#666a76] mx-auto mb-3 opacity-50" />
+            <h2 className="text-lg font-bold text-[#061b3b] mb-1">No mentors match your filter</h2>
             <p className="text-sm text-[#434652] max-w-md mx-auto mb-4">
               Try adjusting your search terms or select "All" categories to see all verified leaders.
             </p>
@@ -267,9 +267,9 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
                   className="bg-white border border-[#e0e8ff] hover:border-[#002869]/50 rounded-2xl p-6 flex flex-col justify-between hover:shadow-md transition-all group relative"
                 >
                   {/* Bookmark Button */}
-                  <button
+                  <button aria-label="Save mentor"
                     onClick={(e) => toggleSaveMentor(mentor.id, e)}
-                    className="absolute top-5 right-5 p-2 rounded-full hover:bg-[#f1f3ff] text-[#747783] hover:text-[#002869] transition-colors cursor-pointer"
+                    className="absolute top-5 right-5 p-2 rounded-full hover:bg-[#f1f3ff] text-[#666a76] hover:text-[#002869] transition-colors cursor-pointer"
                     title={isSaved ? "Remove from saved" : "Save mentor"}
                   >
                     <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-[#002869] text-[#002869]' : ''}`} />
@@ -285,9 +285,9 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <h3 className="font-bold text-base text-[#061b3b] truncate">
+                          <h2 className="font-bold text-base text-[#061b3b] truncate">
                             {mentor.name}
-                          </h3>
+                          </h2>
                           {mentor.verified && (
                             <span title="Verified Mentor">
                               <ShieldCheck className="w-4 h-4 text-[#006e29] shrink-0" />
@@ -331,10 +331,10 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
                       <div className="flex items-center gap-1 text-xs font-bold text-[#061b3b]">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         <span>{mentor.rating}</span>
-                        <span className="text-[#747783] font-normal">({mentor.reviewCount})</span>
+                        <span className="text-[#666a76] font-normal">({mentor.reviewCount})</span>
                       </div>
                       <span className="text-xs text-[#006e29] font-bold">
-                        ${mentor.hourlyRate}<span className="text-[10px] text-[#747783] font-normal">/session</span>
+                        ${mentor.hourlyRate}<span className="text-[11px] text-[#666a76] font-normal">/session</span>
                       </span>
                     </div>
 
@@ -375,19 +375,19 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-base text-[#061b3b]">{mentor.name}</h3>
+                        <h2 className="font-bold text-base text-[#061b3b]">{mentor.name}</h2>
                         {mentor.verified && <ShieldCheck className="w-4 h-4 text-[#006e29]" />}
                         <span className="px-2 py-0.5 rounded bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                           {mentor.company}
                         </span>
-                        <span className="text-xs text-[#747783]">• {mentor.experienceYears} yrs exp</span>
+                        <span className="text-xs text-[#666a76]">• {mentor.experienceYears} yrs exp</span>
                       </div>
                       <p className="text-xs font-medium text-[#434652] mt-0.5">{mentor.title}</p>
                       <p className="text-xs text-[#434652] mt-1 line-clamp-1">{mentor.bio}</p>
                       
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {mentor.topics.map((t, idx) => (
-                          <span key={idx} className="text-[10px] bg-[#f9f9ff] border border-[#e0e8ff] px-2 py-0.5 rounded text-[#061b3b]">
+                          <span key={idx} className="text-[11px] bg-[#f9f9ff] border border-[#e0e8ff] px-2 py-0.5 rounded text-[#061b3b]">
                             {t}
                           </span>
                         ))}
@@ -400,17 +400,17 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
                       <div className="flex items-center gap-1 text-xs font-bold text-[#061b3b]">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         <span>{mentor.rating}</span>
-                        <span className="text-[#747783] font-normal">({mentor.reviewCount})</span>
+                        <span className="text-[#666a76] font-normal">({mentor.reviewCount})</span>
                       </div>
                       <div className="text-sm font-bold text-[#006e29]">
-                        ${mentor.hourlyRate}<span className="text-[10px] text-[#747783] font-normal">/session</span>
+                        ${mentor.hourlyRate}<span className="text-[11px] text-[#666a76] font-normal">/session</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
+                      <button aria-label="Save mentor"
                         onClick={(e) => toggleSaveMentor(mentor.id, e)}
-                        className="p-2 rounded-lg border border-[#e0e8ff] hover:bg-[#f1f3ff] text-[#747783]"
+                        className="p-2 rounded-lg border border-[#e0e8ff] hover:bg-[#f1f3ff] text-[#666a76]"
                       >
                         <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-[#002869] text-[#002869]' : ''}`} />
                       </button>

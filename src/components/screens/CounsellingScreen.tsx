@@ -95,7 +95,7 @@ export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }}
-          backLabel="Career Check-In"
+          backLabel="Career Check-in"
           nextLabel="View Plans"
           currentStepLabel="Free 1:1 Strategic Counselling"
         />

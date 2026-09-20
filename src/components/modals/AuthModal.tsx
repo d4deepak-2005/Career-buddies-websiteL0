@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { X, Lock, Mail, User, ShieldCheck, ArrowRight, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import { BrandLogo } from '../BrandLogo';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -129,6 +130,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+      <ModalA11y label={forgot ? 'Reset your password' : mode === 'login' ? 'Log in' : 'Sign up'} onClose={onClose} />
       <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-[#cbdaff] max-h-[92vh] flex flex-col">
         
         {/* Header with Official Master Logo */}
@@ -144,7 +146,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {forgot ? 'Reset Your Password' : mode === 'login' ? 'Account Sign In' : 'Create New Account'}
             </h3>
           </div>
-          <button 
+          <button aria-label="Close" 
             onClick={onClose}
             className="p-1.5 rounded-xl text-[#dae2ff] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
@@ -230,12 +232,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 mt-1">
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs font-black text-[#061b3b] mb-1">
+                <label htmlFor="auth-field-1" className="block text-xs font-black text-[#061b3b] mb-1">
                   Full Name
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <User className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="auth-field-1"
                     type="text"
                     required
                     value={name}
@@ -248,12 +250,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
 
             <div>
-              <label className="block text-xs font-black text-[#061b3b] mb-1">
+              <label htmlFor="auth-field-2" className="block text-xs font-black text-[#061b3b] mb-1">
                 Work / Personal Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
+                <Mail className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input id="auth-field-2"
                   type="email"
                   required
                   value={email}
@@ -266,7 +268,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-black text-[#061b3b]">
+                <label htmlFor="auth-field-3" className="block text-xs font-black text-[#061b3b]">
                   Password
                 </label>
                 {mode === 'login' && (
@@ -280,8 +282,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 )}
               </div>
               <div className="relative">
-                <Lock className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
+                <Lock className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input id="auth-field-3"
                   type={showPassword ? 'text' : 'password'}
                   required
                   minLength={mode === 'signup' ? 8 : undefined}
@@ -290,10 +292,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="••••••••"
                   className="w-full pl-9 pr-10 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
                 />
-                <button
+                <button aria-label={showPassword ? 'Hide password' : 'Show password'}
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#747783] hover:text-[#061b3b]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666a76] hover:text-[#061b3b]"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -318,7 +320,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {/* Social Authentication Options */}
             <div className="flex items-center gap-2 my-2">
               <div className="flex-1 h-px bg-[#cbdaff]" />
-              <span className="text-[10px] font-black uppercase text-[#747783] tracking-wider">
+              <span className="text-[11px] font-black uppercase text-[#666a76] tracking-wider">
                 Or Continue With
               </span>
               <div className="flex-1 h-px bg-[#cbdaff]" />
@@ -406,10 +408,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Enter the email address you signed up with and we will send you a link to choose a new password.
                   </p>
                   <div>
-                    <label className="block text-xs font-black text-[#061b3b] mb-1">Email Address</label>
+                    <label htmlFor="auth-field-4" className="block text-xs font-black text-[#061b3b] mb-1">Email Address</label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
+                      <Mail className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input id="auth-field-4"
                         type="email"
                         required
                         value={email}
@@ -427,7 +429,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <span>{loading ? 'Sending...' : 'Send Reset Link'}</span>
                     {!loading && <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />}
                   </button>
-                  <p className="text-[11px] text-[#747783] leading-relaxed">
+                  <p className="text-[11px] text-[#666a76] leading-relaxed">
                     Signed up with Google, LinkedIn, Microsoft or Facebook? You don't have a password - just use that button on the sign-in screen.
                   </p>
                 </form>

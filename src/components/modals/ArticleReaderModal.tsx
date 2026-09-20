@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Clock, Calendar, User, Tag, Share2, BookOpen, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { ResourceArticle } from '../../types';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface ArticleReaderModalProps {
   article: ResourceArticle | null;
@@ -19,6 +20,7 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <ModalA11y label="Article" onClose={onClose} />
       <div className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl border border-[#e0e8ff] flex flex-col max-h-[92vh]">
         {/* Header Bar */}
         <div className="bg-[#f9f9ff] border-b border-[#e0e8ff] px-6 py-4 flex items-center justify-between">
@@ -26,7 +28,7 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
             <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-xs font-bold">
               {article.categoryName}
             </span>
-            <span className="text-xs text-[#747783] flex items-center gap-1">
+            <span className="text-xs text-[#666a76] flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {article.readTime}
             </span>
@@ -34,7 +36,7 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-gray-200 text-[#747783] hover:text-[#061b3b] transition-colors cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-gray-200 text-[#666a76] hover:text-[#061b3b] transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -44,9 +46,9 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
         {/* Scrollable Article Content */}
         <div className="p-6 sm:p-8 overflow-y-auto">
           {/* Article Title */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#061b3b] leading-tight mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#061b3b] leading-tight mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
             {article.title}
-          </h1>
+          </h2>
 
           {/* Author Byline */}
           <div className="flex items-center justify-between gap-4 pb-6 mb-6 border-b border-gray-100 flex-wrap">
@@ -55,13 +57,13 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
                 {article.author.charAt(0)}
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#061b3b]">{article.author}</h4>
+                <h3 className="text-xs font-bold text-[#061b3b]">{article.author}</h3>
                 <p className="text-[11px] text-[#434652]">{article.authorRole}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#747783] flex items-center gap-1">
+              <span className="text-xs text-[#666a76] flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
                 {article.publishedDate}
               </span>
@@ -85,7 +87,7 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
                 {copied ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#006e29]" />
-                    <span className="text-[10px] font-bold">Copied!</span>
+                    <span className="text-[11px] font-bold">Copied!</span>
                   </>
                 ) : (
                   <Share2 className="w-3.5 h-3.5" />
@@ -96,9 +98,9 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
 
           {/* Article Summary Box */}
           <div className="bg-[#f1f3ff] p-4 rounded-xl border border-[#cbdaff] mb-6">
-            <h4 className="text-xs font-bold text-[#002869] uppercase tracking-wider mb-1">
+            <h3 className="text-xs font-bold text-[#002869] uppercase tracking-wider mb-1">
               Executive Summary
-            </h4>
+            </h3>
             <p className="text-xs sm:text-sm text-[#061b3b] leading-relaxed">
               {article.summary}
             </p>
@@ -117,9 +119,9 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
               }
               if (trimmed.startsWith('#### ')) {
                 return (
-                  <h4 key={index} className="text-base font-bold text-[#002869] mt-4 mb-2">
+                  <h3 key={index} className="text-base font-bold text-[#002869] mt-4 mb-2">
                     {trimmed.replace('#### ', '')}
-                  </h4>
+                  </h3>
                 );
               }
               if (trimmed.startsWith('> ')) {
@@ -151,7 +153,7 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
 
           {/* Tags */}
           <div className="flex items-center gap-2 flex-wrap mt-8 pt-6 border-t border-gray-100">
-            <Tag className="w-3.5 h-3.5 text-[#747783]" />
+            <Tag className="w-3.5 h-3.5 text-[#666a76]" />
             {article.tags.map((tag, idx) => (
               <span key={idx} className="text-[11px] bg-[#f1f3ff] text-[#002869] px-2.5 py-1 rounded-md font-medium">
                 #{tag}
@@ -162,7 +164,7 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
           {/* Mentorship CTA inside Article */}
           <div className="mt-8 p-6 bg-[#002869] text-white rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <h4 className="font-bold text-base text-white">Apply These Insights with a Mentor</h4>
+              <h3 className="font-bold text-base text-white">Apply These Insights with a Mentor</h3>
               <p className="text-xs text-[#dae2ff] mt-1">Get 1:1 guidance, resume teardown, or interview simulation from veteran leaders.</p>
             </div>
             <button

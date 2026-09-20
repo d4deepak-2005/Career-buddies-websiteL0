@@ -122,10 +122,10 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
                 <div>
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+                      <h2 className="text-xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
                         {plan.name}
-                      </h3>
-                      <p className="text-xs text-[#747783] mt-0.5">{plan.tagline}</p>
+                      </h2>
+                      <p className="text-xs text-[#666a76] mt-0.5">{plan.tagline}</p>
                     </div>
                   </div>
 
@@ -149,7 +149,7 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
                           <span className="text-3xl sm:text-4xl font-black text-[#061b3b]">
                             {currency === 'INR' ? plan.priceINR : plan.priceUSD}
                           </span>
-                          <span className="text-xs text-[#747783] font-semibold">{plan.period}</span>
+                          <span className="text-xs text-[#666a76] font-semibold">{plan.period}</span>
                         </div>
                         <p className="text-xs text-[#434652] mt-2 font-medium">{plan.description}</p>
                       </div>
@@ -168,7 +168,7 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
                         ) : (
                           <X className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
                         )}
-                        <span className={feature.included ? 'font-medium' : 'text-gray-400'}>
+                        <span className={feature.included ? 'font-medium' : 'text-gray-500'}>
                           {feature.title}
                         </span>
                       </div>

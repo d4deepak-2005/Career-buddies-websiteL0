@@ -108,13 +108,13 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             onSelectLeader(nextLeader.profileSlug);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          backLabel={`Back to ${previousPage === 'about-us' ? 'About Us' : 'Previous'}`}
+          backLabel={`Back to ${previousPage === 'about-us' ? 'About' : 'Previous'}`}
           nextLabel={`Next: ${nextLeader.name}`}
           currentStepLabel={`Leader Profile: ${currentLeader.name}`}
         />
 
         {/* Quick Breadcrumbs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#747783] -mt-4 pb-2 border-b border-[#e0e8ff]">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#666a76] -mt-4 pb-2 border-b border-[#e0e8ff]">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActivePage('home')}
@@ -214,7 +214,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
 
             {/* Key Expertise Chips */}
             <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-[#747783]">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-[#666a76]">
                 Core Competencies & Strategic Domains:
               </span>
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
@@ -396,9 +396,9 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
           </p>
 
           <div className="bg-[#f9f9ff] p-6 rounded-2xl border border-[#cbdaff] flex flex-col gap-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-[#002869]">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#002869]">
               Core Executive Responsibilities:
-            </h4>
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {currentLeader.roleResponsibilities.map((resp, idx) => (
                 <div key={idx} className="flex items-start gap-2.5 text-xs text-[#061b3b] font-medium">
@@ -486,7 +486,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             <div className="text-left">
-              <span className="block text-[10px] text-[#747783] group-hover:text-[#dae2ff] uppercase font-bold">
+              <span className="block text-[11px] text-[#666a76] group-hover:text-[#dae2ff] uppercase font-bold">
                 Previous Leader
               </span>
               <span>{prevLeader.name} ({prevLeader.role})</span>
@@ -514,7 +514,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[#f1f3ff] hover:bg-[#002869] text-[#002869] hover:text-white border border-[#cbdaff] text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs group"
           >
             <div className="text-right">
-              <span className="block text-[10px] text-[#747783] group-hover:text-[#dae2ff] uppercase font-bold">
+              <span className="block text-[11px] text-[#666a76] group-hover:text-[#dae2ff] uppercase font-bold">
                 Next Leader
               </span>
               <span>{nextLeader.name} ({nextLeader.role})</span>

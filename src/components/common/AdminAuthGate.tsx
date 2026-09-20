@@ -56,16 +56,16 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ children }) => {
               <ShieldCheck className="w-6 h-6 text-[#002869]" />
             </div>
             <h1 className="text-lg font-bold text-[#061b3b]">Team Access</h1>
-            <p className="text-xs text-[#747783] text-center">
+            <p className="text-xs text-[#666a76] text-center">
               This area contains internal lead data. Enter the admin password to continue.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#061b3b] mb-1">
+            <label htmlFor="gate-field-1" className="block text-xs font-bold text-[#061b3b] mb-1">
               Password
             </label>
-            <input
+            <input id="gate-field-1"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -98,7 +98,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ children }) => {
       <div className="w-full bg-white border-b border-[#e0e8ff] px-4 sm:px-6 lg:px-10 py-2 flex items-center justify-end">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-[#747783] hover:text-[#061b3b] cursor-pointer"
+          className="flex items-center gap-1.5 text-[11px] font-semibold text-[#666a76] hover:text-[#061b3b] cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5" />
           Log out

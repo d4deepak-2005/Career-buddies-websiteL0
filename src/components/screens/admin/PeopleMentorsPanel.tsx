@@ -101,8 +101,8 @@ export const PeopleMentorsPanel: React.FC = () => {
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
       <div>
-        <h3 className="text-lg font-bold text-[#061b3b]">People & Mentors</h3>
-        <p className="text-xs text-[#747783]">
+        <h2 className="text-lg font-bold text-[#061b3b]">People & Mentors</h2>
+        <p className="text-xs text-[#666a76]">
           Manage Founder/Co-Founder profiles, additional Leadership entries,
           and Mentors. Changes appear on the public website immediately —
           hidden or empty sections keep showing the site's existing content.
@@ -143,7 +143,7 @@ export const PeopleMentorsPanel: React.FC = () => {
 
       {subTab === 'Leadership' && (
         <>
-          <p className="text-[11px] text-[#747783] -mt-2">
+          <p className="text-[11px] text-[#666a76] -mt-2">
             Additional leadership profiles beyond Founder/Co-Founder (not
             currently rendered on a dedicated public section — saved here
             for future use).

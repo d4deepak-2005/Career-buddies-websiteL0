@@ -1,6 +1,7 @@
 import React from 'react';
 import { NEXT_STEP_OPTIONS } from '../../config/siteConfig';
 import { PageView } from '../../types';
+import { buttonProps } from '../../utils/a11y';
 import { 
   Compass, 
   RefreshCw, 
@@ -65,7 +66,7 @@ export const FindYourNextStep: React.FC<FindYourNextStepProps> = ({
             onClick={() => onNavigate('career-check-in')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-[#002869]/20 text-[#002869] hover:bg-[#dae2ff]/30 text-xs font-bold transition-all shadow-xs w-fit cursor-pointer shrink-0"
           >
-            <span>Unsure? Take 2-min Career Check-In</span>
+            <span>Unsure? Take 2-min Career Check-in</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -77,7 +78,7 @@ export const FindYourNextStep: React.FC<FindYourNextStepProps> = ({
             return (
               <div
                 key={opt.id}
-                onClick={() => handleCardClick(opt.targetPage)}
+                {...buttonProps(() => handleCardClick(opt.targetPage))}
                 className={`bg-white rounded-3xl p-6 border transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer flex flex-col justify-between group ${
                   isGreen 
                     ? 'border-[#a6f5b7]/60 hover:border-[#006e29]' 
@@ -105,7 +106,7 @@ export const FindYourNextStep: React.FC<FindYourNextStepProps> = ({
                     {opt.title}
                   </h3>
 
-                  <p className="text-xs font-medium text-[#747783] mb-3">
+                  <p className="text-xs font-medium text-[#666a76] mb-3">
                     {opt.subtitle}
                   </p>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { 
   User, 
   Mail, 
@@ -66,6 +66,8 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
   const [linkedinUrl, setLinkedinUrl] = useState(initialValues?.linkedinUrl || '');
   const [additionalInfo, setAdditionalInfo] = useState(initialValues?.additionalInfo || '');
 
+  const uid = useId();
+
   // Validation Error State
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -129,7 +131,18 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setGeneralError('Please fill in all mandatory fields (*) before submitting.');
+      const missingRequired = ['firstName', 'lastName', 'mobile', 'email', 'currentDesignation', 'totalExperience'].some(
+        (key) => newErrors[key] && /required/i.test(newErrors[key])
+      );
+      setGeneralError(
+        missingRequired
+          ? 'Please fill in all mandatory fields (*) before submitting.'
+          : 'Please correct the highlighted fields and try again.'
+      );
+      const firstInvalid = ['firstName', 'lastName', 'mobile', 'email', 'currentDesignation', 'totalExperience', 'alternateNumber', 'alternateEmail'].find(
+        (key) => newErrors[key]
+      );
+      if (firstInvalid) setTimeout(() => document.getElementById(`${uid}-${firstInvalid}`)?.focus(), 0);
       return;
     }
 
@@ -149,7 +162,7 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
       {contextTag && (
         <div className="flex items-center gap-2 p-2.5 bg-[#f1f3ff] rounded-xl border border-[#cbdaff] text-xs font-bold text-[#002869]">
           <ShieldCheck className="w-4 h-4 text-[#006e29] shrink-0" />
@@ -165,7 +178,7 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
       )}
 
       {generalError && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2">
+        <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{generalError}</span>
         </div>
@@ -174,12 +187,16 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
       {/* Row 1: First Name * & Last Name * */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div>
-          <label className="block text-xs font-bold text-[#061b3b] mb-1">
+          <label htmlFor={`${uid}-firstName`} className="block text-xs font-bold text-[#061b3b] mb-1">
             First Name <span className="text-red-500 font-bold">*</span>
           </label>
           <div className="relative">
-            <User className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+            <User className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id={`${uid}-firstName`}
+              aria-required="true"
+              aria-invalid={errors.firstName ? true : undefined}
+              aria-describedby={errors.firstName ? `${uid}-firstName-error` : undefined}
               type="text"
               value={firstName}
               onChange={(e) => {
@@ -193,17 +210,21 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
             />
           </div>
           {errors.firstName && (
-            <p className="text-[11px] text-red-600 font-bold mt-1">{errors.firstName}</p>
+            <p id={`${uid}-firstName-error`} role="alert" className="text-[11px] text-red-600 font-bold mt-1">{errors.firstName}</p>
           )}
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-[#061b3b] mb-1">
+          <label htmlFor={`${uid}-lastName`} className="block text-xs font-bold text-[#061b3b] mb-1">
             Last Name <span className="text-red-500 font-bold">*</span>
           </label>
           <div className="relative">
-            <User className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+            <User className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id={`${uid}-lastName`}
+              aria-required="true"
+              aria-invalid={errors.lastName ? true : undefined}
+              aria-describedby={errors.lastName ? `${uid}-lastName-error` : undefined}
               type="text"
               value={lastName}
               onChange={(e) => {
@@ -217,7 +238,7 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
             />
           </div>
           {errors.lastName && (
-            <p className="text-[11px] text-red-600 font-bold mt-1">{errors.lastName}</p>
+            <p id={`${uid}-lastName-error`} role="alert" className="text-[11px] text-red-600 font-bold mt-1">{errors.lastName}</p>
           )}
         </div>
       </div>
@@ -225,12 +246,16 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
       {/* Row 2: Mobile Number * & Email ID * */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div>
-          <label className="block text-xs font-bold text-[#061b3b] mb-1">
+          <label htmlFor={`${uid}-mobile`} className="block text-xs font-bold text-[#061b3b] mb-1">
             Mobile Number <span className="text-red-500 font-bold">*</span>
           </label>
           <div className="relative">
-            <Phone className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Phone className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id={`${uid}-mobile`}
+              aria-required="true"
+              aria-invalid={errors.mobile ? true : undefined}
+              aria-describedby={errors.mobile ? `${uid}-mobile-error` : undefined}
               type="tel"
               value={mobile}
               onChange={(e) => {
@@ -244,17 +269,21 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
             />
           </div>
           {errors.mobile && (
-            <p className="text-[11px] text-red-600 font-bold mt-1">{errors.mobile}</p>
+            <p id={`${uid}-mobile-error`} role="alert" className="text-[11px] text-red-600 font-bold mt-1">{errors.mobile}</p>
           )}
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-[#061b3b] mb-1">
+          <label htmlFor={`${uid}-email`} className="block text-xs font-bold text-[#061b3b] mb-1">
             Email ID <span className="text-red-500 font-bold">*</span>
           </label>
           <div className="relative">
-            <Mail className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Mail className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id={`${uid}-email`}
+              aria-required="true"
+              aria-invalid={errors.email ? true : undefined}
+              aria-describedby={errors.email ? `${uid}-email-error` : undefined}
               type="email"
               value={email}
               onChange={(e) => {
@@ -268,7 +297,7 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
             />
           </div>
           {errors.email && (
-            <p className="text-[11px] text-red-600 font-bold mt-1">{errors.email}</p>
+            <p id={`${uid}-email-error`} role="alert" className="text-[11px] text-red-600 font-bold mt-1">{errors.email}</p>
           )}
         </div>
       </div>
@@ -276,12 +305,16 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
       {/* Row 3: Current Designation * & Total Work Experience * */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div>
-          <label className="block text-xs font-bold text-[#061b3b] mb-1">
+          <label htmlFor={`${uid}-currentDesignation`} className="block text-xs font-bold text-[#061b3b] mb-1">
             Current Designation <span className="text-red-500 font-bold">*</span>
           </label>
           <div className="relative">
-            <Briefcase className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Briefcase className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id={`${uid}-currentDesignation`}
+              aria-required="true"
+              aria-invalid={errors.currentDesignation ? true : undefined}
+              aria-describedby={errors.currentDesignation ? `${uid}-currentDesignation-error` : undefined}
               type="text"
               value={currentDesignation}
               onChange={(e) => {
@@ -295,17 +328,21 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
             />
           </div>
           {errors.currentDesignation && (
-            <p className="text-[11px] text-red-600 font-bold mt-1">{errors.currentDesignation}</p>
+            <p id={`${uid}-currentDesignation-error`} role="alert" className="text-[11px] text-red-600 font-bold mt-1">{errors.currentDesignation}</p>
           )}
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-[#061b3b] mb-1">
+          <label htmlFor={`${uid}-totalExperience`} className="block text-xs font-bold text-[#061b3b] mb-1">
             Total Work Experience <span className="text-red-500 font-bold">*</span>
           </label>
           <div className="relative">
-            <Clock className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Clock className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
             <select
+              id={`${uid}-totalExperience`}
+              aria-required="true"
+              aria-invalid={errors.totalExperience ? true : undefined}
+              aria-describedby={errors.totalExperience ? `${uid}-totalExperience-error` : undefined}
               value={totalExperience}
               onChange={(e) => {
                 setTotalExperience(e.target.value);
@@ -324,26 +361,29 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
             </select>
           </div>
           {errors.totalExperience && (
-            <p className="text-[11px] text-red-600 font-bold mt-1">{errors.totalExperience}</p>
+            <p id={`${uid}-totalExperience-error`} role="alert" className="text-[11px] text-red-600 font-bold mt-1">{errors.totalExperience}</p>
           )}
         </div>
       </div>
 
       {/* Row 4: Optional Fields */}
       <div className="pt-2 border-t border-[#cbdaff]/70 flex flex-col gap-3.5">
-        <span className="text-[11px] font-bold uppercase text-[#747783] tracking-wider">
+        <span className="text-[11px] font-bold uppercase text-[#666a76] tracking-wider">
           Additional Details (Optional)
         </span>
 
         {showAlternateFields && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-medium text-[#434652] mb-1">
-                Alternate Number <span className="text-[#747783] font-normal">(Optional)</span>
+              <label htmlFor={`${uid}-alternateNumber`} className="block text-xs font-medium text-[#434652] mb-1">
+                Alternate Number <span className="text-[#666a76] font-normal">(Optional)</span>
               </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+                <Phone className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
+              id={`${uid}-alternateNumber`}
+              aria-invalid={errors.alternateNumber ? true : undefined}
+              aria-describedby={errors.alternateNumber ? `${uid}-alternateNumber-error` : undefined}
                   type="tel"
                   value={alternateNumber}
                   onChange={(e) => {
@@ -357,17 +397,20 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
                 />
               </div>
               {errors.alternateNumber && (
-                <p className="text-[11px] text-red-600 font-bold mt-1">{errors.alternateNumber}</p>
+                <p id={`${uid}-alternateNumber-error`} role="alert" className="text-[11px] text-red-600 font-bold mt-1">{errors.alternateNumber}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#434652] mb-1">
-                Alternate Email ID <span className="text-[#747783] font-normal">(Optional)</span>
+              <label htmlFor={`${uid}-alternateEmail`} className="block text-xs font-medium text-[#434652] mb-1">
+                Alternate Email ID <span className="text-[#666a76] font-normal">(Optional)</span>
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
+              id={`${uid}-alternateEmail`}
+              aria-invalid={errors.alternateEmail ? true : undefined}
+              aria-describedby={errors.alternateEmail ? `${uid}-alternateEmail-error` : undefined}
                   type="email"
                   value={alternateEmail}
                   onChange={(e) => {
@@ -381,19 +424,20 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
                 />
               </div>
               {errors.alternateEmail && (
-                <p className="text-[11px] text-red-600 font-bold mt-1">{errors.alternateEmail}</p>
+                <p id={`${uid}-alternateEmail-error`} role="alert" className="text-[11px] text-red-600 font-bold mt-1">{errors.alternateEmail}</p>
               )}
             </div>
           </div>
         )}
 
         <div>
-          <label className="block text-xs font-medium text-[#434652] mb-1">
+          <label htmlFor={`${uid}-linkedinUrl`} className="block text-xs font-medium text-[#434652] mb-1">
             LinkedIn Profile (Optional)
           </label>
           <div className="relative">
-            <Linkedin className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Linkedin className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id={`${uid}-linkedinUrl`}
               type="url"
               value={linkedinUrl}
               onChange={(e) => setLinkedinUrl(e.target.value)}
@@ -404,12 +448,13 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[#434652] mb-1">
-            {additionalInfoLabel} <span className="text-[#747783] font-normal">(Optional)</span>
+          <label htmlFor={`${uid}-additionalInfo`} className="block text-xs font-medium text-[#434652] mb-1">
+            {additionalInfoLabel} <span className="text-[#666a76] font-normal">(Optional)</span>
           </label>
           <div className="relative">
-            <MessageSquare className="w-4 h-4 text-[#747783] absolute left-3 top-3" />
+            <MessageSquare className="w-4 h-4 text-[#666a76] absolute left-3 top-3" />
             <textarea
+              id={`${uid}-additionalInfo`}
               rows={2}
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
@@ -455,7 +500,7 @@ export const StandardCandidateForm: React.FC<StandardCandidateFormProps> = ({
         </button>
       </div>
 
-      <p className="text-[10px] text-center text-[#747783]">
+      <p className="text-[11px] text-center text-[#666a76]">
         🔒 Fields marked with <span className="text-red-500 font-bold">*</span> are mandatory. Your information is strictly confidential.
       </p>
     </form>

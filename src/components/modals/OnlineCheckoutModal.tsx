@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
 import { startCheckout, CheckoutRequest } from '../../utils/checkout';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface OnlineCheckoutModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#061b3b]/70 backdrop-blur-sm">
+      <ModalA11y label="Online checkout" onClose={onClose} />
       <form
         onSubmit={submit}
         className="bg-white rounded-3xl w-full max-w-md border border-[#cbdaff] shadow-2xl p-6 flex flex-col gap-4"
@@ -55,16 +57,16 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-base font-black text-[#061b3b]">Pay online</h3>
-            <p className="text-xs text-[#747783] mt-0.5">{itemName}</p>
+            <p className="text-xs text-[#666a76] mt-0.5">{itemName}</p>
           </div>
-          <button type="button" onClick={onClose} className="p-1 text-[#747783] hover:text-[#061b3b] cursor-pointer" aria-label="Close">
+          <button type="button" onClick={onClose} className="p-1 text-[#666a76] hover:text-[#061b3b] cursor-pointer" aria-label="Close">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className={inputClass} />
-        <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={inputClass} />
-        <input value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Mobile (optional)" className={inputClass} />
+        <input aria-label="Full name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className={inputClass} />
+        <input aria-label="Email address" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={inputClass} />
+        <input aria-label="Mobile number (optional)" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Mobile (optional)" className={inputClass} />
 
         {error && <div className="px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-bold">{error}</div>}
 
@@ -76,7 +78,7 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
           <ShieldCheck className="w-4 h-4 text-[#79fd8d]" />
           <span>{busy ? 'Redirecting to secure checkout...' : 'Continue to secure payment'}</span>
         </button>
-        <p className="text-[11px] text-[#747783] text-center">Secure payment powered by Dodo Payments.</p>
+        <p className="text-[11px] text-[#666a76] text-center">Secure payment powered by Dodo Payments.</p>
       </form>
     </div>
   );

@@ -163,7 +163,7 @@ export const LegalScreen: React.FC<LegalScreenProps> = ({ kind, setActivePage })
 
         <article className="bg-white rounded-3xl border border-[#cbdaff] shadow-2xs p-6 sm:p-10">
           <h1 className="text-2xl sm:text-3xl font-black text-[#002869] tracking-tight break-words">{doc.title}</h1>
-          <p className="mt-2 text-xs font-bold text-[#747783]">
+          <p className="mt-2 text-xs font-bold text-[#666a76]">
             Draft — pending legal review. Last updated: to be confirmed.
           </p>
           <p className="mt-4 text-sm text-[#434652] leading-relaxed">{doc.intro}</p>

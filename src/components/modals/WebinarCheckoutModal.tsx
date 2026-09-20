@@ -24,6 +24,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { HandshakeIcon } from '../common/HandshakeIcon';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface WebinarCheckoutModalProps {
   isOpen: boolean;
@@ -160,6 +161,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#061b3b]/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
+      <ModalA11y label="Webinar registration" onClose={onClose} />
       <div className="bg-white rounded-3xl w-full max-w-2xl border border-[#cbdaff] shadow-2xl overflow-hidden my-8 animate-in zoom-in-95 max-h-[90vh] flex flex-col">
         
         {/* Navigation & Header Bar */}
@@ -207,15 +209,15 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
             <span className={step === 'details' ? 'text-[#79fd8d]' : 'text-white/60'}>
               1. Registration Details
             </span>
-            <span className="text-white/30">→</span>
+            <span className="text-white/60">→</span>
             <span className={step === 'review' ? 'text-[#79fd8d]' : 'text-white/60'}>
               2. Review Order
             </span>
-            <span className="text-white/30">→</span>
+            <span className="text-white/60">→</span>
             <span className={step === 'payment' ? 'text-[#79fd8d]' : 'text-white/60'}>
               3. Secure Payment
             </span>
-            <span className="text-white/30">→</span>
+            <span className="text-white/60">→</span>
             <span className={step === 'success' ? 'text-[#79fd8d]' : 'text-white/60'}>
               4. Ticket Confirmed
             </span>
@@ -227,7 +229,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
           
           {/* STEP 1: Registration Form */}
           {step === 'details' && (
-            <form onSubmit={handleDetailsSubmit} className="flex flex-col gap-4">
+            <form noValidate onSubmit={handleDetailsSubmit} className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-[#061b3b]">
                   Enter Attendee Information
@@ -240,10 +242,10 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
               {/* Row 1: First Name * & Last Name * */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#061b3b]">
+                  <label htmlFor="webinar-field-1" className="text-xs font-bold text-[#061b3b]">
                     First Name <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <input
+                  <input id="webinar-field-1"
                     type="text"
                     required
                     value={firstName}
@@ -256,14 +258,14 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                       fieldErrors.firstName ? 'border-red-400 bg-red-50/40' : 'border-[#cbdaff]'
                     }`}
                   />
-                  {fieldErrors.firstName && <span className="text-[10px] text-red-600 font-bold">{fieldErrors.firstName}</span>}
+                  {fieldErrors.firstName && <span className="text-[11px] text-red-600 font-bold">{fieldErrors.firstName}</span>}
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#061b3b]">
+                  <label htmlFor="webinar-field-2" className="text-xs font-bold text-[#061b3b]">
                     Last Name <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <input
+                  <input id="webinar-field-2"
                     type="text"
                     required
                     value={lastName}
@@ -276,17 +278,17 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                       fieldErrors.lastName ? 'border-red-400 bg-red-50/40' : 'border-[#cbdaff]'
                     }`}
                   />
-                  {fieldErrors.lastName && <span className="text-[10px] text-red-600 font-bold">{fieldErrors.lastName}</span>}
+                  {fieldErrors.lastName && <span className="text-[11px] text-red-600 font-bold">{fieldErrors.lastName}</span>}
                 </div>
               </div>
 
               {/* Row 2: Mobile Number * & Email ID * */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#061b3b]">
+                  <label htmlFor="webinar-field-3" className="text-xs font-bold text-[#061b3b]">
                     Mobile Number <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <input
+                  <input id="webinar-field-3"
                     type="tel"
                     required
                     value={mobile}
@@ -299,14 +301,14 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                       fieldErrors.mobile ? 'border-red-400 bg-red-50/40' : 'border-[#cbdaff]'
                     }`}
                   />
-                  {fieldErrors.mobile && <span className="text-[10px] text-red-600 font-bold">{fieldErrors.mobile}</span>}
+                  {fieldErrors.mobile && <span className="text-[11px] text-red-600 font-bold">{fieldErrors.mobile}</span>}
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#061b3b]">
+                  <label htmlFor="webinar-field-4" className="text-xs font-bold text-[#061b3b]">
                     Email ID <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <input
+                  <input id="webinar-field-4"
                     type="email"
                     required
                     value={email}
@@ -319,17 +321,17 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                       fieldErrors.email ? 'border-red-400 bg-red-50/40' : 'border-[#cbdaff]'
                     }`}
                   />
-                  {fieldErrors.email && <span className="text-[10px] text-red-600 font-bold">{fieldErrors.email}</span>}
+                  {fieldErrors.email && <span className="text-[11px] text-red-600 font-bold">{fieldErrors.email}</span>}
                 </div>
               </div>
 
               {/* Row 3: Current Designation * & Total Work Experience * */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#061b3b]">
+                  <label htmlFor="webinar-field-5" className="text-xs font-bold text-[#061b3b]">
                     Current Designation <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <input
+                  <input id="webinar-field-5"
                     type="text"
                     required
                     value={currentDesignation}
@@ -342,14 +344,14 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                       fieldErrors.currentDesignation ? 'border-red-400 bg-red-50/40' : 'border-[#cbdaff]'
                     }`}
                   />
-                  {fieldErrors.currentDesignation && <span className="text-[10px] text-red-600 font-bold">{fieldErrors.currentDesignation}</span>}
+                  {fieldErrors.currentDesignation && <span className="text-[11px] text-red-600 font-bold">{fieldErrors.currentDesignation}</span>}
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#061b3b]">
+                  <label htmlFor="webinar-field-6" className="text-xs font-bold text-[#061b3b]">
                     Total Work Experience <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <select
+                  <select id="webinar-field-6"
                     required
                     value={totalExperience}
                     onChange={(e) => {
@@ -367,22 +369,22 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                     <option value="6-10 Years (Lead / Staff Level)">6-10 Years (Lead / Staff Level)</option>
                     <option value="10+ Years (Executive / Principal)">10+ Years (Executive / Principal)</option>
                   </select>
-                  {fieldErrors.totalExperience && <span className="text-[10px] text-red-600 font-bold">{fieldErrors.totalExperience}</span>}
+                  {fieldErrors.totalExperience && <span className="text-[11px] text-red-600 font-bold">{fieldErrors.totalExperience}</span>}
                 </div>
               </div>
 
               {/* Optional Section */}
               <div className="pt-2 border-t border-[#cbdaff]/70 flex flex-col gap-3">
-                <span className="text-[11px] font-bold uppercase text-[#747783] tracking-wider">
+                <span className="text-[11px] font-bold uppercase text-[#666a76] tracking-wider">
                   Additional Details (Optional)
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-[#434652]">
-                      Alternate Number <span className="text-[#747783] font-normal">(Optional)</span>
+                    <label htmlFor="webinar-field-7" className="text-xs font-medium text-[#434652]">
+                      Alternate Number <span className="text-[#666a76] font-normal">(Optional)</span>
                     </label>
-                    <input
+                    <input id="webinar-field-7"
                       type="tel"
                       value={alternateNumber}
                       onChange={(e) => setAlternateNumber(e.target.value)}
@@ -392,10 +394,10 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-[#434652]">
-                      Alternate Email ID <span className="text-[#747783] font-normal">(Optional)</span>
+                    <label htmlFor="webinar-field-8" className="text-xs font-medium text-[#434652]">
+                      Alternate Email ID <span className="text-[#666a76] font-normal">(Optional)</span>
                     </label>
-                    <input
+                    <input id="webinar-field-8"
                       type="email"
                       value={alternateEmail}
                       onChange={(e) => setAlternateEmail(e.target.value)}
@@ -406,10 +408,10 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-[#434652]">
-                    LinkedIn Profile Link <span className="text-[#747783] font-normal">(Optional)</span>
+                  <label htmlFor="webinar-field-9" className="text-xs font-medium text-[#434652]">
+                    LinkedIn Profile Link <span className="text-[#666a76] font-normal">(Optional)</span>
                   </label>
-                  <input
+                  <input id="webinar-field-9"
                     type="url"
                     value={linkedinUrl}
                     onChange={(e) => setLinkedinUrl(e.target.value)}
@@ -419,10 +421,10 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-[#434652]">
-                    Question for {webinar.speaker.name} <span className="text-[#747783] font-normal">(Optional)</span>
+                  <label htmlFor="webinar-field-10" className="text-xs font-medium text-[#434652]">
+                    Question for {webinar.speaker.name} <span className="text-[#666a76] font-normal">(Optional)</span>
                   </label>
-                  <textarea
+                  <textarea id="webinar-field-10"
                     rows={2}
                     value={questionForSpeaker}
                     onChange={(e) => setQuestionForSpeaker(e.target.value)}
@@ -462,38 +464,38 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
               <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-3">
                 <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                   <div>
-                    <span className="text-xs text-[#747783] block">Item</span>
+                    <span className="text-xs text-[#666a76] block">Item</span>
                     <span className="text-sm font-bold text-[#061b3b]">{webinar.title}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs text-[#747783] block">Price</span>
+                    <span className="text-xs text-[#666a76] block">Price</span>
                     <span className="text-sm font-black text-[#006e29]">₹{price}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-[#747783]">Attendee:</span>
+                    <span className="text-[#666a76]">Attendee:</span>
                     <p className="font-bold text-[#061b3b]">{firstName} {lastName}</p>
                   </div>
                   <div>
-                    <span className="text-[#747783]">Email:</span>
+                    <span className="text-[#666a76]">Email:</span>
                     <p className="font-bold text-[#061b3b]">{email}</p>
                   </div>
                   <div>
-                    <span className="text-[#747783]">Mobile:</span>
+                    <span className="text-[#666a76]">Mobile:</span>
                     <p className="font-bold text-[#061b3b]">{mobile}</p>
                   </div>
                   <div>
-                    <span className="text-[#747783]">Designation:</span>
+                    <span className="text-[#666a76]">Designation:</span>
                     <p className="font-bold text-[#061b3b]">{currentDesignation}</p>
                   </div>
                   <div>
-                    <span className="text-[#747783]">Experience:</span>
+                    <span className="text-[#666a76]">Experience:</span>
                     <p className="font-bold text-[#061b3b]">{totalExperience}</p>
                   </div>
                   <div>
-                    <span className="text-[#747783]">Session Date:</span>
+                    <span className="text-[#666a76]">Session Date:</span>
                     <p className="font-bold text-[#061b3b]">{webinar.date}</p>
                   </div>
                 </div>
@@ -599,17 +601,17 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
               <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-3 text-left">
                 <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-[#747783]">Registration ID</span>
+                    <span className="text-[11px] uppercase font-bold text-[#666a76]">Registration ID</span>
                     <p className="text-xs font-mono font-bold text-[#002869]">{completedRegistration.id}</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-[#747783]">Payment Ref</span>
+                    <span className="text-[11px] uppercase font-bold text-[#666a76]">Payment Ref</span>
                     <p className="text-xs font-mono font-bold text-[#006e29]">{completedRegistration.paymentId}</p>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-[#747783]">Session Link (Google Meet):</span>
+                  <span className="text-xs text-[#666a76]">Session Link (Google Meet):</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"

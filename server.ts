@@ -26,6 +26,7 @@ import mediaRouter from './server/routes/media.ts';
 import candidateRouter from './server/routes/candidate.ts';
 import oauthRouter from './server/routes/oauth.ts';
 import { createRateLimiter } from './server/middleware/rateLimit.ts';
+import { getPublicBaseUrl } from './server/config/baseUrl.ts';
 import { securityHeaders } from './server/middleware/securityHeaders.ts';
 import { validateLead } from './server/utils/leadValidation.ts';
 
@@ -1106,17 +1107,61 @@ async function startServer() {
       'client'
     );
 
+    // robots.txt / sitemap.xml are generated (never the SPA shell). The absolute URLs in
+    // them - and the canonical / social tags in the HTML - come ONLY from the configured
+    // public base URL, never from request headers. Without it they are simply omitted.
+    app.get('/robots.txt', (req, res) => {
+      const base = getPublicBaseUrl();
+      const lines = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /api/',
+        'Disallow: /reset-password',
+      ];
+      if (base) lines.push('', `Sitemap: ${base}/sitemap.xml`);
+      res.type('text/plain').send(lines.join('\n') + '\n');
+    });
+
+    // The site is a single-page app whose sections are not separate URLs yet, so the only
+    // genuinely addressable public page is the home page. No made-up page URLs are listed.
+    app.get('/sitemap.xml', (req, res) => {
+      const base = getPublicBaseUrl();
+      if (!base) {
+        res.status(404).type('text/plain').send('Sitemap unavailable.\n');
+        return;
+      }
+      res
+        .type('application/xml')
+        .send(
+          '<?xml version="1.0" encoding="UTF-8"?>\n' +
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+            `  <url><loc>${base}/</loc></url>\n` +
+            '</urlset>\n'
+        );
+    });
+
+    const indexTemplate = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
+    const renderIndex = () => {
+      const base = getPublicBaseUrl();
+      const tags = base
+        ? [
+            `<link rel="canonical" href="${base}/" />`,
+            `<meta property="og:url" content="${base}/" />`,
+            `<meta property="og:image" content="${base}/logo.png" />`,
+            `<meta name="twitter:image" content="${base}/logo.png" />`,
+          ].join('\n    ')
+        : '';
+      return indexTemplate.replace('<!--SEO_BASE-->', tags);
+    };
+
     app.use(
-      express.static(distPath)
+      express.static(distPath, { index: false })
     );
 
     app.get('*', (req, res) => {
-      res.sendFile(
-        path.join(
-          distPath,
-          'index.html'
-        )
-      );
+      // Only the home page is meant to be indexed; any other path (e.g. a reset link) is not.
+      if (req.path !== '/') res.setHeader('X-Robots-Tag', 'noindex');
+      res.type('html').send(renderIndex());
     });
   }
 

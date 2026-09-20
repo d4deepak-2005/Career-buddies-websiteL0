@@ -62,7 +62,7 @@ export const BrandTagline: React.FC<BrandTaglineProps> = ({
 
   const careerTextColor = isDark ? 'text-white' : 'text-[#002869]';
   const guidanceTextColor = isDark ? 'text-[#79fd8d]' : 'text-[#002869]';
-  const separatorColor = isDark ? 'text-white/40' : 'text-[#002869]/30';
+  const separatorColor = isDark ? 'text-white/70' : 'text-[#002869]/30';
   const leftLineBg = isDark ? 'bg-white/60' : 'bg-[#002869]';
   const rightLineBg = isDark ? 'bg-[#79fd8d]' : 'bg-[#00a63f]';
 

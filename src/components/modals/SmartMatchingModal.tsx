@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMentors } from '../../hooks/useCmsCatalog';
 import { Mentor } from '../../types';
+import { ModalA11y } from '../common/ModalA11y';
 import { 
   Sparkles, 
   X, 
@@ -57,6 +58,7 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+      <ModalA11y label="Smart mentor matching" onClose={onClose} />
       <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl border border-[#e0e8ff] max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-[#002869] text-white flex items-center justify-between">
@@ -64,7 +66,7 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
             <Sparkles className="w-5 h-5 text-[#79fd8d]" />
             <h3 className="font-bold text-base">Smart Matchmaker (AI Grounded)</h3>
           </div>
-          <button 
+          <button aria-label="Close" 
             onClick={onClose}
             className="p-1 rounded-lg text-[#dae2ff] hover:text-white hover:bg-white/10 transition-colors"
           >
@@ -264,16 +266,16 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
                         />
                         <div>
                           <div className="flex items-center gap-2">
-                            <h5 className="font-bold text-sm text-[#061b3b]">{mentor.name}</h5>
-                            <span className="px-2 py-0.5 rounded bg-[#dae2ff] text-[#001947] text-[10px] font-bold">
+                            <h4 className="font-bold text-sm text-[#061b3b]">{mentor.name}</h4>
+                            <span className="px-2 py-0.5 rounded bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                               {mentor.company}
                             </span>
-                            <span className="bg-[#79fd8d]/30 text-[#00531d] text-[10px] px-2 py-0.5 rounded-full font-bold">
+                            <span className="bg-[#79fd8d]/30 text-[#00531d] text-[11px] px-2 py-0.5 rounded-full font-bold">
                               {matchPercentage}% Match
                             </span>
                           </div>
                           <p className="text-xs text-[#434652]">{mentor.title}</p>
-                          <div className="flex items-center gap-2 mt-1 text-[11px] text-[#747783]">
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-[#666a76]">
                             <span className="flex items-center text-amber-500 font-bold">
                               ★ {mentor.rating}
                             </span>

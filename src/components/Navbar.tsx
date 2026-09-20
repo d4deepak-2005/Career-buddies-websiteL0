@@ -8,6 +8,7 @@ import {
   User, 
   ChevronDown,
   Compass,
+  BookOpen,
   Award,
   Users,
   Clock,
@@ -61,6 +62,23 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Escape closes an open menu and returns focus to the button that opened it.
+  useEffect(() => {
+    if (!exploreOpen && !mobileMenuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (exploreOpen) {
+        setExploreOpen(false);
+        document.getElementById('nav-more-dropdown-btn')?.focus();
+      } else if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+        document.getElementById('nav-mobile-toggle-btn')?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [exploreOpen, mobileMenuOpen]);
+
   const handleNav = (page: PageView) => {
     setActivePage(page);
     setMobileMenuOpen(false);
@@ -75,6 +93,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     'about-us', 
     'contact',
     'mentors',
+    'resources',
     'admin'
   ].includes(activePage);
 
@@ -103,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Clean Core Navigation Items (Home | Services | Programmes | More ▼) */}
-        <nav className="hidden md:flex flex-1 justify-center items-center gap-0.5 lg:gap-1">
+        <nav aria-label="Main" className="hidden md:flex flex-1 justify-center items-center gap-0.5 lg:gap-1">
           {/* 1. Home */}
           <button
             id="nav-home-btn"
@@ -180,13 +199,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
               aria-expanded={exploreOpen}
               aria-haspopup="true"
+              aria-controls="nav-more-menu"
             >
               <span>More</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${exploreOpen ? 'rotate-180 text-[#002869]' : 'text-[#747783]'}`} />
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${exploreOpen ? 'rotate-180 text-[#002869]' : 'text-[#666a76]'}`} />
             </button>
 
             {exploreOpen && (
-              <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-2xl border border-[#cbdaff] shadow-xl shadow-[#002869]/8 p-2.5 z-50 animate-in fade-in slide-in-from-top-2">
+              <div id="nav-more-menu" className="absolute top-full left-0 mt-2 w-80 bg-white rounded-2xl border border-[#cbdaff] shadow-xl shadow-[#002869]/8 p-2.5 z-50 animate-in fade-in slide-in-from-top-2">
                 {/* How CareerBuddies Works featured link */}
                 <button
                   id="more-how-it-works-btn"
@@ -200,7 +220,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     <p className="text-[11px] text-[#434652] mt-0.5 font-medium">5-Step Candidate Journey</p>
                   </div>
-                  <span className="px-2 py-0.5 rounded-md bg-[#002869] text-white text-[10px] font-black shadow-xs">5 Steps</span>
+                  <span className="px-2 py-0.5 rounded-md bg-[#002869] text-white text-[11px] font-black shadow-xs">5 Steps</span>
                 </button>
 
                 <button
@@ -224,7 +244,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5 text-[#002869]" />
-                    <span>Leadership Team</span>
+                    <span>Leadership</span>
                   </div>
                   <p className="text-[11px] text-[#434652] mt-0.5">Meet Founder & Co-Founders</p>
                 </button>
@@ -242,6 +262,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
 
                 <button
+                  id="more-resources-btn"
+                  onClick={() => handleNav('resources')}
+                  className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors cursor-pointer"
+                >
+                  <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-[#002869]" />
+                    <span>Resources</span>
+                  </div>
+                  <p className="text-[11px] text-[#434652] mt-0.5">Career playbooks & guides</p>
+                </button>
+
+                <button
                   id="more-career-check-in-btn"
                   onClick={() => handleNav('career-check-in')}
                   className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors flex items-center justify-between cursor-pointer"
@@ -249,11 +281,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div>
                     <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
                       <Compass className="w-3.5 h-3.5 text-[#002869]" />
-                      <span>Career Check-In</span>
+                      <span>Career Check-in</span>
                     </div>
                     <p className="text-[11px] text-[#434652] mt-0.5">Self-assessment diagnostic</p>
                   </div>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#dae2ff] text-[#001947]">Free</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#dae2ff] text-[#001947]">Free</span>
                 </button>
 
                 <button
@@ -263,7 +295,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-[#002869]" />
-                    <span>About Us</span>
+                    <span>About</span>
                   </div>
                   <p className="text-[11px] text-[#434652] mt-0.5">Our mission & story since 2022</p>
                 </button>
@@ -308,7 +340,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <User className="w-4 h-4 text-[#002869]" />
             {bookedCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#006e29] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#006e29] text-white text-[11px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                 {bookedCount}
               </span>
             )}
@@ -320,6 +352,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 rounded-xl text-[#061b3b] hover:bg-[#e8edff] transition-colors cursor-pointer min-w-[40px] min-h-[40px] flex items-center justify-center"
             aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="nav-mobile-menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
           </button>
@@ -328,7 +362,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#cbdaff] bg-white px-6 py-5 shadow-2xl animate-in slide-in-from-top-2 max-h-[85vh] overflow-y-auto">
+        <div id="nav-mobile-menu" className="md:hidden border-t border-[#cbdaff] bg-white px-6 py-5 shadow-2xl animate-in slide-in-from-top-2 max-h-[85vh] overflow-y-auto">
           <div className="flex flex-col gap-2">
             
             <button
@@ -371,7 +405,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <div className="py-2 border-t border-gray-100 my-1 flex flex-col gap-1">
-              <div className="text-[10px] font-black uppercase text-[#002869] tracking-wider px-4 mb-1">
+              <div className="text-[11px] font-black uppercase text-[#002869] tracking-wider px-4 mb-1">
                 More Features
               </div>
               
@@ -383,7 +417,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <div>
                   <span className="uppercase">Live Webinars</span>
-                  <p className="text-[10px] font-normal opacity-80">Join mentor-led career webinars</p>
+                  <p className="text-[11px] font-normal opacity-80">Join mentor-led career webinars</p>
                 </div>
                 <Calendar className="w-3.5 h-3.5 text-[#006e29]" />
               </button>
@@ -394,8 +428,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   activePage === 'career-check-in' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
                 }`}
               >
-                <span>Career Journey Navigator</span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#dae2ff] text-[#001947]">Free</span>
+                <span>Career Check-in</span>
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#dae2ff] text-[#001947]">Free</span>
               </button>
 
               <button
@@ -404,7 +438,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   activePage === 'leadership' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
                 }`}
               >
-                Leadership & Mentors
+                Leadership
               </button>
 
               <button
@@ -417,12 +451,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               <button
+                onClick={() => handleNav('resources')}
+                className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold ${
+                  activePage === 'resources' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
+                }`}
+              >
+                Resources
+              </button>
+
+              <button
                 onClick={() => handleNav('about-us')}
                 className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold ${
                   activePage === 'about-us' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
                 }`}
               >
-                About CareerBuddies
+                About
               </button>
 
               <button

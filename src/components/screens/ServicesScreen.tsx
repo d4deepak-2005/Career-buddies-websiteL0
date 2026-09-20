@@ -138,8 +138,8 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#cbdaff] shadow-xs flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-[#747783] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
+              <Search className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input aria-label="Search services"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -149,7 +149,7 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#747783] hover:text-[#061b3b]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#666a76] hover:text-[#061b3b]"
                 >
                   Clear
                 </button>
@@ -196,9 +196,9 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
                   </span>
                 </div>
 
-                <h3 className="text-lg font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif] group-hover:text-[#002869] transition-colors leading-snug">
+                <h2 className="text-lg font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif] group-hover:text-[#002869] transition-colors leading-snug">
                   {service.title}
-                </h3>
+                </h2>
 
                 <p className="text-xs text-[#434652] mt-2 leading-relaxed line-clamp-2">
                   {service.shortDescription}

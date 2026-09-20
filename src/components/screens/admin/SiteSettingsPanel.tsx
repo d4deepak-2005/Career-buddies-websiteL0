@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { Save, CheckCircle2, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { adminFetch } from '../../../utils/adminAuth';
 import { SiteSettingsData } from '../../../hooks/useSiteSettings';
@@ -74,10 +74,11 @@ function Field({
   onChange: (v: string) => void;
   type?: string;
 }) {
+  const fid = useId();
   return (
     <div>
-      <label className={labelClass}>{label}</label>
-      <input
+      <label htmlFor={fid} className={labelClass}>{label}</label>
+      <input id={fid}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -98,10 +99,11 @@ function TextAreaField({
   onChange: (v: string) => void;
   rows?: number;
 }) {
+  const fid = useId();
   return (
     <div>
-      <label className={labelClass}>{label}</label>
-      <textarea
+      <label htmlFor={fid} className={labelClass}>{label}</label>
+      <textarea id={fid}
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -149,7 +151,7 @@ function PairListEditor({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className={labelClass}>{label}</label>
+        <span className={labelClass}>{label}</span>
         <button
           type="button"
           onClick={add}
@@ -161,12 +163,13 @@ function PairListEditor({
       </div>
       <div className="flex flex-col gap-2">
         {items.length === 0 && (
-          <p className="text-[11px] text-[#747783]">No entries yet.</p>
+          <p className="text-[11px] text-[#666a76]">No entries yet.</p>
         )}
         {items.map((item, index) => (
           <div key={index} className="flex items-center gap-2">
             <input
               type="text"
+              aria-label={`${label}: ${labelA}`}
               placeholder={labelA}
               value={item[keyA] || ''}
               onChange={(e) => update(index, keyA, e.target.value)}
@@ -174,6 +177,7 @@ function PairListEditor({
             />
             <input
               type="text"
+              aria-label={`${label}: ${labelB}`}
               placeholder={labelB}
               value={item[keyB] || ''}
               onChange={(e) => update(index, keyB, e.target.value)}
@@ -254,7 +258,7 @@ export const SiteSettingsPanel: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-3xl p-8 border border-[#cbdaff] shadow-xs text-xs text-[#747783]">
+      <div className="bg-white rounded-3xl p-8 border border-[#cbdaff] shadow-xs text-xs text-[#666a76]">
         Loading Site Settings...
       </div>
     );
@@ -264,8 +268,8 @@ export const SiteSettingsPanel: React.FC = () => {
     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-bold text-[#061b3b]">Site Settings</h3>
-          <p className="text-xs text-[#747783]">
+          <h2 className="text-lg font-bold text-[#061b3b]">Site Settings</h2>
+          <p className="text-xs text-[#666a76]">
             Edit content here and it appears live on the public website —
             no code changes needed. Sections left blank keep showing the
             site's existing content.
@@ -389,7 +393,7 @@ export const SiteSettingsPanel: React.FC = () => {
             />
             Show announcement bar
           </label>
-          <p className="text-[11px] text-[#747783] -mt-2">
+          <p className="text-[11px] text-[#666a76] -mt-2">
             Logo is live on the public site now. Navigation labels/links,
             CTA and the announcement bar are saved here but not yet shown
             publicly — a later phase wires them in without changing this
@@ -470,7 +474,7 @@ export const SiteSettingsPanel: React.FC = () => {
               updateSection('about', { values: items as any })
             }
           />
-          <p className="text-[11px] text-[#747783]">
+          <p className="text-[11px] text-[#666a76]">
             Title and Mission are live on the public About page now. Vision
             and Values are saved here for future use.
           </p>
@@ -500,7 +504,7 @@ export const SiteSettingsPanel: React.FC = () => {
               updateSection('footer', { socialLinks: items as any })
             }
           />
-          <p className="text-[11px] text-[#747783]">
+          <p className="text-[11px] text-[#666a76]">
             Description and Copyright Text are live in the footer now.
             Social Links are saved here for future use (the footer's icon
             row is still the existing hardcoded set).
@@ -544,7 +548,7 @@ export const SiteSettingsPanel: React.FC = () => {
             onChange={(v) => updateSection('contact', { address: v })}
             rows={2}
           />
-          <p className="text-[11px] text-[#747783]">
+          <p className="text-[11px] text-[#666a76]">
             Address and Email are live on the public Contact page now.
           </p>
         </div>
@@ -579,7 +583,7 @@ export const SiteSettingsPanel: React.FC = () => {
             value={settings.seo.metaDescription}
             onChange={(v) => updateSection('seo', { metaDescription: v })}
           />
-          <p className="text-[11px] text-[#747783]">
+          <p className="text-[11px] text-[#666a76]">
             Meta Title and Meta Description update the browser tab
             title/description on load (client-side). This is a Vite
             single-page app, so it won't change what search-engine

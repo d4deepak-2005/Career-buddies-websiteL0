@@ -35,6 +35,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { submitLead } from '../../utils/submitLead';
+import { buttonProps } from '../../utils/a11y';
 
 interface HomeScreenProps {
   onSelectMentor: (mentor: Mentor) => void;
@@ -349,7 +350,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <span className="text-[11px] font-extrabold text-white tracking-wide">Staff & Principal Track</span>
                         <span className="w-1.5 h-1.5 rounded-full bg-[#79fd8d] animate-pulse" />
                       </div>
-                      <span className="text-[10px] text-[#79fd8d] font-semibold">High-Impact Architecture & Leadership</span>
+                      <span className="text-[11px] text-[#79fd8d] font-semibold">High-Impact Architecture & Leadership</span>
                     </div>
                   </div>
                 </div>
@@ -363,9 +364,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <div className="text-left">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] font-bold text-white">1:1 Practitioner Mentorship</span>
-                        <span className="text-[9px] font-bold text-[#002869] bg-[#79fd8d] px-1.5 py-0.2 rounded-full">Active</span>
+                        <span className="text-[10px] font-bold text-[#002869] bg-[#79fd8d] px-1.5 py-0.2 rounded-full">Active</span>
                       </div>
-                      <p className="text-[10px] text-[#dae2ff]/90">FAANG+ & Tier-1 Tech Ecosystem Leaders</p>
+                      <p className="text-[11px] text-[#dae2ff]/90">FAANG+ & Tier-1 Tech Ecosystem Leaders</p>
                     </div>
                   </div>
                 </div>
@@ -377,8 +378,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       <Target className="w-3 h-3 text-[#dae2ff]" />
                     </div>
                     <div className="text-left">
-                      <span className="text-[10px] font-bold text-white block">Diagnostic & Roadmap Formulation</span>
-                      <span className="text-[9px] text-[#dae2ff]/70">Step-by-step career acceleration plan</span>
+                      <span className="text-[11px] font-bold text-white block">Diagnostic & Roadmap Formulation</span>
+                      <span className="text-[10px] text-[#dae2ff]/70">Step-by-step career acceleration plan</span>
                     </div>
                   </div>
                 </div>
@@ -486,21 +487,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       <span className="w-7 h-7 rounded-xl bg-white/10 border border-white/15 text-[#dae2ff] group-hover:text-[#79fd8d] group-hover:border-[#79fd8d]/40 text-xs font-black flex items-center justify-center transition-colors">
                         {item.step}
                       </span>
-                      <span className="text-[11px] font-bold text-white/50 group-hover:text-white/80 transition-colors uppercase tracking-wider">
+                      <span className="text-[11px] font-bold text-white/70 group-hover:text-white/80 transition-colors uppercase tracking-wider">
                         Stage {item.step}
                       </span>
                     </div>
 
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 ${
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold shrink-0 ${
                       item.color === 'green' ? 'bg-[#79fd8d]/20 text-[#79fd8d] border border-[#79fd8d]/30' : 'bg-white/10 text-[#dae2ff] border border-white/15'
                     }`}>
                       {item.badge}
                     </span>
                   </div>
 
-                  <h3 className="text-base font-bold text-white mb-2 font-['Plus_Jakarta_Sans',sans-serif] group-hover:text-[#79fd8d] transition-colors">
+                  <h2 className="text-base font-bold text-white mb-2 font-['Plus_Jakarta_Sans',sans-serif] group-hover:text-[#79fd8d] transition-colors">
                     {item.title}
-                  </h3>
+                  </h2>
 
                   <p className="text-xs text-[#dae2ff]/80 leading-relaxed">
                     {item.desc}
@@ -521,9 +522,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>The Complete Journey</span>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
+                <h2 className="text-lg font-bold text-white mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
                   Ready to Start at Step 1?
-                </h3>
+                </h2>
                 <p className="text-xs text-[#dae2ff] leading-relaxed">
                   Join our next live mentor webinar to learn directly from leading industry practitioners.
                 </p>
@@ -588,7 +589,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 }`}
               >
                 {plan.isRecommended && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full bg-[#002869] text-white text-[10px] font-black tracking-wider uppercase shadow-xs">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full bg-[#002869] text-white text-[11px] font-black tracking-wider uppercase shadow-xs">
                     Recommended Track
                   </div>
                 )}
@@ -598,7 +599,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <span className="text-xs font-black uppercase text-[#006e29] tracking-wider">
                       {plan.tagline}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[10px] font-bold">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                       {plan.badge}
                     </span>
                   </div>
@@ -615,13 +616,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <div className="text-xs font-bold text-[#061b3b] mb-1">
                       {plan.sessionsCount}
                     </div>
-                    <div className="text-[11px] text-[#747783]">
+                    <div className="text-[11px] text-[#666a76]">
                       {plan.supportType}
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2.5 mb-6">
-                    <span className="text-[11px] font-bold uppercase text-[#747783] tracking-wider">
+                    <span className="text-[11px] font-bold uppercase text-[#666a76] tracking-wider">
                       Included Deliverables:
                     </span>
                     {plan.features.slice(0, 4).map((feat, fIdx) => (
@@ -638,7 +639,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <span className="text-2xl font-black text-[#002869] font-['Plus_Jakarta_Sans',sans-serif]">
                       {plan.priceINR}
                     </span>
-                    <span className="text-[11px] text-[#747783] block">
+                    <span className="text-[11px] text-[#666a76] block">
                       {plan.period}
                     </span>
                   </div>
@@ -703,7 +704,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 Feeling unsure about your next career move?
               </h2>
               <p className="text-xs sm:text-sm text-[#dae2ff] leading-relaxed">
-                Take our 2-minute interactive Career Check-In to evaluate where you stand, identify your core bottleneck, and receive a tailored recommendation for guidance.
+                Take our 2-minute interactive Career Check-in to evaluate where you stand, identify your core bottleneck, and receive a tailored recommendation for guidance.
               </p>
             </div>
 
@@ -711,7 +712,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onClick={() => setActivePage('career-check-in')}
               className="px-6 py-3.5 rounded-xl bg-[#79fd8d] hover:bg-[#5cf272] text-[#002869] font-extrabold text-xs sm:text-sm transition-all shadow-md whitespace-nowrap cursor-pointer flex items-center gap-2 shrink-0"
             >
-              <span>Start 2-Min Career Check-In</span>
+              <span>Start 2-Min Career Check-in</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -749,7 +750,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             {previewServices.map((service) => (
               <div
                 key={service.id}
-                onClick={() => onSelectService(service)}
+                {...buttonProps(() => onSelectService(service))}
                 className="bg-[#f9f9ff] rounded-2xl p-6 border border-[#e0e8ff] hover:border-[#002869]/50 transition-all duration-200 hover:shadow-2xs flex flex-col justify-between group cursor-pointer"
               >
                 <div>
@@ -757,7 +758,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <span className="px-2.5 py-0.5 rounded-md bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                       {service.category}
                     </span>
-                    <span className="text-[11px] text-[#747783] font-medium">
+                    <span className="text-[11px] text-[#666a76] font-medium">
                       {service.duration}
                     </span>
                   </div>

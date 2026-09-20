@@ -29,6 +29,7 @@ import { MentorsScreen } from './components/screens/MentorsScreen';
 import { AboutUsScreen } from './components/screens/AboutUsScreen';
 import { ContactScreen } from './components/screens/ContactScreen';
 import { LegalScreen } from './components/screens/LegalScreen';
+import { applyPageMeta } from './utils/pageMeta';
 import { CounsellingScreen } from './components/screens/CounsellingScreen';
 import { LeadsDashboardScreen } from './components/screens/LeadsDashboardScreen';
 import { CareerCheckInScreen } from './components/screens/CareerCheckInScreen';
@@ -175,6 +176,21 @@ export default function App() {
       window.removeEventListener('popstate', onPopState);
     };
   }, []);
+
+  // Page-specific title / description / robots for the current page.
+  useEffect(() => {
+    applyPageMeta(activePage);
+  }, [activePage]);
+
+  // Keyboard users: "Skip to main content" moves focus to the page content.
+  const skipToMain = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    const main = document.getElementById('main-content');
+    if (main) {
+      main.focus();
+      main.scrollIntoView();
+    }
+  };
 
   // Typing/pasting a #privacy, #terms, #refund or #admin address into an already-open tab.
   useEffect(() => {
@@ -431,6 +447,10 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f9f9ff] text-[#061b3b] flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
       
+      <a href="#main-content" className="skip-link" onClick={skipToMain}>
+        Skip to main content
+      </a>
+
       {/* Top Header */}
       <Navbar
         activePage={activePage}
@@ -453,7 +473,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full">
+      <main id="main-content" tabIndex={-1} className="flex-1 w-full focus:outline-none">
         
         {/* 1. HOME SCREEN */}
         {activePage === 'home' && (

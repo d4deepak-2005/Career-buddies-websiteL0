@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Lock, Eye, EyeOff, CheckCircle2, ArrowRight } from 'lucide-react';
 import { BrandLogo } from '../BrandLogo';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface ResetPasswordModalProps {
   token: string;
@@ -76,6 +77,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+      <ModalA11y label="Reset your password" onClose={onClose} />
       <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-[#cbdaff] max-h-[92vh] flex flex-col">
         <div className="px-6 py-5 bg-[#002869] text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -114,10 +116,10 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                 <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl">{error}</div>
               )}
               <div>
-                <label className="block text-xs font-black text-[#061b3b] mb-1">New Password</label>
+                <label htmlFor="reset-field-1" className="block text-xs font-black text-[#061b3b] mb-1">New Password</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <Lock className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="reset-field-1"
                     type={show ? 'text' : 'password'}
                     required
                     minLength={8}
@@ -127,20 +129,20 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                     placeholder="At least 8 characters"
                     className="w-full pl-9 pr-10 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
                   />
-                  <button
+                  <button aria-label={show ? 'Hide password' : 'Show password'}
                     type="button"
                     onClick={() => setShow(!show)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#747783] hover:text-[#061b3b]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666a76] hover:text-[#061b3b]"
                   >
                     {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-black text-[#061b3b] mb-1">Confirm New Password</label>
+                <label htmlFor="reset-field-2" className="block text-xs font-black text-[#061b3b] mb-1">Confirm New Password</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <Lock className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="reset-field-2"
                     type={show ? 'text' : 'password'}
                     required
                     minLength={8}

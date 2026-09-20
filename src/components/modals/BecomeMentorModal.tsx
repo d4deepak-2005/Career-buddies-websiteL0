@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, CheckCircle2, ShieldCheck, Sparkles, Send, User, Phone, Mail, Briefcase, Clock, Linkedin } from 'lucide-react';
 import { submitLead } from '../../utils/submitLead';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface BecomeMentorModalProps {
   isOpen: boolean;
@@ -133,6 +134,7 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+      <ModalA11y label="Become a mentor" onClose={onClose} />
       <div className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-[#cbdaff] max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-[#002869] text-white flex items-center justify-between">
@@ -140,7 +142,7 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
             <Sparkles className="w-5 h-5 text-[#79fd8d]" />
             <h3 className="font-bold text-base font-['Plus_Jakarta_Sans',sans-serif]">Apply to Become a CareerBuddies Mentor</h3>
           </div>
-          <button 
+          <button aria-label="Close" 
             onClick={handleReset}
             className="p-1.5 rounded-lg text-[#dae2ff] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
@@ -165,7 +167,7 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 flex flex-col gap-4">
+          <form noValidate onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 flex flex-col gap-4">
             <p className="text-xs text-[#434652]">
               Join an elite network of senior practitioners from Google, Amazon, Uber, and Microsoft. Please fill out your details below.
             </p>
@@ -179,12 +181,12 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
             {/* Row 1: First Name * & Last Name * */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="mentor-field-1" className="block text-xs font-bold text-[#061b3b] mb-1">
                   First Name <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <User className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="mentor-field-1"
                     type="text"
                     value={firstName}
                     onChange={(e) => {
@@ -203,12 +205,12 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="mentor-field-2" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Last Name <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <User className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="mentor-field-2"
                     type="text"
                     value={lastName}
                     onChange={(e) => {
@@ -230,12 +232,12 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
             {/* Row 2: Mobile Number * & Email ID * */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="mentor-field-3" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Mobile Number <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <Phone className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="mentor-field-3"
                     type="tel"
                     value={mobile}
                     onChange={(e) => {
@@ -254,12 +256,12 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="mentor-field-4" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Email ID <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <Mail className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="mentor-field-4"
                     type="email"
                     value={email}
                     onChange={(e) => {
@@ -281,12 +283,12 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
             {/* Row 3: Current Designation * & Total Work Experience * */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="mentor-field-5" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Current Designation <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <Briefcase className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <Briefcase className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="mentor-field-5"
                     type="text"
                     value={currentDesignation}
                     onChange={(e) => {
@@ -305,12 +307,12 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="mentor-field-6" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Total Work Experience <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <Clock className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <select
+                  <Clock className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <select id="mentor-field-6"
                     value={totalExperience}
                     onChange={(e) => {
                       setTotalExperience(e.target.value);
@@ -336,16 +338,16 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
 
             {/* Optional Mentor Details */}
             <div className="pt-2 border-t border-[#cbdaff]/70 flex flex-col gap-3.5">
-              <span className="text-[11px] font-bold uppercase text-[#747783] tracking-wider">
+              <span className="text-[11px] font-bold uppercase text-[#666a76] tracking-wider">
                 Additional Mentor Details (Optional)
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-medium text-[#434652] mb-1">
+                  <label htmlFor="mentor-field-7" className="block text-xs font-medium text-[#434652] mb-1">
                     Current Company (Optional)
                   </label>
-                  <input
+                  <input id="mentor-field-7"
                     type="text"
                     value={currentCompany}
                     onChange={(e) => setCurrentCompany(e.target.value)}
@@ -355,12 +357,12 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#434652] mb-1">
+                  <label htmlFor="mentor-field-8" className="block text-xs font-medium text-[#434652] mb-1">
                     LinkedIn Profile (Optional)
                   </label>
                   <div className="relative">
-                    <Linkedin className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
+                    <Linkedin className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input id="mentor-field-8"
                       type="url"
                       value={linkedinUrl}
                       onChange={(e) => setLinkedinUrl(e.target.value)}
@@ -373,10 +375,10 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-medium text-[#434652] mb-1">
+                  <label htmlFor="mentor-field-9" className="block text-xs font-medium text-[#434652] mb-1">
                     Primary Track (Optional)
                   </label>
-                  <select
+                  <select id="mentor-field-9"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full px-3 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs sm:text-sm text-[#061b3b] focus:outline-none focus:border-[#002869] cursor-pointer"
@@ -390,10 +392,10 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#434652] mb-1">
+                  <label htmlFor="mentor-field-10" className="block text-xs font-medium text-[#434652] mb-1">
                     Target Session Rate ($ / 45 min) (Optional)
                   </label>
-                  <input
+                  <input id="mentor-field-10"
                     type="number"
                     value={hourlyRate}
                     onChange={(e) => setHourlyRate(e.target.value)}
@@ -404,10 +406,10 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#434652] mb-1">
+                <label htmlFor="mentor-field-11" className="block text-xs font-medium text-[#434652] mb-1">
                   Coaching Philosophy or Bio (Optional)
                 </label>
-                <textarea
+                <textarea id="mentor-field-11"
                   rows={2}
                   value={motivation}
                   onChange={(e) => setMotivation(e.target.value)}
@@ -426,7 +428,7 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
               <span>{loading ? 'Submitting Application...' : 'Submit Mentor Application'}</span>
             </button>
 
-            <p className="text-[10px] text-center text-[#747783]">
+            <p className="text-[11px] text-center text-[#666a76]">
               🔒 Fields marked with <span className="text-red-500 font-bold">*</span> are mandatory. Your details are strictly confidential.
             </p>
           </form>

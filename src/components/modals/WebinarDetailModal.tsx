@@ -17,6 +17,7 @@ import {
   Home
 } from 'lucide-react';
 import { HandshakeIcon } from '../common/HandshakeIcon';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface WebinarDetailModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#061b3b]/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
+      <ModalA11y label="Webinar details" onClose={onClose} />
       <div className="bg-white rounded-3xl w-full max-w-2xl border border-[#cbdaff] shadow-2xl overflow-hidden my-8 animate-in zoom-in-95 max-h-[90vh] flex flex-col">
         
         {/* Navigation & Header Bar */}
@@ -110,12 +112,12 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
               className="w-16 h-16 rounded-2xl object-cover border-2 border-[#002869]/20 shadow-xs shrink-0"
             />
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-[#747783] tracking-wider">
+              <span className="text-[11px] uppercase font-bold text-[#666a76] tracking-wider">
                 Featured Masterclass Speaker
               </span>
-              <h4 className="font-bold text-base text-[#061b3b]">
+              <h3 className="font-bold text-base text-[#061b3b]">
                 {webinar.speaker.name}
-              </h4>
+              </h3>
               <span className="text-xs font-bold text-[#006e29]">
                 {webinar.speaker.role} • {webinar.speaker.company}
               </span>
@@ -127,9 +129,9 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
 
           {/* Key Learnings & Takeaways */}
           <div className="flex flex-col gap-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-[#002869]">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#002869]">
               What You Will Master in this 90-Min Session:
-            </h4>
+            </h3>
             <div className="grid grid-cols-1 gap-2.5">
               {(webinar.whatYouWillLearn || []).map((takeaway, idx) => (
                 <div key={idx} className="flex items-start gap-2.5 text-xs text-[#061b3b] bg-[#f9f9ff] p-3 rounded-xl border border-gray-100">
@@ -143,9 +145,9 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
           {/* Target Audience */}
           {webinar.targetAudience && webinar.targetAudience.length > 0 && (
             <div className="flex flex-col gap-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#002869]">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#002869]">
                 Who This Masterclass is Ideal For:
-              </h4>
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {webinar.targetAudience.map((aud, aIdx) => (
                   <span key={aIdx} className="text-xs text-[#001947] bg-[#dae2ff]/50 px-3 py-1.5 rounded-xl border border-[#cbdaff] font-medium">

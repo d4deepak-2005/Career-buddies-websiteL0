@@ -254,13 +254,13 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
           className="p-6 rounded-2xl bg-white border border-[#cbdaff] shadow-sm flex flex-col gap-4"
         >
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-[#061b3b]">
+            <h3 className="text-sm font-bold text-[#061b3b]">
               {editingId ? `Edit ${labelSingular}` : `New ${labelSingular}`}
-            </h4>
-            <button
+            </h3>
+            <button aria-label="Close"
               type="button"
               onClick={closeForm}
-              className="p-1.5 text-[#747783] hover:text-[#061b3b] cursor-pointer"
+              className="p-1.5 text-[#666a76] hover:text-[#061b3b] cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -271,8 +271,8 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
               if (field.type === 'textarea') {
                 return (
                   <div key={field.key} className="sm:col-span-2">
-                    <label className={labelClass}>{field.label}</label>
-                    <textarea
+                    <label htmlFor={`rle-${field.key}`} className={labelClass}>{field.label}</label>
+                    <textarea id={`rle-${field.key}`}
                       rows={3}
                       value={form[field.key] || ''}
                       onChange={(e) => updateField(field.key, e.target.value)}
@@ -285,8 +285,8 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
               if (field.type === 'tags') {
                 return (
                   <div key={field.key} className="sm:col-span-2">
-                    <label className={labelClass}>{field.label} (comma-separated)</label>
-                    <input
+                    <label htmlFor={`rle-${field.key}`} className={labelClass}>{field.label} (comma-separated)</label>
+                    <input id={`rle-${field.key}`}
                       type="text"
                       value={toTagsString(form[field.key])}
                       onChange={(e) => updateField(field.key, fromTagsString(e.target.value))}
@@ -323,8 +323,8 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
               if (field.type === 'json') {
                 return (
                   <div key={field.key} className="sm:col-span-2">
-                    <label className={labelClass}>{field.label} (JSON)</label>
-                    <textarea
+                    <label htmlFor={`rle-${field.key}`} className={labelClass}>{field.label} (JSON)</label>
+                    <textarea id={`rle-${field.key}`}
                       rows={6}
                       value={jsonDrafts[field.key] ?? ''}
                       onChange={(e) =>
@@ -339,8 +339,8 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
               if (field.type === 'select') {
                 return (
                   <div key={field.key}>
-                    <label className={labelClass}>{field.label}</label>
-                    <select
+                    <label htmlFor={`rle-${field.key}`} className={labelClass}>{field.label}</label>
+                    <select id={`rle-${field.key}`}
                       value={form[field.key] || ''}
                       onChange={(e) => updateField(field.key, e.target.value)}
                       className={inputClass}
@@ -356,8 +356,8 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
               }
               return (
                 <div key={field.key}>
-                  <label className={labelClass}>{field.label}</label>
-                  <input
+                  <label htmlFor={`rle-${field.key}`} className={labelClass}>{field.label}</label>
+                  <input id={`rle-${field.key}`}
                     type={field.type === 'number' ? 'number' : 'text'}
                     value={form[field.key] ?? ''}
                     onChange={(e) =>
@@ -401,9 +401,9 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
       )}
 
       {loading ? (
-        <p className="text-xs text-[#747783]">Loading...</p>
+        <p className="text-xs text-[#666a76]">Loading...</p>
       ) : items.length === 0 ? (
-        <p className="text-xs text-[#747783] p-4">
+        <p className="text-xs text-[#666a76] p-4">
           No {labelSingular.toLowerCase()} records yet. Click "Add New {labelSingular}" to create one.
         </p>
       ) : (
@@ -426,15 +426,15 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <h5 className="font-bold text-sm text-[#061b3b] truncate">
+                  <h3 className="font-bold text-sm text-[#061b3b] truncate">
                     {item[titleField]}
-                  </h5>
+                  </h3>
                   {subtitleField && item[subtitleField] && (
-                    <p className="text-xs text-[#747783] truncate">{item[subtitleField]}</p>
+                    <p className="text-xs text-[#666a76] truncate">{item[subtitleField]}</p>
                   )}
                 </div>
                 <span
-                  className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full ${
                     item.visible === false
                       ? 'bg-gray-200 text-gray-600'
                       : 'bg-[#79fd8d]/30 text-[#00531d]'
@@ -450,7 +450,7 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
                     type="button"
                     onClick={() => move(index, -1)}
                     disabled={index === 0}
-                    className="p-1.5 text-[#747783] hover:text-[#061b3b] disabled:opacity-30 cursor-pointer"
+                    className="p-1.5 text-[#666a76] hover:text-[#061b3b] disabled:opacity-30 cursor-pointer"
                     title="Move up"
                   >
                     <ArrowUp className="w-3.5 h-3.5" />
@@ -459,7 +459,7 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
                     type="button"
                     onClick={() => move(index, 1)}
                     disabled={index === items.length - 1}
-                    className="p-1.5 text-[#747783] hover:text-[#061b3b] disabled:opacity-30 cursor-pointer"
+                    className="p-1.5 text-[#666a76] hover:text-[#061b3b] disabled:opacity-30 cursor-pointer"
                     title="Move down"
                   >
                     <ArrowDown className="w-3.5 h-3.5" />
@@ -470,7 +470,7 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleVisible(item)}
-                    className="p-1.5 text-[#747783] hover:text-[#002869] cursor-pointer"
+                    className="p-1.5 text-[#666a76] hover:text-[#002869] cursor-pointer"
                     title={item.visible === false ? 'Show' : 'Hide'}
                   >
                     {item.visible === false ? (
@@ -482,7 +482,7 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => openEditForm(item)}
-                    className="p-1.5 text-[#747783] hover:text-[#002869] cursor-pointer"
+                    className="p-1.5 text-[#666a76] hover:text-[#002869] cursor-pointer"
                     title="Edit"
                   >
                     <Pencil className="w-3.5 h-3.5" />

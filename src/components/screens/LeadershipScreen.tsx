@@ -16,6 +16,7 @@ import { PageView } from '../../types';
 import { LEADERSHIP_PROFILES, LEADERSHIP_PHILOSOPHY } from '../../config/leadership';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface LeadershipScreenProps {
   onNavigate: (page: PageView) => void;
@@ -38,7 +39,7 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
         <PageHeaderControls
           currentPage="leadership"
           onNavigate={onNavigate}
-          titleOverride="Leadership & Mentors"
+          titleOverride="Leadership"
         />
 
         {/* Page Hero Header */}
@@ -142,6 +143,7 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
         {/* Selected Leader Modal Details */}
         {activeLeader && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <ModalA11y label={`About ${activeLeader.name}`} onClose={() => setSelectedLeaderId(null)} />
             <div className="bg-white rounded-3xl border border-[#cbdaff] max-w-2xl w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95">
               <div className="flex items-start justify-between gap-4 pb-6 border-b border-gray-100">
                 <div className="flex items-center gap-4">
@@ -152,7 +154,7 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
                     style={{ objectPosition: activeLeader.name.toLowerCase().includes('nishant') ? '88% 12%' : 'center top' }}
                   />
                   <div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#002869] text-[10px] font-black uppercase tracking-wider">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#002869] text-[11px] font-black uppercase tracking-wider">
                       {activeLeader.role}
                     </span>
                     <h3 className="text-xl sm:text-2xl font-black text-[#061b3b] mt-1">

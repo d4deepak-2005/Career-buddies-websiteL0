@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { BrandLogo } from '../BrandLogo';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface LinkAccountModalProps {
   code: string;
@@ -72,6 +73,7 @@ export const LinkAccountModal: React.FC<LinkAccountModalProps> = ({ code, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+      <ModalA11y label="Link your account" onClose={onClose} />
       <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-[#cbdaff] max-h-[92vh] flex flex-col">
         <div className="px-6 py-5 bg-[#002869] text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -120,10 +122,10 @@ export const LinkAccountModal: React.FC<LinkAccountModalProps> = ({ code, onClos
 
               {info.canUsePassword && (
                 <form onSubmit={handlePassword} className="flex flex-col gap-3">
-                  <label className="block text-xs font-black text-[#061b3b]">Your CareerBuddies password</label>
+                  <label htmlFor="link-field-1" className="block text-xs font-black text-[#061b3b]">Your CareerBuddies password</label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
+                    <Lock className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input id="link-field-1"
                       type={show ? 'text' : 'password'}
                       required
                       autoComplete="current-password"
@@ -132,10 +134,10 @@ export const LinkAccountModal: React.FC<LinkAccountModalProps> = ({ code, onClos
                       placeholder="••••••••"
                       className="w-full pl-9 pr-10 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
                     />
-                    <button
+                    <button aria-label={show ? 'Hide password' : 'Show password'}
                       type="button"
                       onClick={() => setShow(!show)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#747783] hover:text-[#061b3b]"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666a76] hover:text-[#061b3b]"
                     >
                       {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -154,7 +156,7 @@ export const LinkAccountModal: React.FC<LinkAccountModalProps> = ({ code, onClos
               {!!info.confirmWith?.length && (
                 <div className="flex flex-col gap-2">
                   {info.canUsePassword && (
-                    <span className="text-[10px] font-black uppercase text-[#747783] tracking-wider text-center">Or confirm with</span>
+                    <span className="text-[11px] font-black uppercase text-[#666a76] tracking-wider text-center">Or confirm with</span>
                   )}
                   {!info.canUsePassword && (
                     <p className="text-xs text-[#434652]">

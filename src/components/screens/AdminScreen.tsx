@@ -149,7 +149,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
                 <h1 className="text-xl sm:text-2xl font-bold font-['Plus_Jakarta_Sans',sans-serif]">
                   CareerBuddies Admin Workspace
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#79fd8d]/20 text-[#79fd8d] text-[10px] font-bold">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#79fd8d]/20 text-[#79fd8d] text-[11px] font-bold">
                   Live Management
                 </span>
               </div>
@@ -192,7 +192,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
             }`}
           >
             <span>Leads & Inquiries</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-[#79fd8d]/30 text-[#001947] text-[10px]">
+            <span className="px-1.5 py-0.2 rounded-full bg-[#79fd8d]/30 text-[#001947] text-[11px]">
               {leads.length}
             </span>
           </button>
@@ -206,7 +206,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
             }`}
           >
             <span>Manage Webinars</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-[#dae2ff] text-[#001947] text-[10px]">
+            <span className="px-1.5 py-0.2 rounded-full bg-[#dae2ff] text-[#001947] text-[11px]">
               {webinars.length}
             </span>
           </button>
@@ -255,7 +255,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
             {/* Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               <div className="bg-white p-6 rounded-2xl border border-[#e0e8ff] shadow-xs flex flex-col justify-between">
-                <span className="text-xs font-bold text-[#747783]">Total Inquiries & Leads</span>
+                <span className="text-xs font-bold text-[#666a76]">Total Inquiries & Leads</span>
                 <div className="flex items-baseline justify-between mt-2">
                   <span className="text-3xl font-extrabold text-[#002869]">{leads.length}</span>
                   <span className="text-xs text-[#006e29] font-bold">Live Stream</span>
@@ -263,17 +263,17 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-[#e0e8ff] shadow-xs flex flex-col justify-between">
-                <span className="text-xs font-bold text-[#747783]">Scheduled Consultations</span>
+                <span className="text-xs font-bold text-[#666a76]">Scheduled Consultations</span>
                 <div className="flex items-baseline justify-between mt-2">
                   <span className="text-3xl font-extrabold text-[#006e29]">
                     {leads.filter(l => l.status === 'scheduled').length}
                   </span>
-                  <span className="text-xs text-[#747783]">In Calendar</span>
+                  <span className="text-xs text-[#666a76]">In Calendar</span>
                 </div>
               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-[#e0e8ff] shadow-xs flex flex-col justify-between">
-                <span className="text-xs font-bold text-[#747783]">Active Webinars</span>
+                <span className="text-xs font-bold text-[#666a76]">Active Webinars</span>
                 <div className="flex items-baseline justify-between mt-2">
                   <span className="text-3xl font-extrabold text-[#002869]">{webinars.length}</span>
                   <span className="text-xs text-[#006e29] font-bold">Standard ₹{siteConfig.webinarDefaultPriceINR}</span>
@@ -281,10 +281,10 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-[#e0e8ff] shadow-xs flex flex-col justify-between">
-                <span className="text-xs font-bold text-[#747783]">WhatsApp Alert Pipeline</span>
+                <span className="text-xs font-bold text-[#666a76]">WhatsApp Alert Pipeline</span>
                 <div className="flex items-baseline justify-between mt-2">
                   <span className="text-lg font-bold text-[#006e29]">Active (2 Admins)</span>
-                  <span className="text-[10px] text-[#747783]">Instant IST</span>
+                  <span className="text-[11px] text-[#666a76]">Instant IST</span>
                 </div>
               </div>
             </div>
@@ -294,7 +294,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
               
               <div className="bg-white p-6 rounded-2xl border border-[#e0e8ff] shadow-xs flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-sm text-[#061b3b]">Recent Inquiries</h3>
+                  <h2 className="font-bold text-sm text-[#061b3b]">Recent Inquiries</h2>
                   <button
                     onClick={() => setActiveTab('leads')}
                     className="text-xs font-bold text-[#002869] hover:underline"
@@ -308,9 +308,9 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
                     <div key={l.id} className="py-3 flex items-center justify-between text-xs">
                       <div>
                         <strong className="text-[#061b3b] block">{l.fullName}</strong>
-                        <span className="text-[11px] text-[#747783]">{l.email} • {l.mobile}</span>
+                        <span className="text-[11px] text-[#666a76]">{l.email} • {l.mobile}</span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
                         l.status === 'scheduled' ? 'bg-[#79fd8d]/30 text-[#00531d]' : 'bg-[#dae2ff] text-[#001947]'
                       }`}>
                         {l.status}
@@ -322,7 +322,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
 
               <div className="bg-white p-6 rounded-2xl border border-[#e0e8ff] shadow-xs flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-sm text-[#061b3b]">Webinar Management</h3>
+                  <h2 className="font-bold text-sm text-[#061b3b]">Webinar Management</h2>
                   <button
                     onClick={() => setActiveTab('webinars')}
                     className="text-xs font-bold text-[#002869] hover:underline"
@@ -336,7 +336,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
                     <div key={w.id} className="py-3 flex items-center justify-between text-xs">
                       <div className="max-w-[70%]">
                         <strong className="text-[#061b3b] block truncate">{w.title}</strong>
-                        <span className="text-[11px] text-[#747783]">{w.speaker.name} • {w.date}</span>
+                        <span className="text-[11px] text-[#666a76]">{w.speaker.name} • {w.date}</span>
                       </div>
                       <span className="font-extrabold text-[#006e29]">
                         ₹{w.priceINR}
@@ -358,8 +358,8 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
             {/* Filter Bar */}
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
               <div className="relative w-full sm:w-80">
-                <Search className="w-4 h-4 text-[#747783] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
+                <Search className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input aria-label="Search leads"
                   type="text"
                   placeholder="Search by name, email, or phone..."
                   value={searchLead}
@@ -369,7 +369,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
               </div>
 
               <div className="flex items-center gap-2">
-                <select
+                <select aria-label="Filter leads by status"
                   value={leadStatusFilter}
                   onChange={(e) => setLeadStatusFilter(e.target.value)}
                   className="px-3 py-2 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs font-semibold text-[#061b3b]"
@@ -394,7 +394,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-[#f9f9ff] text-[#747783] font-bold">
+                  <tr className="border-b border-gray-200 bg-[#f9f9ff] text-[#666a76] font-bold">
                     <th className="p-3">S.No</th>
                     <th className="p-3">Lead Name & Contact</th>
                     <th className="p-3">Role & Experience</th>
@@ -410,19 +410,19 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
                       <td className="p-3 font-bold text-[#002869]">#{lead.serialNumber}</td>
                       <td className="p-3">
                         <strong className="text-[#061b3b] block">{lead.fullName}</strong>
-                        <span className="text-[#747783] text-[11px] block">{lead.email}</span>
+                        <span className="text-[#666a76] text-[11px] block">{lead.email}</span>
                         <span className="text-[#006e29] text-[11px] font-mono">{lead.mobile}</span>
                       </td>
                       <td className="p-3">
                         <span className="font-semibold text-[#061b3b] block">{lead.currentRole || 'N/A'}</span>
-                        <span className="text-[#747783] text-[11px]">{lead.experience || 'N/A'}</span>
+                        <span className="text-[#666a76] text-[11px]">{lead.experience || 'N/A'}</span>
                       </td>
                       <td className="p-3 max-w-xs">
                         <p className="text-[#434652] line-clamp-2">{lead.requirement || 'Free Consultation'}</p>
-                        <span className="text-[10px] text-[#747783]">Source: {lead.source}</span>
+                        <span className="text-[11px] text-[#666a76]">Source: {lead.source}</span>
                       </td>
                       <td className="p-3">
-                        <select
+                        <select aria-label={`Status for ${lead.firstName} ${lead.lastName}`}
                           value={lead.status}
                           onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value as any)}
                           className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-[11px] font-bold text-[#061b3b]"
@@ -433,7 +433,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
                           <option value="converted">Converted</option>
                         </select>
                       </td>
-                      <td className="p-3 text-[11px] text-[#747783] whitespace-nowrap">
+                      <td className="p-3 text-[11px] text-[#666a76] whitespace-nowrap">
                         {lead.timestampIST || new Date(lead.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-3">
@@ -460,8 +460,8 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
         {activeTab === 'webinars' && (
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-4">
             <div>
-              <h3 className="text-lg font-bold text-[#061b3b]">Masterclasses & Webinar Schedule</h3>
-              <p className="text-xs text-[#747783]">Changes appear on the public Webinars page. If this list is empty the site keeps showing its built-in webinars.</p>
+              <h2 className="text-lg font-bold text-[#061b3b]">Masterclasses & Webinar Schedule</h2>
+              <p className="text-xs text-[#666a76]">Changes appear on the public Webinars page. If this list is empty the site keeps showing its built-in webinars.</p>
             </div>
             <RecordListEditor
               apiBase="/api/webinars"

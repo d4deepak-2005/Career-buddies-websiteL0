@@ -14,6 +14,7 @@ import {
   Bookmark
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
+import { buttonProps } from '../../utils/a11y';
 
 interface ResourcesScreenProps {
   onSelectArticle: (article: ResourceArticle) => void;
@@ -96,8 +97,8 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#cbdaff] shadow-xs flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-[#747783] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
+              <Search className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input aria-label="Search articles"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -144,7 +145,7 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
           {filteredArticles.map((article) => (
             <div
               key={article.id}
-              onClick={() => onSelectArticle(article)}
+              {...buttonProps(() => onSelectArticle(article))}
               className="bg-white rounded-3xl border border-[#cbdaff] hover:border-[#002869] p-6 flex flex-col justify-between transition-all duration-200 hover:shadow-lg group cursor-pointer"
             >
               <div>
@@ -152,15 +153,15 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
                   <span className="text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-md bg-[#dae2ff] text-[#001947]">
                     {article.categoryName}
                   </span>
-                  <div className="flex items-center gap-1 text-[11px] text-[#747783] font-semibold">
+                  <div className="flex items-center gap-1 text-[11px] text-[#666a76] font-semibold">
                     <Clock className="w-3.5 h-3.5" />
                     <span>{article.readTime}</span>
                   </div>
                 </div>
 
-                <h3 className="text-lg font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif] group-hover:text-[#002869] transition-colors leading-snug">
+                <h2 className="text-lg font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif] group-hover:text-[#002869] transition-colors leading-snug">
                   {article.title}
-                </h3>
+                </h2>
 
                 <p className="text-xs text-[#434652] mt-2 leading-relaxed line-clamp-3">
                   {article.summary}
@@ -170,7 +171,7 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
                   {article.tags.map((t, tIdx) => (
                     <span
                       key={tIdx}
-                      className="px-2 py-0.5 rounded-md bg-[#f1f3ff] text-[#434652] text-[10px] font-semibold"
+                      className="px-2 py-0.5 rounded-md bg-[#f1f3ff] text-[#434652] text-[11px] font-semibold"
                     >
                       #{t}
                     </span>
@@ -181,7 +182,7 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
               <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-[#061b3b]">{article.author}</span>
-                  <span className="text-[10px] text-[#747783]">{article.authorRole}</span>
+                  <span className="text-[11px] text-[#666a76]">{article.authorRole}</span>
                 </div>
 
                 <span className="text-xs font-bold text-[#002869] group-hover:translate-x-1 transition-transform flex items-center gap-1">

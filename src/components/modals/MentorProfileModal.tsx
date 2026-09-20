@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mentor } from '../../types';
+import { ModalA11y } from '../common/ModalA11y';
 import { 
   X, 
   Star, 
@@ -31,6 +32,7 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+      <ModalA11y label="Mentor profile" onClose={onClose} />
       <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl border border-[#e0e8ff] max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-[#002869] text-white flex items-center justify-between">
@@ -38,7 +40,7 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
             <ShieldCheck className="w-5 h-5 text-[#79fd8d]" />
             <h3 className="font-bold text-base">Verified Mentor Profile</h3>
           </div>
-          <button 
+          <button aria-label="Close" 
             onClick={onClose}
             className="p-1 rounded-lg text-[#dae2ff] hover:text-white hover:bg-white/10 transition-colors"
           >
@@ -89,9 +91,9 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
 
           {/* About & Bio */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#002869] mb-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#002869] mb-2">
               About & Mentoring Approach
-            </h4>
+            </h3>
             <p className="text-xs sm:text-sm text-[#434652] leading-relaxed">
               {mentor.longBio}
             </p>
@@ -99,9 +101,9 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
 
           {/* Mentorship Focus Areas */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#002869] mb-2.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#002869] mb-2.5">
               Mentorship Focus Topics
-            </h4>
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {mentor.topics.map((t, idx) => (
                 <div 
@@ -118,9 +120,9 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
           {/* Past Companies & Background */}
           {mentor.pastCompanies && mentor.pastCompanies.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#002869] mb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#002869] mb-2">
                 Previous Experience
-              </h4>
+              </h3>
               <div className="flex items-center gap-2 flex-wrap">
                 {mentor.pastCompanies.map((c, idx) => (
                   <span key={idx} className="flex items-center gap-1 px-3 py-1 bg-[#f1f3ff] text-[#001947] text-xs font-bold rounded-lg border border-[#cbdaff]/70">
@@ -135,17 +137,17 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
           {/* Recent Reviews */}
           {mentor.reviews && mentor.reviews.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#002869] mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#002869] mb-3">
                 Mentee Reviews ({mentor.reviews.length})
-              </h4>
+              </h3>
               <div className="flex flex-col gap-3">
                 {mentor.reviews.map((rev) => (
                   <div key={rev.id} className="p-3.5 bg-[#f9f9ff] border border-[#e0e8ff] rounded-xl text-xs">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-[#061b3b]">{rev.author}</span>
-                      <span className="text-[10px] text-[#747783]">{rev.date}</span>
+                      <span className="text-[11px] text-[#666a76]">{rev.date}</span>
                     </div>
-                    <p className="text-[11px] text-[#747783] mb-1.5">{rev.role}</p>
+                    <p className="text-[11px] text-[#666a76] mb-1.5">{rev.role}</p>
                     <p className="text-xs text-[#434652] leading-relaxed italic">
                       "{rev.comment}"
                     </p>
@@ -162,7 +164,7 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
             <span className="text-base font-bold text-[#006e29]">
               ${mentor.hourlyRate}
             </span>
-            <span className="text-xs text-[#747783]"> / 45-min session</span>
+            <span className="text-xs text-[#666a76]"> / 45-min session</span>
           </div>
 
           <div className="flex items-center gap-3">

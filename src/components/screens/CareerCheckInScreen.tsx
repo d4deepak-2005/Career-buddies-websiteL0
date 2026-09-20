@@ -15,6 +15,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
+import { buttonProps } from '../../utils/a11y';
 
 interface CareerCheckInScreenProps {
   onNavigate: (page: PageView) => void;
@@ -98,7 +99,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
           }}
           backLabel="Find a Mentor"
           nextLabel="Free 1:1 Counselling"
-          currentStepLabel="Interactive Career Check-In"
+          currentStepLabel="Interactive Career Check-in"
         />
 
         {/* Header */}
@@ -109,7 +110,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#061b3b] tracking-tight font-['Plus_Jakarta_Sans',sans-serif]">
-            Career Check-In
+            Career Check-in
           </h1>
 
           <p className="text-sm sm:text-base text-[#434652] max-w-2xl leading-relaxed">
@@ -123,7 +124,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
             
             {/* Progress Bar */}
             <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-center text-xs font-bold text-[#747783]">
+              <div className="flex justify-between items-center text-xs font-bold text-[#666a76]">
                 <span>Question {step} of 4</span>
                 <span className="text-[#002869]">{Math.round((step / 4) * 100)}% Complete</span>
               </div>
@@ -139,10 +140,10 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
             {step === 1 && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <h3 className="text-xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+                  <h2 className="text-xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
                     What stage are you currently at in your career?
-                  </h3>
-                  <p className="text-xs text-[#747783]">
+                  </h2>
+                  <p className="text-xs text-[#666a76]">
                     Select the option that best reflects your current professional journey.
                   </p>
                 </div>
@@ -151,7 +152,8 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                   {stageOptions.map((opt) => (
                     <div
                       key={opt.id}
-                      onClick={() => setStage(opt.id)}
+                      {...buttonProps(() => setStage(opt.id))}
+                      aria-pressed={stage === opt.id}
                       className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-150 flex flex-col gap-1.5 ${
                         stage === opt.id
                           ? 'border-[#002869] bg-[#dae2ff]/30 shadow-xs'
@@ -173,10 +175,10 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
             {step === 2 && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <h3 className="text-xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+                  <h2 className="text-xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
                     Are you exploring, switching, or growing in your career?
-                  </h3>
-                  <p className="text-xs text-[#747783]">
+                  </h2>
+                  <p className="text-xs text-[#666a76]">
                     Identify your primary directional intent over the next 6-12 months.
                   </p>
                 </div>
@@ -185,7 +187,8 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                   {directionOptions.map((opt) => (
                     <div
                       key={opt.id}
-                      onClick={() => setDirection(opt.id)}
+                      {...buttonProps(() => setDirection(opt.id))}
+                      aria-pressed={direction === opt.id}
                       className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-150 flex flex-col gap-1.5 ${
                         direction === opt.id
                           ? 'border-[#002869] bg-[#dae2ff]/30 shadow-xs'
@@ -207,10 +210,10 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
             {step === 3 && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <h3 className="text-xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+                  <h2 className="text-xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
                     What is your biggest current challenge?
-                  </h3>
-                  <p className="text-xs text-[#747783]">
+                  </h2>
+                  <p className="text-xs text-[#666a76]">
                     What is the primary bottleneck slowing your career progress?
                   </p>
                 </div>
@@ -219,7 +222,8 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                   {challengeOptions.map((opt) => (
                     <div
                       key={opt.id}
-                      onClick={() => setChallenge(opt.id)}
+                      {...buttonProps(() => setChallenge(opt.id))}
+                      aria-pressed={challenge === opt.id}
                       className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-150 flex items-center justify-between ${
                         challenge === opt.id
                           ? 'border-[#006e29] bg-[#79fd8d]/15 shadow-xs'
@@ -241,10 +245,10 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
             {step === 4 && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <h3 className="text-xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+                  <h2 className="text-xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
                     What kind of support are you looking for?
-                  </h3>
-                  <p className="text-xs text-[#747783]">
+                  </h2>
+                  <p className="text-xs text-[#666a76]">
                     Select the format that best fits your schedule and learning preferences.
                   </p>
                 </div>
@@ -253,7 +257,8 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                   {supportOptions.map((opt) => (
                     <div
                       key={opt.id}
-                      onClick={() => setSupport(opt.id)}
+                      {...buttonProps(() => setSupport(opt.id))}
+                      aria-pressed={support === opt.id}
                       className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-150 flex flex-col gap-1.5 ${
                         support === opt.id
                           ? 'border-[#002869] bg-[#dae2ff]/30 shadow-xs'
@@ -355,7 +360,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                       <div className="p-2 rounded-lg bg-[#dae2ff] text-[#002869]">
                         <PhoneCall className="w-4 h-4" />
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-[#006e29]/15 text-[#006e29] text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-[#006e29]/15 text-[#006e29] text-[11px] font-bold">
                         100% Free
                       </span>
                     </div>
@@ -381,7 +386,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                       <div className="p-2 rounded-lg bg-[#dae2ff] text-[#002869]">
                         <Users className="w-4 h-4" />
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                         1:1 Support
                       </span>
                     </div>
@@ -407,7 +412,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                       <div className="p-2 rounded-lg bg-[#79fd8d]/20 text-[#006e29]">
                         <GraduationCap className="w-4 h-4" />
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-[11px] font-bold">
                         ₹199 Access
                       </span>
                     </div>
@@ -433,7 +438,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                       <div className="p-2 rounded-lg bg-[#dae2ff] text-[#002869]">
                         <BookOpen className="w-4 h-4" />
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                         Free Library
                       </span>
                     </div>
@@ -459,7 +464,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#434652] hover:bg-[#f1f3ff] transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Retake Check-In</span>
+                <span>Retake Check-in</span>
               </button>
 
               <button
@@ -474,10 +479,10 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
         )}
 
         {/* Qualitative Transparency Disclaimer */}
-        <div className="flex items-start gap-3 p-4 rounded-2xl bg-white border border-[#e0e8ff] text-xs text-[#747783]">
+        <div className="flex items-start gap-3 p-4 rounded-2xl bg-white border border-[#e0e8ff] text-xs text-[#666a76]">
           <ShieldCheck className="w-4 h-4 text-[#002869] shrink-0 mt-0.5" />
           <p>
-            <strong>Transparency Note:</strong> The CareerBuddies Career Check-In is designed as an interactive discovery and guidance tool to help you reflect on your goals. It is not presented as a psychological assessment.
+            <strong>Transparency Note:</strong> The CareerBuddies Career Check-in is designed as an interactive discovery and guidance tool to help you reflect on your goals. It is not presented as a psychological assessment.
           </p>
         </div>
 

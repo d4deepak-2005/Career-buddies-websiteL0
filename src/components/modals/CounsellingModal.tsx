@@ -3,6 +3,7 @@ import { X, CheckCircle2, ShieldCheck, MessageSquare } from 'lucide-react';
 import { OFFICE_DETAILS } from '../../data/mockData';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
 import { submitLead } from '../../utils/submitLead';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface CounsellingModalProps {
   isOpen: boolean;
@@ -75,6 +76,7 @@ export const CounsellingModal: React.FC<CounsellingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+      <ModalA11y label="Book free career counselling" onClose={onClose} />
       <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-[#cbdaff] flex flex-col max-h-[92vh]">
         {/* Modal Header */}
         <div className="bg-[#002869] text-white p-6 relative flex items-center justify-between">

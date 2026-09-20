@@ -134,8 +134,8 @@ export const CatalogPanel: React.FC = () => {
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
       <div>
-        <h3 className="text-lg font-bold text-[#061b3b]">Programmes, Stories, Services & Plans</h3>
-        <p className="text-xs text-[#747783]">
+        <h2 className="text-lg font-bold text-[#061b3b]">Programmes, Stories, Services & Plans</h2>
+        <p className="text-xs text-[#666a76]">
           Manage the repeatable catalogue content. Hidden records disappear from
           the public site; if a collection is empty the site keeps showing its
           built-in content.

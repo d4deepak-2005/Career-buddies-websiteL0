@@ -4,6 +4,7 @@ import { PageView } from '../types';
 import { BrandLogo } from './BrandLogo';
 import { HandshakeIcon } from './common/HandshakeIcon';
 import { SiteSettingsData, pickText } from '../hooks/useSiteSettings';
+import { ModalA11y } from './common/ModalA11y';
 import { 
   Users, 
   Map, 
@@ -174,7 +175,7 @@ Thank you!`;
 
             {/* Clean Quick Links Bar */}
             <div className="p-2.5 bg-white/85 backdrop-blur-md rounded-2xl border border-[#cbdaff]/75 shadow-[0_4px_20px_-4px_rgba(0,40,105,0.06)] flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#002869] px-2 py-0.5 shrink-0">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#002869] px-2 py-0.5 shrink-0">
                 Quick Links:
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -183,7 +184,8 @@ Thank you!`;
                   { label: 'Services', page: 'services' as PageView },
                   { label: 'Programmes', page: 'programmes' as PageView },
                   { label: 'Leadership', page: 'leadership' as PageView },
-                  { label: 'About Us', page: 'about-us' as PageView },
+                  { label: 'About', page: 'about-us' as PageView },
+                  { label: 'Resources', page: 'resources' as PageView },
                   { label: 'Contact', page: 'contact' as PageView }
                 ].map((item) => (
                   <button
@@ -206,9 +208,9 @@ Thank you!`;
                   <div className="w-7 h-7 rounded-lg bg-[#002869]/10 text-[#002869] flex items-center justify-center shrink-0 group-hover:bg-[#002869]/15 group-hover:scale-105 transition-all duration-200">
                     <Users className="w-4 h-4" />
                   </div>
-                  <h5 className="text-[11px] font-black uppercase tracking-tight text-[#002869] leading-tight">
+                  <h2 className="text-[11px] font-black uppercase tracking-tight text-[#002869] leading-tight">
                     Practitioner Led
-                  </h5>
+                  </h2>
                 </div>
                 <p className="text-[11px] text-[#434652] leading-relaxed font-medium mt-0.5">
                   Learn from industry practitioners who have walked the path.
@@ -221,9 +223,9 @@ Thank you!`;
                   <div className="w-7 h-7 rounded-lg bg-[#006e29]/10 text-[#006e29] flex items-center justify-center shrink-0 group-hover:bg-[#006e29]/15 group-hover:scale-105 transition-all duration-200">
                     <Map className="w-4 h-4" />
                   </div>
-                  <h5 className="text-[11px] font-black uppercase tracking-tight text-[#006e29] leading-tight">
+                  <h2 className="text-[11px] font-black uppercase tracking-tight text-[#006e29] leading-tight">
                     Verified Roadmaps
-                  </h5>
+                  </h2>
                 </div>
                 <p className="text-[11px] text-[#434652] leading-relaxed font-medium mt-0.5">
                   Step-by-step career roadmaps for each level and role.
@@ -236,9 +238,9 @@ Thank you!`;
                   <div className="w-7 h-7 rounded-lg bg-[#002869]/10 text-[#002869] flex items-center justify-center shrink-0 group-hover:bg-[#002869]/15 group-hover:scale-105 transition-all duration-200">
                     <Video className="w-4 h-4" />
                   </div>
-                  <h5 className="text-[11px] font-black uppercase tracking-tight text-[#002869] leading-tight">
+                  <h2 className="text-[11px] font-black uppercase tracking-tight text-[#002869] leading-tight">
                     Live Masterclasses
-                  </h5>
+                  </h2>
                 </div>
                 <p className="text-[11px] text-[#434652] leading-relaxed font-medium mt-0.5">
                   Learn, interact and grow with live sessions from industry experts.
@@ -251,9 +253,9 @@ Thank you!`;
                   <div className="w-7 h-7 rounded-lg bg-[#006e29]/10 text-[#006e29] flex items-center justify-center shrink-0 group-hover:bg-[#006e29]/15 group-hover:scale-105 transition-all duration-200">
                     <Rocket className="w-4 h-4" />
                   </div>
-                  <h5 className="text-[11px] font-black uppercase tracking-tight text-[#006e29] leading-tight">
+                  <h2 className="text-[11px] font-black uppercase tracking-tight text-[#006e29] leading-tight">
                     Career Acceleration
-                  </h5>
+                  </h2>
                 </div>
                 <p className="text-[11px] text-[#434652] leading-relaxed font-medium mt-0.5">
                   Clear guidance, practical approach and proven career outcomes.
@@ -277,10 +279,10 @@ Thank you!`;
             <div className="flex flex-col flex-1 justify-between">
               <div>
                 <div className="flex items-center justify-between pb-3 border-b border-[#cbdaff]/70">
-                  <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-[#002869]">
+                  <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-[#002869]">
                     What Makes Us Different
-                  </h4>
-                  <span className="text-[10px] font-extrabold text-[#006e29] bg-[#d7f8df]/90 px-2.5 py-0.5 rounded-full border border-[#006e29]/20 shadow-2xs">
+                  </h2>
+                  <span className="text-[11px] font-extrabold text-[#006e29] bg-[#d7f8df]/90 px-2.5 py-0.5 rounded-full border border-[#006e29]/20 shadow-2xs">
                     Verified Outcomes
                   </span>
                 </div>
@@ -297,10 +299,10 @@ Thank you!`;
                         <Target className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1">
-                        <h6 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#002869] transition-colors duration-150">
+                        <h3 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#002869] transition-colors duration-150">
                           Practical, Real-World Guidance
-                        </h6>
-                        <p className="text-[10px] text-[#434652] leading-relaxed mt-0.5">
+                        </h3>
+                        <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
                           Solutions that are actionable and relevant to your role and experience.
                         </p>
                       </div>
@@ -312,10 +314,10 @@ Thank you!`;
                         <Users className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1">
-                        <h6 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#006e29] transition-colors duration-150">
+                        <h3 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#006e29] transition-colors duration-150">
                           Community of Growth-Minded Professionals
-                        </h6>
-                        <p className="text-[10px] text-[#434652] leading-relaxed mt-0.5">
+                        </h3>
+                        <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
                           Learn, share and grow with peers who are on similar journeys.
                         </p>
                       </div>
@@ -327,10 +329,10 @@ Thank you!`;
                         <ShieldCheck className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1">
-                        <h6 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#002869] transition-colors duration-150">
+                        <h3 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#002869] transition-colors duration-150">
                           Trust & Transparency
-                        </h6>
-                        <p className="text-[10px] text-[#434652] leading-relaxed mt-0.5">
+                        </h3>
+                        <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
                           Verified roadmaps, unbiased guidance and complete transparency.
                         </p>
                       </div>
@@ -342,10 +344,10 @@ Thank you!`;
                         <Award className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1">
-                        <h6 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#006e29] transition-colors duration-150">
+                        <h3 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#006e29] transition-colors duration-150">
                           Continuous Support
-                        </h6>
-                        <p className="text-[10px] text-[#434652] leading-relaxed mt-0.5">
+                        </h3>
+                        <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
                           We stay with you at every step of your career journey.
                         </p>
                       </div>
@@ -362,10 +364,10 @@ Thank you!`;
                         <GraduationCap className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1">
-                        <h6 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#002869] transition-colors duration-150">
+                        <h3 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#002869] transition-colors duration-150">
                           Expert-Led Guidance
-                        </h6>
-                        <p className="text-[10px] text-[#434652] leading-relaxed mt-0.5">
+                        </h3>
+                        <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
                           Learn from experienced industry professionals.
                         </p>
                       </div>
@@ -377,10 +379,10 @@ Thank you!`;
                         <ClipboardCheck className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1">
-                        <h6 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#006e29] transition-colors duration-150">
+                        <h3 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#006e29] transition-colors duration-150">
                           Practical Approach
-                        </h6>
-                        <p className="text-[10px] text-[#434652] leading-relaxed mt-0.5">
+                        </h3>
+                        <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
                           Actionable learning that drives real results.
                         </p>
                       </div>
@@ -392,10 +394,10 @@ Thank you!`;
                         <BadgeCheck className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1">
-                        <h6 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#002869] transition-colors duration-150">
+                        <h3 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#002869] transition-colors duration-150">
                           Quality Assured
-                        </h6>
-                        <p className="text-[10px] text-[#434652] leading-relaxed mt-0.5">
+                        </h3>
+                        <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
                           Curated content with high standards.
                         </p>
                       </div>
@@ -407,10 +409,10 @@ Thank you!`;
                         <HandshakeIcon className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex-1">
-                        <h6 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#006e29] transition-colors duration-150">
+                        <h3 className="text-[11px] font-bold text-[#061b3b] leading-tight group-hover:text-[#006e29] transition-colors duration-150">
                           Career-Focused Outcomes
-                        </h6>
-                        <p className="text-[10px] text-[#434652] leading-relaxed mt-0.5">
+                        </h3>
+                        <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
                           Designed to help you grow and advance.
                         </p>
                       </div>
@@ -424,10 +426,10 @@ Thank you!`;
               {/* OUR APPROACH - 3-Step Career Progression */}
               <div className="mt-4 pt-3.5 border-t border-[#cbdaff]/70">
                 <div className="flex items-center justify-between mb-2.5">
-                  <h5 className="text-[10px] font-black uppercase tracking-wider text-[#002869]">
+                  <h2 className="text-[11px] font-black uppercase tracking-wider text-[#002869]">
                     Our Approach
-                  </h5>
-                  <span className="text-[9px] font-bold text-[#747783] uppercase tracking-wider">
+                  </h2>
+                  <span className="text-[10px] font-bold text-[#666a76] uppercase tracking-wider">
                     3-Step Progression
                   </span>
                 </div>
@@ -438,7 +440,7 @@ Thank you!`;
                   {/* Step 1: ASSESS */}
                   <div className="p-2 sm:p-2.5 bg-white/70 backdrop-blur-xs rounded-xl border border-[#cbdaff]/70 flex flex-col justify-between group hover:border-[#002869]/40 hover:bg-white/95 transition-all duration-150 cursor-default">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md bg-[#002869]/10 text-[#002869] text-[10px] font-black flex items-center justify-center">
+                      <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md bg-[#002869]/10 text-[#002869] text-[11px] font-black flex items-center justify-center">
                         1
                       </span>
                       <span className="text-[8.5px] font-black uppercase tracking-widest text-[#002869]/50">
@@ -446,10 +448,10 @@ Thank you!`;
                       </span>
                     </div>
                     <div>
-                      <h6 className="text-[10.5px] sm:text-[11px] font-black uppercase tracking-tight text-[#002869] leading-tight">
+                      <h3 className="text-[10.5px] sm:text-[11px] font-black uppercase tracking-tight text-[#002869] leading-tight">
                         Assess
-                      </h6>
-                      <p className="text-[9px] sm:text-[9.5px] text-[#434652] font-medium leading-snug mt-0.5">
+                      </h3>
+                      <p className="text-[10px] sm:text-[9.5px] text-[#434652] font-medium leading-snug mt-0.5">
                         Where you are today
                       </p>
                     </div>
@@ -458,7 +460,7 @@ Thank you!`;
                   {/* Step 2: ALIGN */}
                   <div className="p-2 sm:p-2.5 bg-white/70 backdrop-blur-xs rounded-xl border border-[#cbdaff]/70 flex flex-col justify-between group hover:border-[#002869]/40 hover:bg-white/95 transition-all duration-150 cursor-default">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md bg-[#002869]/10 text-[#002869] text-[10px] font-black flex items-center justify-center">
+                      <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md bg-[#002869]/10 text-[#002869] text-[11px] font-black flex items-center justify-center">
                         2
                       </span>
                       <span className="text-[8.5px] font-black uppercase tracking-widest text-[#002869]/50">
@@ -466,10 +468,10 @@ Thank you!`;
                       </span>
                     </div>
                     <div>
-                      <h6 className="text-[10.5px] sm:text-[11px] font-black uppercase tracking-tight text-[#002869] leading-tight">
+                      <h3 className="text-[10.5px] sm:text-[11px] font-black uppercase tracking-tight text-[#002869] leading-tight">
                         Align
-                      </h6>
-                      <p className="text-[9px] sm:text-[9.5px] text-[#434652] font-medium leading-snug mt-0.5">
+                      </h3>
+                      <p className="text-[10px] sm:text-[9.5px] text-[#434652] font-medium leading-snug mt-0.5">
                         Where you want to go
                       </p>
                     </div>
@@ -478,7 +480,7 @@ Thank you!`;
                   {/* Step 3: ACCELERATE */}
                   <div className="p-2 sm:p-2.5 bg-white/70 backdrop-blur-xs rounded-xl border border-[#cbdaff]/70 flex flex-col justify-between group hover:border-[#006e29]/40 hover:bg-white/95 transition-all duration-150 cursor-default">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md bg-[#006e29]/10 text-[#006e29] text-[10px] font-black flex items-center justify-center">
+                      <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md bg-[#006e29]/10 text-[#006e29] text-[11px] font-black flex items-center justify-center">
                         3
                       </span>
                       <span className="text-[8.5px] font-black uppercase tracking-widest text-[#006e29]/50">
@@ -486,10 +488,10 @@ Thank you!`;
                       </span>
                     </div>
                     <div>
-                      <h6 className="text-[10.5px] sm:text-[11px] font-black uppercase tracking-tight text-[#006e29] leading-tight">
+                      <h3 className="text-[10.5px] sm:text-[11px] font-black uppercase tracking-tight text-[#006e29] leading-tight">
                         Accelerate
-                      </h6>
-                      <p className="text-[9px] sm:text-[9.5px] text-[#434652] font-medium leading-snug mt-0.5">
+                      </h3>
+                      <p className="text-[10px] sm:text-[9.5px] text-[#434652] font-medium leading-snug mt-0.5">
                         How to get there
                       </p>
                     </div>
@@ -500,7 +502,7 @@ Thank you!`;
             </div>
 
             {/* Bottom Subtle Glass Tagline inside Right Panel - Aligned to edges */}
-            <div className="mt-4 pt-3.5 border-t border-[#cbdaff]/50 flex items-center justify-between text-[10px] text-[#747783] font-medium">
+            <div className="mt-4 pt-3.5 border-t border-[#cbdaff]/50 flex items-center justify-between text-[11px] text-[#666a76] font-medium">
               <span>Structured Career Acceleration</span>
               <span className="text-[#006e29] font-bold">100% Verified Pathways</span>
             </div>
@@ -521,9 +523,9 @@ Thank you!`;
               <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="flex flex-col gap-1">
-              <h4 className="text-sm sm:text-base lg:text-lg font-black uppercase tracking-wider text-[#79fd8d] leading-snug">
+              <h2 className="text-sm sm:text-base lg:text-lg font-black uppercase tracking-wider text-[#79fd8d] leading-snug">
                 Ready to Take the Next Step?
-              </h4>
+              </h2>
               <p className="text-xs sm:text-sm text-[#dae2ff] font-medium leading-relaxed max-w-xl">
                 Get practical career guidance and discover the right programme for your professional goals.
               </p>
@@ -600,7 +602,7 @@ Thank you!`;
                 <span className="text-base sm:text-lg font-black text-[#002869] tracking-tight group-hover:text-[#0a3578] transition-colors duration-150">
                   5000+
                 </span>
-                <span className="text-[10px] text-[#434652] font-bold leading-tight mt-0.5">
+                <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
                   Professionals Guided
                 </span>
               </div>
@@ -613,7 +615,7 @@ Thank you!`;
                 <span className="text-base sm:text-lg font-black text-[#006e29] tracking-tight group-hover:text-[#00531d] transition-colors duration-150">
                   200+
                 </span>
-                <span className="text-[10px] text-[#434652] font-bold leading-tight mt-0.5">
+                <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
                   Live Masterclasses Conducted
                 </span>
               </div>
@@ -626,7 +628,7 @@ Thank you!`;
                 <span className="text-base sm:text-lg font-black text-[#002869] tracking-tight group-hover:text-[#0a3578] transition-colors duration-150">
                   95%
                 </span>
-                <span className="text-[10px] text-[#434652] font-bold leading-tight mt-0.5">
+                <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
                   Career Growth Achieved
                 </span>
               </div>
@@ -639,7 +641,7 @@ Thank you!`;
                 <span className="text-base sm:text-lg font-black text-[#006e29] tracking-tight group-hover:text-[#00531d] transition-colors duration-150">
                   50+
                 </span>
-                <span className="text-[10px] text-[#434652] font-bold leading-tight mt-0.5">
+                <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
                   Verified Career Roadmaps
                 </span>
               </div>
@@ -702,10 +704,9 @@ Thank you!`;
           ==================================================== */}
       {showThankYouModal && (
         <div 
-          role="dialog"
-          aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#001947]/30 backdrop-blur-xs animate-in fade-in duration-200"
         >
+          <ModalA11y label="Thank you" onClose={() => setShowThankYouModal(false)} />
           <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-[#cbdaff] ring-4 ring-[#002869]/5 text-[#061b3b] p-6 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 relative flex flex-col gap-4">
             
             <div className="flex items-start justify-between gap-3">
@@ -726,7 +727,7 @@ Thank you!`;
               <button 
                 onClick={() => setShowThankYouModal(false)}
                 aria-label="Close notification"
-                className="text-[#747783] hover:text-[#061b3b] p-1.5 rounded-lg hover:bg-[#f6f9fc] transition-colors cursor-pointer"
+                className="text-[#666a76] hover:text-[#061b3b] p-1.5 rounded-lg hover:bg-[#f6f9fc] transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

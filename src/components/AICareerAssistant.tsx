@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ModalA11y } from './common/ModalA11y';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -228,6 +229,12 @@ function renderMarkdown(text: string) {
 
 export function AICareerAssistant() {
   const [isOpen, setIsOpen] = useState(false);
+  // The launcher button is replaced by the panel while open; put keyboard focus back on it after closing.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !isOpen) document.getElementById('ai-assistant-launcher')?.focus();
+    wasOpen.current = isOpen;
+  }, [isOpen]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -370,20 +377,22 @@ export function AICareerAssistant() {
       {!isOpen && (
         <button
           type="button"
+          id="ai-assistant-launcher"
           onClick={() => setIsOpen(true)}
           aria-label="Open CareerBuddies AI Career Assistant"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-[#061b3b] px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:scale-[1.02] hover:bg-[#0b2b5c]"
+          className="ai-launcher fixed bottom-6 right-6 z-50 flex items-center justify-center gap-2 rounded-full bg-[#061b3b] h-12 w-12 sm:h-auto sm:w-auto sm:px-5 sm:py-3 text-sm font-semibold text-white shadow-xl transition hover:scale-[1.02] hover:bg-[#0b2b5c]"
         >
           <span className="text-lg">
             ✦
           </span>
 
-          AI Career Assistant
+          <span className="hidden sm:inline">AI Career Assistant</span>
         </button>
       )}
 
       {isOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex h-[min(680px,calc(100vh-48px))] w-[min(430px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+          <ModalA11y label="CareerBuddies AI Career Assistant" onClose={() => setIsOpen(false)} modal={false} />
           
           {/* HEADER */}
           <div className="flex items-center justify-between bg-[#061b3b] px-4 py-4 text-white">
@@ -408,7 +417,7 @@ export function AICareerAssistant() {
           </div>
 
           {/* CHAT AREA */}
-          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4">
+          <div role="log" aria-label="Conversation with the AI career assistant" tabIndex={0} className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4">
             {messages.map(
               (message, index) => (
                 <div
@@ -480,13 +489,13 @@ export function AICareerAssistant() {
                   ])
                 }
                 disabled={isLoading}
-                className="text-[11px] font-medium text-slate-400 hover:text-[#0b2b5c] disabled:opacity-50"
+                className="text-[11px] font-medium text-slate-500 hover:text-[#0b2b5c] disabled:opacity-50"
               >
                 Clear chat
               </button>
             </div>
             <div className="flex gap-2">
-              <input
+              <input aria-label="Message to the AI career assistant"
                 type="text"
                 value={input}
                 onChange={(event) =>
@@ -515,7 +524,7 @@ export function AICareerAssistant() {
               </button>
             </div>
 
-            <div className="mt-2 text-center text-[10px] text-slate-400">
+            <div className="mt-2 text-center text-[11px] text-slate-500">
               AI-generated guidance. Verify important career decisions.
             </div>
           </div>

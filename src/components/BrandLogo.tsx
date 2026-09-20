@@ -1,4 +1,5 @@
 import React from 'react';
+import { buttonProps } from '../utils/a11y';
 
 interface BrandLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'header' | 'footer';
@@ -35,11 +36,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
   return (
     <div
-      onClick={onClick}
+      {...(onClick ? buttonProps(onClick) : {})}
       className={`inline-flex items-center select-none ${
         onClick ? 'cursor-pointer active:scale-[0.99]' : ''
       } ${className}`}
-      role="banner"
       aria-label="CareerBuddies - Your Career | Our Guidance"
     >
       <img

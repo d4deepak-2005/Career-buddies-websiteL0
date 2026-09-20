@@ -15,6 +15,7 @@ import {
   Lock
 } from 'lucide-react';
 import { submitLead } from '../../utils/submitLead';
+import { ModalA11y } from '../common/ModalA11y';
 
 interface BookingModalProps {
   mentor: Mentor | null;
@@ -186,6 +187,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+      <ModalA11y label="Book a mentor session" onClose={onClose} />
       <div className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-[#cbdaff] max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-[#002869] text-white flex items-center justify-between">
@@ -195,7 +197,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               {isSuccess ? 'Session Request Submitted' : `Book Master Session with ${mentor.name}`}
             </h3>
           </div>
-          <button 
+          <button aria-label="Close" 
             onClick={handleReset}
             className="p-1.5 rounded-lg text-[#dae2ff] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
@@ -224,19 +226,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   className="w-12 h-12 rounded-xl object-cover border border-white shadow-xs" 
                 />
                 <div>
-                  <h5 className="font-bold text-sm text-[#061b3b]">{mentor.name}</h5>
+                  <h4 className="font-bold text-sm text-[#061b3b]">{mentor.name}</h4>
                   <p className="text-xs text-[#434652]">{mentor.title} @ {mentor.company}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-[#cbdaff]/60">
                 <div>
-                  <span className="text-[#747783] block">Requested Date & Time</span>
+                  <span className="text-[#666a76] block">Requested Date & Time</span>
                   <span className="font-bold text-[#061b3b]">{createdSession.date}</span>
                   <span className="text-[#434652] block">{createdSession.timeSlot}</span>
                 </div>
                 <div>
-                  <span className="text-[#747783] block">Topic</span>
+                  <span className="text-[#666a76] block">Topic</span>
                   <span className="font-bold text-[#002869]">{createdSession.topic}</span>
                 </div>
               </div>
@@ -256,7 +258,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
         ) : (
           /* FORM VIEW */
-          <form onSubmit={handleBooking} className="p-6 overflow-y-auto flex-1 flex flex-col gap-4">
+          <form noValidate onSubmit={handleBooking} className="p-6 overflow-y-auto flex-1 flex flex-col gap-4">
             {/* Mentor mini card */}
             <div className="flex items-center gap-3 p-3 bg-[#f9f9ff] rounded-2xl border border-[#cbdaff]">
               <img 
@@ -267,7 +269,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h4 className="font-bold text-sm text-[#061b3b] truncate">{mentor.name}</h4>
-                  <span className="px-2 py-0.5 rounded bg-[#dae2ff] text-[#001947] text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                     {mentor.company}
                   </span>
                 </div>
@@ -275,7 +277,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
               <div className="text-right">
                 <span className="text-sm font-bold text-[#006e29]">${mentor.hourlyRate}</span>
-                <span className="text-[10px] text-[#747783] block">45-min session</span>
+                <span className="text-[11px] text-[#666a76] block">45-min session</span>
               </div>
             </div>
 
@@ -288,12 +290,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             {/* Row 1: First Name * & Last Name * */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="booking-field-1" className="block text-xs font-bold text-[#061b3b] mb-1">
                   First Name <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <User className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="booking-field-1"
                     type="text"
                     value={firstName}
                     onChange={(e) => {
@@ -312,12 +314,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="booking-field-2" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Last Name <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <User className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="booking-field-2"
                     type="text"
                     value={lastName}
                     onChange={(e) => {
@@ -339,12 +341,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             {/* Row 2: Mobile Number * & Email ID * */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="booking-field-3" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Mobile Number <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <Phone className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="booking-field-3"
                     type="tel"
                     value={mobile}
                     onChange={(e) => {
@@ -363,12 +365,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="booking-field-4" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Email ID <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <Mail className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="booking-field-4"
                     type="email"
                     value={email}
                     onChange={(e) => {
@@ -390,12 +392,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             {/* Row 3: Current Designation * & Total Work Experience * */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="booking-field-5" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Current Designation <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <Briefcase className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <Briefcase className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input id="booking-field-5"
                     type="text"
                     value={currentDesignation}
                     onChange={(e) => {
@@ -414,12 +416,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#061b3b] mb-1">
+                <label htmlFor="booking-field-6" className="block text-xs font-bold text-[#061b3b] mb-1">
                   Total Work Experience <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <Clock className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <select
+                  <Clock className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <select id="booking-field-6"
                     value={totalExperience}
                     onChange={(e) => {
                       setTotalExperience(e.target.value);
@@ -461,7 +463,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         : 'border-[#cbdaff] hover:bg-[#f9f9ff] text-[#061b3b]'
                     }`}
                   >
-                    <span className="text-[10px] text-[#747783] block font-normal">{d.dayName}</span>
+                    <span className="text-[11px] text-[#666a76] block font-normal">{d.dayName}</span>
                     <span>{d.label}</span>
                   </button>
                 ))}
@@ -494,16 +496,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
             {/* Optional Fields */}
             <div className="pt-2 border-t border-[#cbdaff]/70 flex flex-col gap-3.5">
-              <span className="text-[11px] font-bold uppercase text-[#747783] tracking-wider">
+              <span className="text-[11px] font-bold uppercase text-[#666a76] tracking-wider">
                 Session Focus & Details (Optional)
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-medium text-[#434652] mb-1">
+                  <label htmlFor="booking-field-7" className="block text-xs font-medium text-[#434652] mb-1">
                     Primary Goal / Topic (Optional)
                   </label>
-                  <input
+                  <input id="booking-field-7"
                     type="text"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
@@ -513,12 +515,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#434652] mb-1">
+                  <label htmlFor="booking-field-8" className="block text-xs font-medium text-[#434652] mb-1">
                     LinkedIn Profile (Optional)
                   </label>
                   <div className="relative">
-                    <Linkedin className="w-4 h-4 text-[#747783] absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
+                    <Linkedin className="w-4 h-4 text-[#666a76] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input id="booking-field-8"
                       type="url"
                       value={linkedinUrl}
                       onChange={(e) => setLinkedinUrl(e.target.value)}
@@ -530,10 +532,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#434652] mb-1">
+                <label htmlFor="booking-field-9" className="block text-xs font-medium text-[#434652] mb-1">
                   Specific Questions or Notes (Optional)
                 </label>
-                <textarea
+                <textarea id="booking-field-9"
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -561,7 +563,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <span>Confirm & Lock In Session (${mentor.hourlyRate})</span>
             </button>
 
-            <p className="text-[10px] text-center text-[#747783]">
+            <p className="text-[11px] text-center text-[#666a76]">
               🔒 Fields marked with <span className="text-red-500 font-bold">*</span> are mandatory. Your details are confidential.
             </p>
           </form>

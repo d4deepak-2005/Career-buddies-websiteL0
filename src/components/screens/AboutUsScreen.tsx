@@ -56,7 +56,7 @@ export const AboutUsScreen: React.FC<AboutUsScreenProps> = ({
           }}
           backLabel="Home"
           nextLabel="Our Journey (2022–2026)"
-          currentStepLabel="About CareerBuddies"
+          currentStepLabel="About"
         />
 
         {/* Mission & Purpose Banner */}
@@ -131,8 +131,8 @@ export const AboutUsScreen: React.FC<AboutUsScreenProps> = ({
                 <Compass className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-[#061b3b]">Structured Direction</h4>
-                <span className="text-[11px] text-[#747783]">No generic motivational talk</span>
+                <h3 className="font-bold text-sm text-[#061b3b]">Structured Direction</h3>
+                <span className="text-[11px] text-[#666a76]">No generic motivational talk</span>
               </div>
             </div>
 
@@ -222,7 +222,7 @@ export const AboutUsScreen: React.FC<AboutUsScreenProps> = ({
             <h3 className="text-2xl sm:text-3xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
               Why Trust CareerBuddies?
             </h3>
-            <p className="text-xs sm:text-sm text-[#747783]">
+            <p className="text-xs sm:text-sm text-[#666a76]">
               We evaluate our work by the clarity, depth, and practical impact delivered to each mentee.
             </p>
           </div>

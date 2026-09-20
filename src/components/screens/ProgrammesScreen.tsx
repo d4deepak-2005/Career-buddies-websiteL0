@@ -107,7 +107,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                 }`}
               >
                 {plan.isRecommended && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#002869] text-white text-[10px] font-black tracking-wider uppercase shadow-xs">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#002869] text-white text-[11px] font-black tracking-wider uppercase shadow-xs">
                     Most Popular Choice
                   </div>
                 )}
@@ -117,7 +117,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <span className="text-xs font-black uppercase text-[#006e29] tracking-wider">
                       {plan.tagline}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[10px] font-bold">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                       {plan.badge}
                     </span>
                   </div>
@@ -134,13 +134,13 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <div className="text-xs font-bold text-[#061b3b]">
                       {plan.sessionsCount}
                     </div>
-                    <div className="text-[11px] text-[#747783] mt-0.5">
+                    <div className="text-[11px] text-[#666a76] mt-0.5">
                       {plan.supportType}
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2 mb-6">
-                    <span className="text-[11px] font-bold uppercase text-[#747783] tracking-wider">
+                    <span className="text-[11px] font-bold uppercase text-[#666a76] tracking-wider">
                       Key Deliverables:
                     </span>
                     {plan.features.map((feat, fIdx) => (
@@ -157,7 +157,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <span className="text-2xl font-black text-[#002869] font-['Plus_Jakarta_Sans',sans-serif]">
                       {plan.priceINR}
                     </span>
-                    <span className="text-[11px] text-[#747783] block">
+                    <span className="text-[11px] text-[#666a76] block">
                       {plan.period}
                     </span>
                   </div>
@@ -238,7 +238,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-[#002869] shrink-0" />
                       <div>
-                        <div className="text-[10px] text-[#434652] uppercase font-bold">Duration</div>
+                        <div className="text-[11px] text-[#434652] uppercase font-bold">Duration</div>
                         <div className="text-xs font-black text-[#061b3b]">{programme.duration}</div>
                       </div>
                     </div>
@@ -246,7 +246,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-[#006e29] shrink-0" />
                       <div>
-                        <div className="text-[10px] text-[#434652] uppercase font-bold">Cohort Start</div>
+                        <div className="text-[11px] text-[#434652] uppercase font-bold">Cohort Start</div>
                         <div className="text-xs font-black text-[#061b3b]">{programme.cohortStartDate.replace('Next Cohort: ', '')}</div>
                       </div>
                     </div>
@@ -314,13 +314,13 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                 {/* Footer Pricing & CTA */}
                 <div className="pt-4 border-t border-[#cbdaff] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div className="text-[10px] text-[#434652] uppercase font-bold">Programme Investment</div>
+                    <div className="text-[11px] text-[#434652] uppercase font-bold">Programme Investment</div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-black text-[#061b3b]">
                         ₹{programme.feeINR.toLocaleString()}
                       </span>
                       {programme.originalFeeINR && (
-                        <span className="text-xs text-[#737785] line-through">
+                        <span className="text-xs text-[#666a76] line-through">
                           ₹{programme.originalFeeINR.toLocaleString()}
                         </span>
                       )}

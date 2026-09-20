@@ -129,14 +129,14 @@ export const SuccessStoriesScreen: React.FC<SuccessStoriesScreenProps> = ({
                     <div className="text-[11px] text-[#006e29] font-bold">
                       Now: {story.role} at {story.company}
                     </div>
-                    <div className="text-[10px] text-[#737785]">
+                    <div className="text-[11px] text-[#666a76]">
                       From: {story.previousRole}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="text-[10px] text-[#434652] uppercase font-bold">Mentor</div>
+                  <div className="text-[11px] text-[#434652] uppercase font-bold">Mentor</div>
                   <div className="text-xs font-black text-[#002869]">{story.mentorName}</div>
                 </div>
               </div>

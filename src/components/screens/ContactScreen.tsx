@@ -102,7 +102,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
             }
           }}
           backLabel="Playbooks"
-          nextLabel="About Us"
+          nextLabel="About"
           currentStepLabel="Contact & Support Desk"
         />
 
@@ -278,7 +278,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
                     {isOpen ? (
                       <ChevronUp className="w-4 h-4 text-[#002869] shrink-0" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-[#747783] shrink-0" />
+                      <ChevronDown className="w-4 h-4 text-[#666a76] shrink-0" />
                     )}
                   </button>
 

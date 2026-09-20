@@ -265,7 +265,7 @@ export const CareerJourneyNavigator: React.FC<CareerJourneyNavigatorProps> = ({
                 <div className="text-xs font-black line-clamp-2 leading-tight">
                   {stage.title}
                 </div>
-                <div className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-[#79fd8d]' : 'text-[#434652]'}`}>
+                <div className={`text-[11px] font-bold mt-1 ${isSelected ? 'text-[#79fd8d]' : 'text-[#434652]'}`}>
                   {stage.badge}
                 </div>
               </button>
@@ -284,7 +284,7 @@ export const CareerJourneyNavigator: React.FC<CareerJourneyNavigatorProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-[10px] font-black uppercase tracking-wider">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-[11px] font-black uppercase tracking-wider">
                     {currentStage.badge}
                   </span>
                 </div>
@@ -349,7 +349,7 @@ export const CareerJourneyNavigator: React.FC<CareerJourneyNavigatorProps> = ({
                     {currentStage.recommendedProgramme.name}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="px-2 py-0.5 rounded-md bg-[#e8edff] text-[#002869] text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded-md bg-[#e8edff] text-[#002869] text-[11px] font-bold">
                       {currentStage.recommendedProgramme.duration}
                     </span>
                     <span className="text-xs font-black text-[#006e29]">
@@ -380,10 +380,10 @@ export const CareerJourneyNavigator: React.FC<CareerJourneyNavigatorProps> = ({
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-[#cbdaff] mb-3">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-bold text-[#434652]">
+                    <span className="text-[11px] font-bold text-[#434652]">
                       {currentStage.recommendedWebinar.time}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-[#79fd8d]/30 text-[#00531d] text-[10px] font-black">
+                    <span className="px-2 py-0.5 rounded-md bg-[#79fd8d]/30 text-[#00531d] text-[11px] font-black">
                       ₹{currentStage.recommendedWebinar.price}
                     </span>
                   </div>
