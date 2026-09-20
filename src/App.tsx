@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSiteSettings } from './hooks/useSiteSettings';
 import { 
   PageView, 
@@ -111,6 +111,87 @@ export default function App() {
   // Selected Leader Profile for individual view
   const [selectedLeaderSlug, setSelectedLeaderSlug] = useState<string>('nishant-sharma');
   const [previousNavPage, setPreviousNavPage] = useState<PageView>('about-us');
+
+  // ---- Centralised page navigation: scroll position + browser history ----
+  // Pages are swapped in place (no router), so the document keeps its old scroll
+  // offset across page changes. One place handles it for every navigation path:
+  //  - a new page always opens at the top (instant, cancelling any smooth scroll
+  //    a click handler started);
+  //  - each page change is a history entry, so Back/Forward move between pages and
+  //    restore the scroll position each page was left at;
+  //  - same-page anchors (scrollIntoView) are untouched — see scroll-padding-top
+  //    in index.css, which keeps them clear of the sticky header.
+  const scrollAtClick = useRef(0);
+  const scrollByEntry = useRef(new Map<string, number>());
+  const currentEntryId = useRef('');
+  const restoreScrollTo = useRef<number | null>(null);
+  const navKey = `${activePage}|${activePage === 'leader-profile' ? selectedLeaderSlug : ''}`;
+  const prevNavKey = useRef<string | null>(null);
+  const newEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const instantScroll = (top: number) =>
+    window.scrollTo({ top, left: 0, behavior: 'instant' as ScrollBehavior });
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+
+    // Runs before any click handler, so it sees the scroll position of the page
+    // being left (not one already changed by a handler's own scrollTo).
+    const onClickCapture = () => {
+      scrollAtClick.current = window.scrollY;
+    };
+    document.addEventListener('click', onClickCapture, true);
+
+    const onPopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (!state || !state.cbPage || !state.cbId) return;
+      // Scroll is in manual mode, so it still reflects the page we are leaving.
+      scrollByEntry.current.set(currentEntryId.current, window.scrollY);
+      currentEntryId.current = state.cbId;
+      restoreScrollTo.current = scrollByEntry.current.get(state.cbId) ?? 0;
+      if (state.cbLeader) setSelectedLeaderSlug(state.cbLeader);
+      setActivePage(state.cbPage);
+      // Same page/leader as now (only the scroll differs): restore directly.
+      requestAnimationFrame(() => {
+        const key = `${state.cbPage}|${state.cbPage === 'leader-profile' ? state.cbLeader || '' : ''}`;
+        if (restoreScrollTo.current !== null && prevNavKey.current === key) {
+          instantScroll(restoreScrollTo.current);
+          restoreScrollTo.current = null;
+        }
+      });
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      document.removeEventListener('click', onClickCapture, true);
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (prevNavKey.current === null) {
+      // First render: describe the current history entry.
+      currentEntryId.current = newEntryId();
+      window.history.replaceState(
+        { ...(window.history.state || {}), cbPage: activePage, cbLeader: selectedLeaderSlug, cbId: currentEntryId.current },
+        ''
+      );
+    } else if (prevNavKey.current !== navKey) {
+      if (restoreScrollTo.current !== null) {
+        // Arrived via Back/Forward: put the page back where the user left it.
+        instantScroll(restoreScrollTo.current);
+        restoreScrollTo.current = null;
+      } else {
+        // Fresh navigation: remember where we were, add an entry, open at the top.
+        scrollByEntry.current.set(currentEntryId.current, scrollAtClick.current);
+        currentEntryId.current = newEntryId();
+        window.history.pushState(
+          { cbPage: activePage, cbLeader: selectedLeaderSlug, cbId: currentEntryId.current },
+          ''
+        );
+        instantScroll(0);
+      }
+    }
+    prevNavKey.current = navKey;
+  }, [navKey]);
 
   // Logged-in candidate (null = logged out). Restored from the stored session
   // token on load; the server decides who the token belongs to.

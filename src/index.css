@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    /* Same-page anchors / scrollIntoView stop below the sticky header. */
+    scroll-padding-top: 112px;
+  }
+
   html, body {
     margin: 0;
     padding: 0;
