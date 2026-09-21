@@ -859,7 +859,13 @@ export default function App() {
       </LazyBoundary>
 
 <PaymentStatusBanner />
-<AICareerAssistant />
+<AICareerAssistant
+  onConnectAdvisor={(interest) => handleOpenCounsellingWithPlan(interest)}
+  onRegisterWebinar={() => {
+    setActivePage('webinars');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }}
+/>
 
     </div>
   );
