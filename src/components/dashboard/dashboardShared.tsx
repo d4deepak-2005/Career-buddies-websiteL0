@@ -54,3 +54,18 @@ export const EmptyState: React.FC<{ title: string; hint?: string }> = ({ title, 
     {hint && <p className="text-xs text-[#434652] mt-1">{hint}</p>}
   </div>
 );
+
+// Records an admin has added for this candidate (or sent to everyone). Nothing here is generated.
+export interface NotificationRecord { id: string; title: string; description: string; createdAt: string; read: boolean }
+export interface MaterialRecord { id: string; title: string; description: string; url: string; category: string; createdAt: string }
+export interface SessionRecord {
+  id: string; title: string; description: string; url: string; startsAt: string | null; durationMinutes: number | null;
+  advisorName: string; advisorRole: string; status: 'scheduled' | 'completed' | 'cancelled';
+}
+export interface InvoiceRecord { id: string; title: string; description: string; url: string; invoiceNo: string; amount: number | null; currency: string; issuedAt: string }
+
+export const formatDateTime = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+
+export const formatMoney = (amount: number | null, currency: string) =>
+  typeof amount === 'number' ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency || 'INR', maximumFractionDigits: 2 }).format(amount) : NOT_AVAILABLE;

@@ -24,6 +24,7 @@ import { Plan } from './server/models/Plan.ts';
 import { paymentsRouter, paymentsWebhookHandler } from './server/routes/payments.ts';
 import mediaRouter from './server/routes/media.ts';
 import candidateRouter from './server/routes/candidate.ts';
+import { candidateItemsRouter, adminCandidateItemsRouter } from './server/routes/candidateItems.ts';
 import oauthRouter from './server/routes/oauth.ts';
 import { createRateLimiter } from './server/middleware/rateLimit.ts';
 import { getPublicBaseUrl } from './server/config/baseUrl.ts';
@@ -787,6 +788,10 @@ app.use('/api/services', createCrudRouter(Service));
 app.use('/api/plans', createCrudRouter(Plan));
 app.use('/api/payments', paymentsRouter);
 app.use('/api/media', mediaRouter);
+// Candidate Area records (notifications, materials, sessions, invoices). Mounted before the
+// general candidate router; the admin side lives under /api/admin and is admin-only.
+app.use('/api/candidate/items', candidateItemsRouter);
+app.use('/api/admin/candidate-items', adminCandidateItemsRouter);
 app.use('/api/candidate', candidateRouter);
 app.use('/api/auth', oauthRouter);
 

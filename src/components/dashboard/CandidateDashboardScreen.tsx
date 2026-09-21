@@ -9,7 +9,7 @@ import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
 import { SettingsTab } from './SettingsTab';
 import { EnquiriesTab } from './EnquiriesTab';
 import { ProfileTab } from './ProfileTab';
-import { COMPLETE_PROFILE, EmptyState, EnquiryRecord, NOT_AVAILABLE, PAYMENT_STATUS_LABEL, PaymentRecord, WebinarRecord, formatDate, formatINR } from './dashboardShared';
+import { COMPLETE_PROFILE, EmptyState, EnquiryRecord, InvoiceRecord, MaterialRecord, NOT_AVAILABLE, NotificationRecord, PAYMENT_STATUS_LABEL, PaymentRecord, SessionRecord, WebinarRecord, formatDate, formatDateTime, formatINR, formatMoney } from './dashboardShared';
 import { User, Sparkles, Calendar, FileText, CreditCard, Download, CheckCircle2, Video, Headphones, MessageSquare, Bell, Eye, X, Send, Layers, ArrowRight, FolderDown, Printer, Lock, Settings } from 'lucide-react';
 
 const DASHBOARD_WHATSAPP_MESSAGE = 'Hi CareerBuddies team, I would like to know more about career counselling, mentorship, and webinars.';
@@ -82,29 +82,43 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [candidate.id]);
 
+  // Records the admin has added for this candidate (notifications, materials, sessions, invoices).
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  const [documentsList, setDocumentsList] = useState<MaterialRecord[]>([]);
+  const [masterSessionsList, setMasterSessionsList] = useState<SessionRecord[]>([]);
+  const [invoicesList, setInvoicesList] = useState<InvoiceRecord[]>([]);
+  const [itemsError, setItemsError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    candidateFetch('/api/candidate/items')
+      .then(async (res) => {
+        if (res.status === 401) {
+          onLogout();
+          return;
+        }
+        if (!res.ok) throw new Error('Request failed');
+        const body = await res.json();
+        if (cancelled) return;
+        setNotifications(body.notifications || []);
+        setDocumentsList(body.materials || []);
+        setMasterSessionsList(body.sessions || []);
+        setInvoicesList(body.invoices || []);
+      })
+      .catch(() => !cancelled && setItemsError(true));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidate.id]);
+
+  const markNotificationRead = (id: string) => {
+    setNotifications((list) => list.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    candidateFetch(`/api/candidate/items/${id}/read`, { method: 'POST' }).catch(() => {});
+  };
+
   // Selected Invoice Modal State
-  const [viewingInvoice, setViewingInvoice] = useState<{
-    id: string;
-    date: string;
-    item: string;
-    amount: string;
-    tax: string;
-    total: string;
-    paymentMode: string;
-    status: string;
-    invoiceNo: string;
-    sacCode: string;
-  } | null>(null);
-
-
-
-  // No notification records exist yet — nothing is invented.
-  const notifications: { id: string; title: string; description: string; time: string; read: boolean }[] = [];
-  // No session, learning-material, invoice or advisor-assignment records exist yet.
-  const masterSessionsList: any[] = [];
-  const documentsList: any[] = [];
-  const invoicesList: any[] = [];
-
+  const [viewingInvoice, setViewingInvoice] = useState<InvoiceRecord | null>(null);
   // ---- Values derived from the candidate's real records ----
   const fullName = `${candidateProfile.firstName} ${candidateProfile.lastName}`.trim();
   const initials = `${candidateProfile.firstName[0] || ''}${candidateProfile.lastName[0] || ''}`.toUpperCase();
@@ -173,16 +187,6 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
 
 
 
-
-  const handleDownloadDoc = (docTitle: string) => {
-    const element = document.createElement('a');
-    const file = new Blob([`CareerBuddies Candidate Official Deliverable: ${docTitle}\nCandidate: ${fullName}\nEmail: ${candidateProfile.email}\nDate: ${new Date().toLocaleDateString()}\n\nOfficial CareerBuddies Record: Samhita Spicewood West Block, 6th Main, GM Palya, CV Raman Nagar, Bengaluru, Karnataka - 560075`], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = docTitle;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
 
   return (
     <div className="flex flex-col w-full bg-[#f9f9ff] min-h-screen text-[#061b3b]">
@@ -613,33 +617,29 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
             <div className="flex items-center justify-between border-b border-[#cbdaff] pb-5">
               <div>
                 <h2 className="text-xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
-                  Tax Invoices & Bills
+                  Invoices & Bills
                 </h2>
                 <p className="text-xs sm:text-sm text-[#434652]">
-                  Download GST-compliant tax invoices with SAC codes for corporate reimbursements or personal records.
+                  Invoices issued to you by CareerBuddies appear here.
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col gap-4">
-              {invoicesList.length === 0 && (
+              {itemsError && <EmptyState title="We could not load your invoices" hint="Please refresh the page and try again." />}
+              {!itemsError && invoicesList.length === 0 && (
                 <EmptyState
                   title="No invoices yet"
-                  hint="Tax invoices issued for your payments will appear here."
+                  hint="Invoices issued for your payments will appear here."
                 />
               )}
               {invoicesList.map((inv) => (
-                <div key={inv.invoiceNo} className="p-5 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono font-black text-xs text-[#002869]">{inv.invoiceNo}</span>
-                      <span className="text-[11px] px-2 py-0.5 bg-[#e0e8ff] text-[#001947] rounded-full font-bold">
-                        SAC {inv.sacCode.split(' - ')[0]}
-                      </span>
-                    </div>
-                    <h3 className="text-sm font-bold text-[#061b3b]">{inv.item}</h3>
+                <div key={inv.id} className="p-5 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <span className="font-mono font-black text-xs text-[#002869] break-all">{inv.invoiceNo}</span>
+                    <h3 className="text-sm font-bold text-[#061b3b] mt-1">{inv.title}</h3>
                     <p className="text-xs text-[#666a76] mt-0.5">
-                      Issued on {inv.date} • Total: <strong className="text-[#061b3b]">{inv.total}</strong> (Includes {inv.tax})
+                      Issued on {formatDate(inv.issuedAt)} • Amount: <strong className="text-[#061b3b]">{formatMoney(inv.amount, inv.currency)}</strong>
                     </p>
                   </div>
 
@@ -651,13 +651,17 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                       <Eye className="w-3.5 h-3.5" />
                       <span>View Invoice</span>
                     </button>
-                    <button
-                      onClick={() => handleDownloadDoc(`Invoice_${inv.invoiceNo}.pdf`)}
-                      className="px-4 py-2 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download PDF</span>
-                    </button>
+                    {inv.url && (
+                      <a
+                        href={inv.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Open Document</span>
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}
@@ -782,7 +786,8 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               </div>
             </div>
 
-            {masterSessionsList.length === 0 && (
+            {itemsError && <EmptyState title="We could not load your sessions" hint="Please refresh the page and try again." />}
+            {!itemsError && masterSessionsList.length === 0 && (
               <EmptyState
                 title="No master sessions scheduled yet"
                 hint="Your upcoming and completed 1:1 sessions will appear here once they are scheduled for you."
@@ -790,70 +795,60 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {masterSessionsList.map((sess) => (
-                <div key={sess.id} className="p-6 rounded-3xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col justify-between gap-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black ${
-                        sess.status.includes('Upcoming') 
-                          ? 'bg-[#79fd8d]/30 text-[#00531d]' 
-                          : 'bg-[#e0e8ff] text-[#001947]'
-                      }`}>
-                        {sess.status}
-                      </span>
-                      <span className="text-xs font-bold text-[#666a76]">{sess.duration}</span>
+              {masterSessionsList.map((sess) => {
+                const upcoming = sess.status === 'scheduled' && !!sess.startsAt && new Date(sess.startsAt).getTime() > Date.now() - 60 * 60 * 1000;
+                const statusLabel = sess.status === 'cancelled' ? 'Cancelled' : sess.status === 'completed' ? 'Completed' : upcoming ? 'Upcoming' : 'Scheduled';
+                return (
+                  <div key={sess.id} className="p-6 rounded-3xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col justify-between gap-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black ${
+                          upcoming ? 'bg-[#79fd8d]/30 text-[#00531d]' : 'bg-[#e0e8ff] text-[#001947]'
+                        }`}>
+                          {statusLabel}
+                        </span>
+                        {sess.durationMinutes ? <span className="text-xs font-bold text-[#666a76]">{sess.durationMinutes} min</span> : null}
+                      </div>
+
+                      <h3 className="text-base font-black text-[#061b3b]">{sess.title}</h3>
+
+                      {(sess.advisorName || sess.advisorRole) && (
+                        <div className="mt-2 p-3 bg-white rounded-2xl border border-[#cbdaff]">
+                          <span className="text-[11px] font-black uppercase text-[#666a76] tracking-wider block">Assigned Mentor</span>
+                          {sess.advisorName && <strong className="text-xs font-black text-[#002869] block mt-0.5">{sess.advisorName}</strong>}
+                          {sess.advisorRole && <span className="text-[11px] text-[#434652] block">{sess.advisorRole}</span>}
+                        </div>
+                      )}
+
+                      {sess.description && (
+                        <div className="mt-3 text-xs text-[#434652]">
+                          <strong className="text-[#061b3b] block mb-0.5">Session Agenda:</strong>
+                          <p className="text-xs leading-relaxed whitespace-pre-line">{sess.description}</p>
+                        </div>
+                      )}
+
+                      {sess.startsAt && (
+                        <div className="mt-3 p-2.5 rounded-xl bg-[#e8edff] text-xs font-bold text-[#002869] flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-[#002869]" />
+                          <span>{formatDateTime(sess.startsAt)}</span>
+                        </div>
+                      )}
                     </div>
 
-                    <h3 className="text-base font-black text-[#061b3b]">
-                      {sess.title}
-                    </h3>
-
-                    <div className="mt-2 p-3 bg-white rounded-2xl border border-[#cbdaff]">
-                      <span className="text-[11px] font-black uppercase text-[#666a76] tracking-wider block">
-                        Assigned Mentor
-                      </span>
-                      <strong className="text-xs font-black text-[#002869] block mt-0.5">
-                        {sess.mentor}
-                      </strong>
-                      <span className="text-[11px] text-[#434652] block">
-                        {sess.mentorRole}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 text-xs text-[#434652]">
-                      <strong className="text-[#061b3b] block mb-0.5">Session Agenda:</strong>
-                      <p className="text-xs leading-relaxed">{sess.agenda}</p>
-                    </div>
-
-                    <div className="mt-3 p-2.5 rounded-xl bg-[#e8edff] text-xs font-bold text-[#002869] flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-[#002869]" />
-                      <span>{sess.date} • {sess.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {sess.status.includes('Upcoming') ? (
+                    {sess.url && sess.status !== 'cancelled' && (
                       <a
-                        href={sess.meetLink}
+                        href={sess.url}
                         target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 py-3 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl text-center flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl text-center flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                       >
                         <Video className="w-4 h-4 text-[#79fd8d]" />
-                        <span>Launch Video Room</span>
+                        <span>{sess.status === 'completed' ? 'Open Session Link' : 'Join Session'}</span>
                       </a>
-                    ) : (
-                      <button
-                        onClick={() => handleDownloadDoc(`Master_Session_Notes_${sess.id}.pdf`)}
-                        className="flex-1 py-3 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl text-center flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>Download Session Debrief</span>
-                      </button>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -874,7 +869,8 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               </div>
             </div>
 
-            {documentsList.length === 0 && (
+            {itemsError && <EmptyState title="We could not load your learning materials" hint="Please refresh the page and try again." />}
+            {!itemsError && documentsList.length === 0 && (
               <EmptyState
                 title="No learning materials yet"
                 hint="Deliverables and study material shared with you will appear here."
@@ -884,27 +880,28 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
               {documentsList.map((doc) => (
                 <div key={doc.id} className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-[#002869] text-white flex items-center justify-center shrink-0">
                       <FileText className="w-5 h-5 text-[#79fd8d]" />
                     </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-[#061b3b] truncate max-w-[220px] sm:max-w-xs">
-                        {doc.title}
-                      </h3>
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-bold text-[#061b3b] truncate">{doc.title}</h3>
                       <p className="text-[11px] text-[#666a76]">
-                        {doc.category} • {doc.size} • {doc.date}
+                        {[doc.category, formatDate(doc.createdAt)].filter(Boolean).join(' • ')}
                       </p>
+                      {doc.description && <p className="text-[11px] text-[#434652] mt-0.5 line-clamp-2">{doc.description}</p>}
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleDownloadDoc(doc.title)}
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="px-3.5 py-2 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download</span>
-                  </button>
+                    <span>Open</span>
+                  </a>
                 </div>
               ))}
             </div>
@@ -927,7 +924,8 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               </div>
             </div>
 
-            {notifications.length === 0 && (
+            {itemsError && <EmptyState title="We could not load your notifications" hint="Please refresh the page and try again." />}
+            {!itemsError && notifications.length === 0 && (
               <EmptyState
                 title="No notifications yet"
                 hint="Session reminders and programme updates will appear here."
@@ -942,19 +940,24 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                     !notif.read ? 'bg-[#e8edff] border-[#002869]/40 font-semibold' : 'bg-[#f9f9ff] border-[#e0e8ff]'
                   }`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
                     <div className="mt-0.5 p-2 rounded-xl bg-white border border-[#cbdaff] text-[#002869]">
                       <Bell className="w-4 h-4" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="text-xs font-bold text-[#061b3b]">{notif.title}</h3>
-                      <p className="text-xs text-[#434652] mt-0.5">{notif.description}</p>
-                      <span className="text-[11px] text-[#666a76] block mt-1">{notif.time}</span>
+                      {notif.description && <p className="text-xs text-[#434652] mt-0.5 whitespace-pre-line">{notif.description}</p>}
+                      <span className="text-[11px] text-[#666a76] block mt-1">{formatDateTime(notif.createdAt)}</span>
                     </div>
                   </div>
 
                   {!notif.read && (
-                    <span className="w-2 h-2 rounded-full bg-[#002869] shrink-0 mt-2" />
+                    <button
+                      onClick={() => markNotificationRead(notif.id)}
+                      className="shrink-0 px-2.5 py-1 rounded-lg bg-white border border-[#cbdaff] text-[11px] font-bold text-[#002869] hover:bg-[#dae2ff] cursor-pointer"
+                    >
+                      Mark as read
+                    </button>
                   )}
                 </div>
               ))}
@@ -1043,9 +1046,9 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
             <div className="flex items-center justify-between border-b border-[#cbdaff] pb-4">
               <div>
                 <span className="text-[11px] font-black uppercase text-[#006e29] tracking-wider">
-                  Official GST Tax Invoice
+                  Invoice
                 </span>
-                <h2 className="text-xl font-black text-[#002869] font-['Plus_Jakarta_Sans',sans-serif]">
+                <h2 className="text-xl font-black text-[#002869] font-['Plus_Jakarta_Sans',sans-serif] break-all">
                   {viewingInvoice.invoiceNo}
                 </h2>
               </div>
@@ -1057,66 +1060,58 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               </button>
             </div>
 
-            {/* Printable Invoice Header */}
-            <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
-                <strong className="text-[#061b3b] block font-bold">Billed By:</strong>
-                <span className="text-[#434652] block font-semibold">CareerBuddies Private Limited</span>
+                <strong className="text-[#061b3b] block font-bold">Issued by:</strong>
+                <span className="text-[#434652] block font-semibold">CareerBuddies</span>
                 <span className="text-[#666a76] block">{contact.address}</span>
                 <span className="text-[#666a76] block">Email: {contact.supportEmail}</span>
               </div>
-              <div className="text-right">
-                <strong className="text-[#061b3b] block font-bold">Billed To:</strong>
+              <div className="sm:text-right">
+                <strong className="text-[#061b3b] block font-bold">Issued to:</strong>
                 <span className="text-[#434652] block font-semibold">{candidateProfile.firstName} {candidateProfile.lastName}</span>
                 <span className="text-[#666a76] block">{candidateProfile.email}</span>
-                <span className="text-[#666a76] block">{candidateProfile.mobile}</span>
               </div>
             </div>
 
-            {/* Line Items */}
             <div className="border border-[#cbdaff] rounded-2xl overflow-hidden text-xs">
               <table className="w-full text-left">
                 <thead className="bg-[#f1f3ff] text-[#002869] font-bold border-b border-[#cbdaff]">
                   <tr>
                     <th className="p-3">Description</th>
-                    <th className="p-3">SAC Code</th>
-                    <th className="p-3 text-right">Taxable</th>
-                    <th className="p-3 text-right">GST (18%)</th>
-                    <th className="p-3 text-right">Total</th>
+                    <th className="p-3">Issued</th>
+                    <th className="p-3 text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="p-3 font-bold text-[#061b3b]">{viewingInvoice.item}</td>
-                    <td className="p-3 font-mono text-[#666a76]">{viewingInvoice.sacCode.split(' - ')[0]}</td>
-                    <td className="p-3 text-right font-medium">{viewingInvoice.amount}</td>
-                    <td className="p-3 text-right text-[#006e29]">{viewingInvoice.tax}</td>
-                    <td className="p-3 text-right font-black text-[#002869]">{viewingInvoice.total}</td>
+                    <td className="p-3 font-bold text-[#061b3b]">{viewingInvoice.title}{viewingInvoice.description ? <span className="block font-normal text-[#666a76] mt-0.5">{viewingInvoice.description}</span> : null}</td>
+                    <td className="p-3 text-[#434652]">{formatDate(viewingInvoice.issuedAt)}</td>
+                    <td className="p-3 text-right font-black text-[#002869]">{formatMoney(viewingInvoice.amount, viewingInvoice.currency)}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-[#cbdaff]">
-              <span className="text-xs text-[#666a76]">
-                Payment Status: <strong className="text-[#006e29]">Paid via {viewingInvoice.paymentMode}</strong>
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-white border border-[#cbdaff] text-xs font-bold rounded-xl text-[#002869] flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print</span>
-                </button>
-                <button
-                  onClick={() => handleDownloadDoc(`Invoice_${viewingInvoice.invoiceNo}.pdf`)}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#cbdaff]">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-white border border-[#cbdaff] text-xs font-bold rounded-xl text-[#002869] flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print</span>
+              </button>
+              {viewingInvoice.url && (
+                <a
+                  href={viewingInvoice.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="px-5 py-2 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download PDF</span>
-                </button>
-              </div>
+                  <span>Open Document</span>
+                </a>
+              )}
             </div>
           </div>
         </div>

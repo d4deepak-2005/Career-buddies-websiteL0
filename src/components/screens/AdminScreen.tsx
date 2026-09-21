@@ -24,6 +24,7 @@ import { PageNavigationControls } from '../common/PageNavigationControls';
 import { adminFetch } from '../../utils/adminAuth';
 import { SiteSettingsPanel } from './admin/SiteSettingsPanel';
 import { PeopleMentorsPanel } from './admin/PeopleMentorsPanel';
+import { CandidateContentPanel } from './admin/CandidateContentPanel';
 import { CatalogPanel, WEBINAR_FIELDS } from './admin/CatalogPanel';
 import { RecordListEditor } from './admin/RecordListEditor';
 
@@ -33,7 +34,7 @@ interface AdminScreenProps {
 }
 
 export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'webinars' | 'catalog' | 'people' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'webinars' | 'catalog' | 'people' | 'candidates' | 'settings'>('overview');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [webinars, setWebinars] = useState<WebinarItem[]>(INITIAL_WEBINARS);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(DEFAULT_SITE_CONFIG);
@@ -233,6 +234,18 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
           >
             <Users className="w-3.5 h-3.5" />
             <span>People & Mentors</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('candidates')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'candidates'
+                ? 'bg-[#002869] text-white'
+                : 'bg-white text-[#434652] hover:bg-[#e0e8ff] border border-[#e0e8ff]'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Candidate Content</span>
           </button>
 
           <button
@@ -479,6 +492,9 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActivePage }) => {
 
         {/* TAB 4: PEOPLE & MENTORS (MongoDB-backed CMS) */}
         {activeTab === 'people' && <PeopleMentorsPanel />}
+
+        {/* TAB 4b: CANDIDATE CONTENT (notifications, materials, sessions, invoices) */}
+        {activeTab === 'candidates' && <CandidateContentPanel />}
 
         {/* TAB 5: SITE SETTINGS (MongoDB-backed CMS) */}
         {activeTab === 'settings' && <SiteSettingsPanel />}
