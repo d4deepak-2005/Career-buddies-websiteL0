@@ -135,7 +135,7 @@ export const CounsellingScreen: React.FC<CounsellingScreenProps> = ({
                 </h2>
 
                 <p className="text-sm text-[#434652] max-w-md leading-relaxed">
-                  Our senior counsellor has been notified and will reach out to you on <strong>{submittedMobile}</strong> and <strong>{submittedEmail}</strong> within <strong>2 business hours</strong> to finalize your calendar slot.
+                  Your request has been received and our senior counsellor will reach out to you on <strong>{submittedMobile}</strong> and <strong>{submittedEmail}</strong> within <strong>2 business hours</strong> to finalize your calendar slot.
                 </p>
 
                 <div className="bg-white p-5 rounded-xl border border-[#cbdaff] w-full text-left mt-2">

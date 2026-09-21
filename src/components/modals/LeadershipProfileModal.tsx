@@ -230,7 +230,7 @@ export const LeadershipProfileModal: React.FC<LeadershipProfileModalProps> = ({
             {sentSuccess ? (
               <div className="p-4 rounded-2xl bg-[#79fd8d]/25 border border-[#006e29]/30 text-xs font-bold text-[#00531d] flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#006e29]" />
-                <span>Thank you, {submittedName}! Your advisory request has been forwarded to {founder.name}. Our team will respond shortly.</span>
+                <span>Thank you, {submittedName}! Your advisory request for {founder.name} has been received. Our team will respond shortly.</span>
               </div>
             ) : (
               <StandardCandidateForm

@@ -543,7 +543,7 @@ export const MOCK_FAQS: FAQItem[] = [
     id: 'faq2',
     category: 'mentees',
     question: 'How do I choose between the 3 Career Plans?',
-    answer: 'After attending your ₹199 live webinar, our Career Advisor conducts a 1:1 requirements review to analyze your experience level, transition goals, and target timeline. They will recommend either the Foundation & Growth Sprint, the Career Transition & Switch Track, or the Executive & Leadership Mastery track.'
+    answer: 'After attending your ₹199 live webinar, our Career Advisor conducts a 1:1 requirements review to analyze your experience level, transition goals, and target timeline. They will recommend the plan that fits you best: the Explore Plan, the Elevate Plan, or the Executive & Premium Plan.'
   },
   {
     id: 'faq3',
@@ -561,7 +561,7 @@ export const MOCK_FAQS: FAQItem[] = [
     id: 'faq5',
     category: 'billing',
     question: 'Can my employer sponsor my CareerBuddies program?',
-    answer: 'Yes! Over 60% of our mentees utilize their company Learning & Development (L&D) budget. We provide itemized corporate invoices, tax receipts, and formal program completion certificates.'
+    answer: 'Yes! You can ask your employer to sponsor your programme through their Learning & Development (L&D) budget. We provide itemized corporate invoices, tax receipts, and formal program completion certificates.'
   },
   {
     id: 'faq6',
