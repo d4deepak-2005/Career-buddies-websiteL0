@@ -16,6 +16,10 @@ function getTransporter() {
       host: process.env.SMTP_HOST,
       port,
       secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465,
+      // A slow or unreachable provider must not hang the request that triggered the email.
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || '' } : undefined,
     });
   }
