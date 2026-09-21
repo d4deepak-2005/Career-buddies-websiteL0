@@ -209,7 +209,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
             </span>
             <span className="text-white/60">→</span>
             <span className={step === 'success' ? 'text-[#79fd8d]' : 'text-white/60'}>
-              4. Ticket Confirmed
+              4. Payment Confirmation
             </span>
           </div>
         </div>

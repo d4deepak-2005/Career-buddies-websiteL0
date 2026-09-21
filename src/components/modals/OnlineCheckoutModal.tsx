@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
-import { startCheckout, CheckoutRequest } from '../../utils/checkout';
+import { startCheckout, getCheckoutQuote, CheckoutQuote, CheckoutRequest } from '../../utils/checkout';
 import { ModalA11y } from '../common/ModalA11y';
 
 interface OnlineCheckoutModalProps {
@@ -25,8 +25,36 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
   const [mobile, setMobile] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+  const [quoteState, setQuoteState] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+
+  // The amount shown comes from the server (verified against the payment product), not from the page.
+  useEffect(() => {
+    if (!isOpen) return;
+    let live = true;
+    setQuote(null);
+    setQuoteState('loading');
+    setError('');
+    getCheckoutQuote(itemType, itemId).then((r) => {
+      if (!live) return;
+      if (r.ok === true) {
+        setQuote(r.quote);
+        setQuoteState('ready');
+      } else {
+        setError(r.error);
+        setQuoteState('unavailable');
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [isOpen, itemType, itemId]);
 
   if (!isOpen) return null;
+
+  const money = quote
+    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: quote.currency }).format(quote.amount)
+    : '';
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +86,8 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
           <div>
             <h3 className="text-base font-black text-[#061b3b]">Pay online</h3>
             <p className="text-xs text-[#666a76] mt-0.5">{itemName}</p>
+            {quoteState === 'loading' && <p className="text-xs text-[#666a76] mt-1">Loading price…</p>}
+            {quote && <p className="text-sm font-black text-[#061b3b] mt-1">{money} <span className="text-[11px] font-bold text-[#666a76]">({quote.currency})</span></p>}
           </div>
           <button type="button" onClick={onClose} className="p-1 text-[#666a76] hover:text-[#061b3b] cursor-pointer" aria-label="Close">
             <X className="w-4 h-4" />
@@ -72,13 +102,16 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
 
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || quoteState !== 'ready'}
           className="px-5 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           <ShieldCheck className="w-4 h-4 text-[#79fd8d]" />
           <span>{busy ? 'Redirecting to secure checkout...' : 'Continue to secure payment'}</span>
         </button>
-        <p className="text-[11px] text-[#666a76] text-center">Secure payment powered by Dodo Payments.</p>
+        <p className="text-[11px] text-[#666a76] text-center">
+          You will be redirected to Dodo Payments' secure page to pay. Your payment is confirmed only after Dodo notifies us.
+          {quote?.testMode && <span className="block font-bold text-amber-700 mt-1">Test mode: no real money is charged.</span>}
+        </p>
       </form>
     </div>
   );

@@ -71,7 +71,118 @@ function safeDetails(input: unknown): Record<string, string> {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ORDER_REF_RE = /^[a-f0-9]{18}$/;
 
+const OPEN_REUSE_MS = 30 * 60 * 1000; // a repeat click within this window reuses the unfinished checkout
+const EXPIRE_AFTER_MS = 60 * 60 * 1000; // an unpaid checkout older than this is shown as expired
+const RECONCILE_MIN_MS = 15 * 1000; // at most one provider lookup per payment per interval
+const TERMINAL = ['succeeded', 'failed', 'cancelled'];
+
+// ---- Price resolution: the CMS decides what is sold, Dodo's product must agree -------------------------
+
+// CMS prices are rupees (number, or a display string such as "₹4,999"); returns paise, or 0 if not a usable price.
+function cmsMinorAmount(itemType: string, record: any): number {
+  const raw = itemType === 'webinar' ? record.priceINR : itemType === 'programme' ? record.feeINR : record.priceINR;
+  const value = typeof raw === 'number' ? raw : parseFloat(String(raw ?? '').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(value) && value > 0 ? Math.round(value * 100) : 0;
+}
+
+type Verified = { ok: true; amount: number; currency: string } | { ok: false; reason: string };
+const verifyCache = new Map<string, { at: number; result: Verified }>();
+
+// Confirms the Dodo product is a plain one-time product whose real price and currency equal the CMS price,
+// so the amount shown to the candidate is the amount Dodo will charge.
+async function verifyProductPrice(client: DodoPayments, productId: string, cmsAmount: number): Promise<Verified> {
+  if (!cmsAmount) return { ok: false, reason: 'cms_price_missing' };
+  const key = `${productId}:${cmsAmount}`;
+  const hit = verifyCache.get(key);
+  if (hit && Date.now() - hit.at < 60_000) return hit.result;
+
+  let result: Verified;
+  try {
+    const product: any = await client.products.retrieve(productId);
+    const price: any = product?.price;
+    if (product?.is_recurring || price?.type !== 'one_time_price' || price?.pay_what_you_want) {
+      result = { ok: false, reason: 'product_not_fixed_one_time' };
+    } else {
+      const bps = Number(price.discount_bps) || 0;
+      const amount = Math.round(Number(price.price) * (10000 - bps) / 10000);
+      const currency = String(price.currency || '');
+      if (currency !== 'INR') result = { ok: false, reason: `currency_mismatch:${currency}` };
+      else if (amount !== cmsAmount) result = { ok: false, reason: 'amount_mismatch' };
+      else result = { ok: true, amount, currency };
+    }
+  } catch (error: any) {
+    // Not cached: a network/Dodo failure is transient.
+    console.error('[Dodo] Product lookup failed:', error?.status, error?.message);
+    return { ok: false, reason: 'product_lookup_failed' };
+  }
+  verifyCache.set(key, { at: Date.now(), result });
+  return result;
+}
+
+type Resolved =
+  | { ok: true; record: any; productId: string; label: string; cmsAmount: number }
+  | { ok: false; status: number; error: string };
+
+// A purchasable item must exist in the CMS, be visible, and have a Dodo product.
+async function resolveItem(itemType: any, itemId: any): Promise<Resolved> {
+  if (typeof itemType !== 'string' || !Object.prototype.hasOwnProperty.call(MODELS, itemType)) {
+    return { ok: false, status: 400, error: 'Invalid item type.' };
+  }
+  let record: any = null;
+  if (typeof itemId === 'string' && mongoose.isValidObjectId(itemId)) {
+    record = await MODELS[itemType].findOne({ _id: itemId, visible: { $ne: false } });
+  }
+  if (!record) return { ok: false, status: 404, error: 'This item is not available.' };
+
+  const productId: string =
+    record.dodoProductId || (itemType === 'webinar' ? process.env.DODO_PRODUCT_ID_WEBINAR || '' : '');
+  if (!productId) {
+    return { ok: false, status: 400, error: 'Online payment is currently unavailable for this item.' };
+  }
+  return {
+    ok: true,
+    record,
+    productId,
+    label: String(record.title || record.name || itemType).slice(0, 200),
+    cmsAmount: cmsMinorAmount(itemType, record),
+  };
+}
+
+const UNAVAILABLE = 'Online payment is currently unavailable for this item.';
+
 export const paymentsRouter = express.Router();
+
+// What the candidate will be charged, from the server, before anything is created or redirected.
+paymentsRouter.post('/quote', requireCandidateAuth, async (req: Request, res: Response) => {
+  const client = getClient();
+  if (!client) {
+    res.status(503).json({ success: false, error: 'Online payments are not configured yet. Please contact CareerBuddies.' });
+    return;
+  }
+  try {
+    const item = await resolveItem(req.body?.itemType, req.body?.itemId);
+    if (item.ok === false) {
+      res.status(item.status).json({ success: false, error: item.error });
+      return;
+    }
+    const verified = await verifyProductPrice(client, item.productId, item.cmsAmount);
+    if (verified.ok === false) {
+      console.error('[Payments] Quote unavailable:', verified.reason);
+      res.status(409).json({ success: false, error: UNAVAILABLE });
+      return;
+    }
+    res.json({
+      success: true,
+      itemName: item.label,
+      amount: verified.amount / 100,
+      currency: verified.currency,
+      testMode: process.env.DODO_PAYMENTS_ENVIRONMENT !== 'live_mode',
+    });
+  } catch (error) {
+    console.error('[Payments] Quote error:', error);
+    res.status(500).json({ success: false, error: 'Unable to load payment details.' });
+  }
+});
 
 // Create a Dodo checkout session for a webinar / plan / programme.
 // The price is defined by the Dodo product — the browser never sends an amount.
@@ -96,40 +207,19 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
   const email = String(candidate.email || '').trim().toLowerCase().slice(0, 200);
   const mobile = String(customer?.mobile || candidate.mobile || '').trim().slice(0, 30);
 
-  if (!MODELS[itemType]) {
-    res.status(400).json({ success: false, error: 'Invalid item type.' });
-    return;
-  }
   if (!name || !EMAIL_RE.test(email)) {
     res.status(400).json({ success: false, error: 'A valid name and email are required.' });
     return;
   }
 
   try {
-    // The purchasable item must exist in the CMS and be visible; its Dodo product is resolved
-    // here (admin-set `dodoProductId`; webinars may fall back to the standard pass product).
-    let record: any = null;
-    if (itemId && mongoose.isValidObjectId(itemId)) {
-      record = await MODELS[itemType].findOne({ _id: itemId, visible: { $ne: false } });
-    }
-    if (!record) {
-      res.status(404).json({ success: false, error: 'This item is not available.' });
+    const item = await resolveItem(itemType, itemId);
+    if (item.ok === false) {
+      res.status(item.status).json({ success: false, error: item.error });
       return;
     }
+    const { record, productId, label } = item;
 
-    const productId: string =
-      record.dodoProductId || (itemType === 'webinar' ? process.env.DODO_PRODUCT_ID_WEBINAR || '' : '');
-
-    if (!productId) {
-      res.status(400).json({
-        success: false,
-        error: 'Online payment is currently unavailable for this item.',
-      });
-      return;
-    }
-
-    const label = String(record.title || record.name || itemType).slice(0, 200);
-    const orderRef = crypto.randomBytes(9).toString('hex');
     const appUrl = getAppUrl(req);
     if (!appUrl) {
       console.error('[Payments] PUBLIC_BASE_URL is not configured; checkout is unavailable.');
@@ -140,18 +230,55 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
       return;
     }
 
-    const payment = await Payment.create({
-      orderRef,
-      itemType,
-      itemId: String(record._id),
-      itemName: label,
-      productId,
-      candidateId: candidate._id,
-      customerName: name,
-      customerEmail: email,
-      customerMobile: mobile,
-      details: safeDetails(details),
-    });
+    // Duplicate-click safety: one unfinished checkout per candidate + item.
+    const openKey = `${candidate._id}:${itemType}:${record._id}`;
+    const reuse = async (): Promise<boolean> => {
+      const existing = await Payment.findOne({ openKey });
+      if (!existing) return false;
+      const fresh = Date.now() - new Date(existing.createdAt).getTime() < OPEN_REUSE_MS;
+      if (fresh && existing.status === 'processing') {
+        res.json({ success: true, orderRef: existing.orderRef, checkoutUrl: null, alreadyProcessing: true });
+        return true;
+      }
+      if (fresh && existing.status === 'created' && /^https:\/\//.test(existing.checkoutUrl || '')) {
+        res.json({ success: true, orderRef: existing.orderRef, checkoutUrl: existing.checkoutUrl, reused: true });
+        return true;
+      }
+      // Stale (or never got a session): release it so a new checkout can start.
+      await Payment.updateOne({ _id: existing._id, openKey }, { $unset: { openKey: 1 } });
+      return false;
+    };
+    if (await reuse()) return;
+
+    const verified = await verifyProductPrice(client, productId, item.cmsAmount);
+    if (verified.ok === false) {
+      console.error('[Payments] Checkout blocked, price not verified:', verified.reason);
+      res.status(409).json({ success: false, error: UNAVAILABLE });
+      return;
+    }
+
+    const orderRef = crypto.randomBytes(9).toString('hex');
+    let payment: any;
+    try {
+      payment = await Payment.create({
+        orderRef,
+        itemType,
+        itemId: String(record._id),
+        itemName: label,
+        productId,
+        expectedAmount: verified.amount,
+        expectedCurrency: verified.currency,
+        openKey,
+        candidateId: candidate._id,
+        customerName: name,
+        customerEmail: email,
+        customerMobile: mobile,
+        details: safeDetails(details),
+      });
+    } catch (error: any) {
+      if (error?.code === 11000 && (await reuse())) return; // concurrent double-click: hand back the winner
+      throw error;
+    }
 
     try {
       const session = await client.checkoutSessions.create({
@@ -164,6 +291,7 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
 
       if (!session?.session_id || !/^https:\/\//.test(String(session.checkout_url || ''))) throw new Error('bad_session');
       payment.dodoSessionId = session.session_id;
+      payment.checkoutUrl = session.checkout_url;
       await payment.save();
 
       res.status(201).json({
@@ -175,6 +303,7 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
       console.error('[Dodo] Checkout session creation failed:', dodoError?.status, dodoError?.message);
       payment.status = 'failed';
       payment.failureReason = 'checkout_creation_failed';
+      payment.openKey = undefined;
       await payment.save();
       res.status(502).json({
         success: false,
@@ -187,8 +316,114 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
   }
 });
 
-// Minimal public status lookup for the return page (no personal data).
-paymentsRouter.get('/status/:orderRef', async (req: Request, res: Response) => {
+const EVENT_STATUS: Record<string, string> = {
+  'payment.succeeded': 'succeeded',
+  'payment.failed': 'failed',
+  'payment.cancelled': 'cancelled',
+  'payment.processing': 'processing',
+};
+
+// Dodo's payment status → ours. Anything else (requires_*) means "still pending".
+const INTENT_STATUS: Record<string, string> = {
+  succeeded: 'succeeded',
+  failed: 'failed',
+  cancelled: 'cancelled',
+  processing: 'processing',
+};
+
+// A payment never moves backwards (e.g. a late "processing" cannot undo "succeeded").
+const RANK: Record<string, number> = {
+  created: 0,
+  processing: 1,
+  failed: 2,
+  cancelled: 2,
+  expired: 0,
+  succeeded: 3,
+};
+
+// The single place a payment's status changes. `changeId` (a webhook-id, or a synthetic id for provider lookups)
+// makes it idempotent; the update is one atomic, forward-only pipeline.
+async function applyTransition(
+  paymentId: any,
+  newStatus: string,
+  data: any,
+  eventType: string,
+  changeId: string
+): Promise<any | null> {
+  const allowedPrev = Object.keys(RANK).filter((s) => RANK[s] <= RANK[newStatus]);
+  const canApply = { $in: ['$status', allowedPrev] };
+  const total = Number(data.total_amount ?? data.settlement_amount ?? 0);
+  const currency = String(data.currency || '');
+
+  const set: Record<string, any> = {
+    processedWebhookIds: { $concatArrays: [{ $ifNull: ['$processedWebhookIds', []] }, [changeId]] },
+    status: { $cond: [canApply, newStatus, '$status'] },
+    dodoPaymentId: { $cond: [canApply, { $literal: String(data.payment_id || '') }, '$dodoPaymentId'] },
+    amount: { $cond: [canApply, { $literal: total }, '$amount'] },
+    currency: { $cond: [canApply, { $literal: currency }, '$currency'] },
+    lastEventType: { $literal: eventType },
+    lastEventAt: '$$NOW',
+  };
+  if (newStatus === 'succeeded') {
+    // Flag (never hide) a paid amount that differs from what the server verified at checkout.
+    set.amountMismatch = {
+      $cond: [
+        canApply,
+        {
+          $or: [
+            { $and: [{ $ne: [{ $type: '$expectedAmount' }, 'missing'] }, { $ne: ['$expectedAmount', total] }] },
+            { $and: [{ $ne: [{ $ifNull: ['$expectedCurrency', ''] }, ''] }, { $ne: ['$expectedCurrency', currency] }] },
+          ],
+        },
+        '$amountMismatch',
+      ],
+    };
+  }
+  if (TERMINAL.includes(newStatus)) {
+    // A finished checkout no longer blocks the candidate from starting another.
+    set.openKey = { $cond: [canApply, '$$REMOVE', '$openKey'] };
+  }
+  if (newStatus === 'failed') {
+    set.failureReason = { $cond: [canApply, { $literal: String(data.error_code || data.error_message || 'payment_failed').slice(0, 200) }, '$failureReason'] };
+  }
+
+  const updated = await Payment.findOneAndUpdate(
+    { _id: paymentId, processedWebhookIds: { $ne: changeId } },
+    [{ $set: set }],
+    { returnDocument: 'after', updatePipeline: true }
+  );
+  if (updated?.amountMismatch && newStatus === 'succeeded') {
+    console.error(`[Payments] Paid amount differs from the verified amount for order ${updated.orderRef}; flagged for review.`);
+  }
+  return updated;
+}
+
+// Webhook delayed or lost? Ask Dodo directly (session → payment) and apply the result through the same
+// idempotent transition. Only trusts a payment whose metadata carries this order's reference.
+async function reconcileWithProvider(client: DodoPayments, payment: any): Promise<any> {
+  if (!payment.dodoSessionId || !['created', 'processing'].includes(payment.status)) return payment;
+  if (payment.lastProviderCheckAt && Date.now() - new Date(payment.lastProviderCheckAt).getTime() < RECONCILE_MIN_MS) return payment;
+  await Payment.updateOne({ _id: payment._id }, { $set: { lastProviderCheckAt: new Date() } });
+  try {
+    const session: any = await client.checkoutSessions.retrieve(payment.dodoSessionId);
+    if (!session?.payment_id) return payment;
+    const remote: any = await client.payments.retrieve(session.payment_id);
+    if (!remote || remote.metadata?.orderRef !== payment.orderRef) {
+      console.warn('[Dodo] Provider payment does not belong to this order; ignored.');
+      return payment;
+    }
+    const mapped = INTENT_STATUS[String(remote.status)];
+    if (!mapped) return payment;
+    const updated = await applyTransition(payment._id, mapped, remote, `sync.${mapped}`, `sync:${remote.payment_id}:${mapped}`);
+    return updated || (await Payment.findById(payment._id)) || payment;
+  } catch (error: any) {
+    console.warn('[Dodo] Provider status lookup failed:', error?.status, error?.message);
+    return payment;
+  }
+}
+
+// Status for the return page. Only the candidate who started the checkout can read it.
+paymentsRouter.get('/status/:orderRef', requireCandidateAuth, async (req: Request, res: Response) => {
   const { orderRef } = req.params;
 
   if (!ORDER_REF_RE.test(orderRef)) {
@@ -196,19 +431,32 @@ paymentsRouter.get('/status/:orderRef', async (req: Request, res: Response) => {
     return;
   }
 
-  const payment = await Payment.findOne({ orderRef });
+  try {
+    const candidate = (req as any).candidate;
+    // Someone else's order is indistinguishable from a missing one.
+    let payment = await Payment.findOne({ orderRef, candidateId: candidate._id });
+    if (!payment) {
+      res.status(404).json({ success: false, error: 'Order not found.' });
+      return;
+    }
 
-  if (!payment) {
-    res.status(404).json({ success: false, error: 'Order not found.' });
-    return;
+    const client = getClient();
+    if (client) payment = await reconcileWithProvider(client, payment);
+
+    const stale = payment.status === 'created' && Date.now() - new Date(payment.createdAt).getTime() > EXPIRE_AFTER_MS;
+    const paid = payment.status === 'succeeded';
+    res.json({
+      success: true,
+      status: stale ? 'expired' : payment.status,
+      itemType: payment.itemType,
+      itemName: payment.itemName,
+      amount: (paid && payment.amount != null ? payment.amount : payment.expectedAmount ?? payment.amount ?? 0) / 100,
+      currency: (paid && payment.currency) || payment.expectedCurrency || payment.currency || '',
+    });
+  } catch (error) {
+    console.error('[Payments] Status error:', error);
+    res.status(500).json({ success: false, error: 'Unable to check payment status.' });
   }
-
-  res.json({
-    success: true,
-    status: payment.status,
-    itemType: payment.itemType,
-    itemName: payment.itemName,
-  });
 });
 
 // Admin-only payment log.
@@ -219,22 +467,6 @@ paymentsRouter.get('/admin', requireAdminAuth, async (req: Request, res: Respons
     .limit(200);
   res.json({ success: true, items });
 });
-
-const EVENT_STATUS: Record<string, string> = {
-  'payment.succeeded': 'succeeded',
-  'payment.failed': 'failed',
-  'payment.cancelled': 'cancelled',
-  'payment.processing': 'processing',
-};
-
-// A payment never moves backwards (e.g. a late "processing" cannot undo "succeeded").
-const RANK: Record<string, number> = {
-  created: 0,
-  processing: 1,
-  failed: 2,
-  cancelled: 2,
-  succeeded: 3,
-};
 
 // Mounted with express.raw() BEFORE express.json() — signature verification
 // needs the exact raw request body.
@@ -290,30 +522,8 @@ export async function paymentsWebhookHandler(req: Request, res: Response) {
       return;
     }
 
-    const allowedPrev = Object.keys(RANK).filter((s) => RANK[s] <= RANK[newStatus]);
-    const canApply = { $in: ['$status', allowedPrev] };
-
-    // Single atomic update: skips if this webhook-id was already processed
-    // (duplicate delivery) and only advances the status forward.
-    const updated = await Payment.findOneAndUpdate(
-      { _id: payment._id, processedWebhookIds: { $ne: webhookId } },
-      [
-        {
-          $set: {
-            processedWebhookIds: {
-              $concatArrays: [{ $ifNull: ['$processedWebhookIds', []] }, [webhookId]],
-            },
-            status: { $cond: [canApply, newStatus, '$status'] },
-            dodoPaymentId: { $cond: [canApply, { $literal: String(data.payment_id || '') }, '$dodoPaymentId'] },
-            amount: { $cond: [canApply, { $literal: Number(data.total_amount ?? data.settlement_amount ?? 0) }, '$amount'] },
-            currency: { $cond: [canApply, { $literal: String(data.currency || '') }, '$currency'] },
-            lastEventType: { $literal: String(event.type) },
-            lastEventAt: '$$NOW',
-          },
-        },
-      ],
-      { returnDocument: 'after', updatePipeline: true }
-    );
+    // Duplicate deliveries (same webhook-id) are no-ops; out-of-order ones never move the status backwards.
+    const updated = await applyTransition(payment._id, newStatus, data, String(event.type), webhookId);
 
     res.json({ success: true, duplicate: !updated });
   } catch (error) {

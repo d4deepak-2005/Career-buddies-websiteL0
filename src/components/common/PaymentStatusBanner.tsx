@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, AlertCircle, Loader2, X } from 'lucide-react';
+import { candidateFetch } from '../../utils/candidateAuth';
 
-type Status = 'created' | 'processing' | 'succeeded' | 'failed' | 'cancelled';
+type Status = 'created' | 'processing' | 'succeeded' | 'failed' | 'cancelled' | 'expired';
 
 // Shown after Dodo redirects back to `/?order=<ref>`. The status shown comes
 // from the server (updated by verified webhooks), not from the URL, so it
@@ -14,6 +15,7 @@ export const PaymentStatusBanner: React.FC = () => {
   const [status, setStatus] = useState<Status | null>(null);
   const [itemName, setItemName] = useState('');
   const [notFound, setNotFound] = useState(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -24,7 +26,12 @@ export const PaymentStatusBanner: React.FC = () => {
     const poll = async () => {
       attempts += 1;
       try {
-        const res = await fetch(`/api/payments/status/${encodeURIComponent(orderRef)}`);
+        // Only the candidate who started the payment can read its status.
+        const res = await candidateFetch(`/api/payments/status/${encodeURIComponent(orderRef)}`);
+        if (res.status === 401) {
+          if (!cancelled) setNeedsLogin(true);
+          return;
+        }
         if (res.status === 404 || res.status === 400) {
           if (!cancelled) setNotFound(true);
           return;
@@ -64,10 +71,14 @@ export const PaymentStatusBanner: React.FC = () => {
       ? { tone: 'bg-red-50 border-red-200 text-red-800', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'Your payment could not be completed. You have not been charged — please try again.' }
       : status === 'cancelled'
       ? { tone: 'bg-amber-50 border-amber-200 text-amber-800', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'Payment was cancelled. You can try again whenever you are ready.' }
+      : status === 'expired'
+      ? { tone: 'bg-amber-50 border-amber-200 text-amber-800', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'This checkout expired before a payment was confirmed. You have not been charged — please start again.' }
+      : needsLogin
+      ? { tone: 'bg-[#f1f3ff] border-[#cbdaff] text-[#002869]', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'Please log in to your Candidate Area to see the status of your payment.' }
       : cameBackCancelled
       ? { tone: 'bg-amber-50 border-amber-200 text-amber-800', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'Checkout was cancelled and no payment has been confirmed. You can try again whenever you are ready.' }
       : gaveUp
-      ? { tone: 'bg-[#f1f3ff] border-[#cbdaff] text-[#002869]', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'We have not received a payment confirmation yet. Please check Payment History in your Candidate Area in a few minutes.' }
+      ? { tone: 'bg-[#f1f3ff] border-[#cbdaff] text-[#002869]', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'We have not received a payment confirmation yet. Payments can take a few minutes to confirm — check Payment History in your Candidate Area shortly. If you were charged and it does not appear, contact CareerBuddies.' }
       : { tone: 'bg-[#f1f3ff] border-[#cbdaff] text-[#002869]', icon: <Loader2 className="w-5 h-5 shrink-0 animate-spin" />, text: 'Confirming your payment…' };
 
   return (

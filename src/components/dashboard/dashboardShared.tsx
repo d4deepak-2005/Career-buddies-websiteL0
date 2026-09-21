@@ -46,6 +46,7 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   processing: 'Payment Processing',
   failed: 'Payment Failed',
   cancelled: 'Cancelled',
+  expired: 'Expired',
 };
 
 export const EmptyState: React.FC<{ title: string; hint?: string }> = ({ title, hint }) => (
