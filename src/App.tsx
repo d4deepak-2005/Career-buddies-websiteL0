@@ -217,7 +217,8 @@ export default function App() {
       window.history.replaceState(
         { ...(window.history.state || {}), cbPage: activePage, cbLeader: selectedLeaderSlug, cbId: currentEntryId.current },
         '',
-        pageUrl(activePage)
+        // Keep a social sign-in return fragment (#social= / #link=) so the effect below can still read it.
+        pageUrl(activePage) + (/^#(social|link)=/.test(window.location.hash) ? window.location.hash : '')
       );
     } else if (prevNavKey.current !== navKey) {
       if (restoreScrollTo.current !== null) {
