@@ -236,6 +236,8 @@ type ChatMessage = {
   // assistant only
   status?: 'streaming' | 'done' | 'error';
   errorKind?: 'timeout' | 'failed';
+  // shown instead of "Thinking…" while the server retries a stalled upstream request
+  note?: string;
   recommendation?: Recommendation | null;
   showCta?: boolean;
   webinarsAvailable?: boolean;
@@ -318,7 +320,7 @@ const MessageBubble = React.memo(function MessageBubble({
         {isUser ? (
           message.content
         ) : message.status === 'streaming' && !message.content ? (
-          <span className="animate-pulse text-slate-500">Thinking…</span>
+          <span className="animate-pulse text-slate-500">{message.note || 'Thinking…'}</span>
         ) : (
           renderMarkdown(message.content)
         )}
@@ -358,7 +360,7 @@ const MessageBubble = React.memo(function MessageBubble({
                 )}
                 {rec.why && (
                   <p>
-                    Based on this, {rec.name} is relevant because {rec.why.charAt(0).toLowerCase() + rec.why.slice(1).replace(/^because\s+/i, '')}
+                    Based on this, {rec.name} is relevant. {rec.why.replace(/^because\s+/i, '').replace(/^./, (c) => c.toUpperCase())}
                   </p>
                 )}
               </div>
@@ -516,6 +518,8 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
               webinarsAvailable: !!data?.webinarsAvailable,
             });
             if (!isOpenRef.current) setHasUnread(true);
+          } else if (event === 'status') {
+            if (data?.retrying) patchMessage(assistantId, { note: 'Still working on it…' });
           } else if (event === 'error') {
             finished = true;
             fail(data?.code === 'timeout' ? 'timeout' : 'failed');
