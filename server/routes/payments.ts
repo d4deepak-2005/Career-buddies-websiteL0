@@ -27,15 +27,19 @@ function getClient(): DodoPayments | null {
   const apiKey = process.env.DODO_PAYMENTS_API_KEY;
   if (!apiKey) return null;
 
+  // TEST MODE ONLY unless live mode has been deliberately enabled (never done in development).
+  const wantsLive = process.env.DODO_PAYMENTS_ENVIRONMENT === 'live_mode';
+  if (wantsLive && process.env.DODO_PAYMENTS_ALLOW_LIVE_MODE !== 'true') {
+    console.error('[Dodo] live_mode requested but not allowed; payments are disabled. Use test_mode.');
+    return null;
+  }
+
   if (!cachedClient) {
     // A bad configuration must never crash the process: treat it as "not configured".
     try {
       cachedClient = new DodoPayments({
         bearerToken: apiKey,
-        environment:
-          process.env.DODO_PAYMENTS_ENVIRONMENT === 'live_mode'
-            ? 'live_mode'
-            : 'test_mode',
+        environment: wantsLive ? 'live_mode' : 'test_mode',
         webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_KEY || null,
       });
     } catch (error: any) {
@@ -50,6 +54,18 @@ function getClient(): DodoPayments | null {
 // Return/cancel URLs come only from the configured public base URL (never request headers).
 function getAppUrl(req: Request): string | null {
   return getPublicBaseUrl(req);
+}
+
+// Extra checkout notes from the form: plain strings only, small, never trusted for anything.
+function safeDetails(input: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return out;
+  for (const [key, value] of Object.entries(input as Record<string, unknown>).slice(0, 20)) {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      out[key.slice(0, 60).replace(/[.$]/g, '_')] = String(value).slice(0, 300);
+    }
+  }
+  return out;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,7 +86,9 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
     return;
   }
 
-  const { itemType, itemId, itemName, customer, details } = req.body || {};
+  // Only the item type + id are used to pick what is bought. Price, currency, product id and
+  // candidate identity are never read from the request.
+  const { itemType, itemId, customer, details } = req.body || {};
   // Identity comes ONLY from the authenticated server session. Any customer id/email
   // in the request body is ignored - it can't associate a checkout with someone else.
   const candidate = (req as any).candidate;
@@ -88,26 +106,29 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
   }
 
   try {
-    // Resolve the Dodo product server-side from the CMS record (admin-set
-    // `dodoProductId`); webinars fall back to the standard pass product.
+    // The purchasable item must exist in the CMS and be visible; its Dodo product is resolved
+    // here (admin-set `dodoProductId`; webinars may fall back to the standard pass product).
     let record: any = null;
     if (itemId && mongoose.isValidObjectId(itemId)) {
       record = await MODELS[itemType].findOne({ _id: itemId, visible: { $ne: false } });
     }
+    if (!record) {
+      res.status(404).json({ success: false, error: 'This item is not available.' });
+      return;
+    }
 
     const productId: string =
-      record?.dodoProductId ||
-      (itemType === 'webinar' ? process.env.DODO_PRODUCT_ID_WEBINAR || '' : '');
+      record.dodoProductId || (itemType === 'webinar' ? process.env.DODO_PRODUCT_ID_WEBINAR || '' : '');
 
     if (!productId) {
       res.status(400).json({
         success: false,
-        error: 'This item is not available for online payment yet.',
+        error: 'Online payment is currently unavailable for this item.',
       });
       return;
     }
 
-    const label = String(record?.title || record?.name || itemName || itemType).slice(0, 200);
+    const label = String(record.title || record.name || itemType).slice(0, 200);
     const orderRef = crypto.randomBytes(9).toString('hex');
     const appUrl = getAppUrl(req);
     if (!appUrl) {
@@ -122,14 +143,14 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
     const payment = await Payment.create({
       orderRef,
       itemType,
-      itemId: String(itemId || ''),
+      itemId: String(record._id),
       itemName: label,
       productId,
       candidateId: candidate._id,
       customerName: name,
       customerEmail: email,
       customerMobile: mobile,
-      details: typeof details === 'object' && details ? details : {},
+      details: safeDetails(details),
     });
 
     try {
@@ -138,9 +159,10 @@ paymentsRouter.post('/checkout', requireCandidateAuth, async (req: Request, res:
         customer: { email, name },
         return_url: `${appUrl}/?order=${orderRef}`,
         cancel_url: `${appUrl}/?order=${orderRef}&cancelled=1`,
-        metadata: { orderRef, itemType, itemId: String(itemId || '') },
+        metadata: { orderRef, itemType, itemId: String(record._id) },
       });
 
+      if (!session?.session_id || !/^https:\/\//.test(String(session.checkout_url || ''))) throw new Error('bad_session');
       payment.dodoSessionId = session.session_id;
       await payment.save();
 

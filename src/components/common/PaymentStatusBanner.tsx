@@ -8,6 +8,9 @@ type Status = 'created' | 'processing' | 'succeeded' | 'failed' | 'cancelled';
 // cannot be spoofed by editing the query string.
 export const PaymentStatusBanner: React.FC = () => {
   const [orderRef] = useState(() => new URLSearchParams(window.location.search).get('order'));
+  // Dodo sends the customer to the cancel URL (…&cancelled=1) when they leave checkout without paying.
+  const [cameBackCancelled] = useState(() => new URLSearchParams(window.location.search).get('cancelled') === '1');
+  const [gaveUp, setGaveUp] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);
   const [itemName, setItemName] = useState('');
   const [notFound, setNotFound] = useState(false);
@@ -33,6 +36,8 @@ export const PaymentStatusBanner: React.FC = () => {
         // Webhook can arrive a few seconds after the redirect — keep checking briefly.
         if ((data.status === 'created' || data.status === 'processing') && attempts < 10) {
           setTimeout(poll, 3000);
+        } else if (data.status === 'created' || data.status === 'processing') {
+          setGaveUp(true);
         }
       } catch {
         if (!cancelled && attempts < 10) setTimeout(poll, 3000);
@@ -54,11 +59,15 @@ export const PaymentStatusBanner: React.FC = () => {
 
   const view =
     status === 'succeeded'
-      ? { tone: 'bg-[#e8f5e9] border-[#a5d6a7] text-[#1b5e20]', icon: <CheckCircle2 className="w-5 h-5 shrink-0" />, text: `Payment successful${itemName ? ` for ${itemName}` : ''}. Thank you! A confirmation will be sent to your email.` }
+      ? { tone: 'bg-[#e8f5e9] border-[#a5d6a7] text-[#1b5e20]', icon: <CheckCircle2 className="w-5 h-5 shrink-0" />, text: `Payment successful${itemName ? ` for ${itemName}` : ''}. Thank you! You can see it under Payment History in your Candidate Area.` }
       : status === 'failed'
       ? { tone: 'bg-red-50 border-red-200 text-red-800', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'Your payment could not be completed. You have not been charged — please try again.' }
       : status === 'cancelled'
       ? { tone: 'bg-amber-50 border-amber-200 text-amber-800', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'Payment was cancelled. You can try again whenever you are ready.' }
+      : cameBackCancelled
+      ? { tone: 'bg-amber-50 border-amber-200 text-amber-800', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'Checkout was cancelled and no payment has been confirmed. You can try again whenever you are ready.' }
+      : gaveUp
+      ? { tone: 'bg-[#f1f3ff] border-[#cbdaff] text-[#002869]', icon: <AlertCircle className="w-5 h-5 shrink-0" />, text: 'We have not received a payment confirmation yet. Please check Payment History in your Candidate Area in a few minutes.' }
       : { tone: 'bg-[#f1f3ff] border-[#cbdaff] text-[#002869]', icon: <Loader2 className="w-5 h-5 shrink-0 animate-spin" />, text: 'Confirming your payment…' };
 
   return (
