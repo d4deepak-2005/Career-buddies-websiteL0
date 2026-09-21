@@ -9,6 +9,7 @@ import { LeadershipSection } from '../common/LeadershipSection';
 import { SectionHeading } from '../common/SectionHeading';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { SiteSettingsData, pickText } from '../../hooks/useSiteSettings';
+import { getContactInfo } from '../../utils/contactInfo';
 import { 
   HeartHandshake, 
   Compass, 
@@ -248,7 +249,7 @@ export const AboutUsScreen: React.FC<AboutUsScreenProps> = ({
               CareerBuddies Global Operations
             </h4>
             <p className="text-xs text-[#434652] max-w-lg leading-relaxed font-medium">
-              {DEFAULT_SITE_CONFIG.officeAddress}
+              {getContactInfo(siteSettings).address}
             </p>
           </div>
 

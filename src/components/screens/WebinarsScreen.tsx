@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { SectionHeading } from '../common/SectionHeading';
-import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
+import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface WebinarsScreenProps {
   onSelectWebinar: (webinar: WebinarItem) => void;
@@ -274,7 +274,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
                   onClick={() => toggleFaq(faq.id)}
                   className="w-full p-4 text-left font-bold text-xs sm:text-sm text-[#061b3b] flex items-center justify-between gap-4 hover:bg-[#f9f9ff] cursor-pointer"
                 >
-                  <span>{faq.question}</span>
+                  <span>{withEntryPrice(faq.question, entryPrice)}</span>
                   {openFaq === faq.id ? (
                     <ChevronUp className="w-4 h-4 text-[#002869] shrink-0" />
                   ) : (
@@ -283,7 +283,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
                 </button>
                 {openFaq === faq.id && (
                   <div className="p-4 pt-0 text-xs text-[#434652] leading-relaxed bg-[#f9f9ff] border-t border-gray-100">
-                    {faq.answer}
+                    {withEntryPrice(faq.answer, entryPrice)}
                   </div>
                 )}
               </div>

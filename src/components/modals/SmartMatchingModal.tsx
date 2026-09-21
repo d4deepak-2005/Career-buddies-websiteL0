@@ -23,6 +23,16 @@ interface SmartMatchingModalProps {
   onBookMentor: (mentor: Mentor) => void;
 }
 
+// Which mentor category corresponds to each "current discipline" answer.
+const DISCIPLINE_CATEGORY: Record<string, string> = {
+  'Software Engineer': 'Engineering',
+  'Product Manager': 'Product',
+  'Product Designer': 'Design',
+  'Data & AI Engineer': 'Data & AI',
+  'Engineering Manager': 'Leadership',
+  'Growth & Marketing': 'Marketing & Growth',
+};
+
 export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
   isOpen,
   onClose,
@@ -53,8 +63,19 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
     setIsCalculating(false);
   };
 
-  // Determine top 3 matches based on inputs
-  const matchedMentors = allMentors.slice(0, 3);
+  // Rank mentors from the answers given: discipline match first, then overlap between the target
+  // role / goal and each mentor's topics and skills; ties go to the higher rating.
+  const words = `${targetRole} ${primaryGoal}`.toLowerCase().split(/[^a-z0-9+]+/).filter((w) => w.length > 3);
+  const ranked = allMentors
+    .map((mentor) => {
+      const haystack = [...(mentor.topics || []), ...(mentor.skills || [])].join(' ').toLowerCase();
+      const disciplineScore = mentor.category === DISCIPLINE_CATEGORY[currentRole] ? 3 : 0;
+      const keywordScore = words.filter((w) => haystack.includes(w)).length;
+      return { mentor, score: disciplineScore + keywordScore };
+    })
+    .sort((a, b) => b.score - a.score || (b.mentor.rating || 0) - (a.mentor.rating || 0));
+  const matchedMentors = ranked.slice(0, 3).map((entry) => entry.mentor);
+  const hasRealMatch = ranked.length > 0 && ranked[0].score > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
@@ -64,7 +85,7 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
         <div className="px-6 py-4 bg-[#002869] text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#79fd8d]" />
-            <h3 className="font-bold text-base">Smart Matchmaker (AI Grounded)</h3>
+            <h3 className="font-bold text-base">Smart Matchmaker</h3>
           </div>
           <button aria-label="Close" 
             onClick={onClose}
@@ -236,10 +257,14 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
                 <div>
                   <span className="text-xs font-bold text-[#006e29] flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5" />
-                    3 Perfect Mentors Found
+                    {matchedMentors.length === 0
+                      ? 'No mentors available right now'
+                      : hasRealMatch
+                        ? `${matchedMentors.length} Suggested Mentor${matchedMentors.length === 1 ? '' : 's'}`
+                        : 'Top-rated mentors'}
                   </span>
                   <p className="text-xs text-[#061b3b] mt-0.5">
-                    Tailored for: <strong>{currentRole}</strong> → <strong>{targetRole}</strong> ({primaryGoal})
+                    {hasRealMatch ? 'Based on' : 'No close match found for'}: <strong>{currentRole}</strong> → <strong>{targetRole}</strong> ({primaryGoal})
                   </p>
                 </div>
                 <button
@@ -252,7 +277,6 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
 
               <div className="flex flex-col gap-4">
                 {matchedMentors.map((mentor, index) => {
-                  const matchPercentage = index === 0 ? 99 : index === 1 ? 97 : 94;
                   return (
                     <div
                       key={mentor.id}
@@ -269,9 +293,6 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
                             <h4 className="font-bold text-sm text-[#061b3b]">{mentor.name}</h4>
                             <span className="px-2 py-0.5 rounded bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
                               {mentor.company}
-                            </span>
-                            <span className="bg-[#79fd8d]/30 text-[#00531d] text-[11px] px-2 py-0.5 rounded-full font-bold">
-                              {matchPercentage}% Match
                             </span>
                           </div>
                           <p className="text-xs text-[#434652]">{mentor.title}</p>

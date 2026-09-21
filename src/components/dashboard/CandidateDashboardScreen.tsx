@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { CandidateProfile, candidateFetch } from '../../utils/candidateAuth';
 import { PageView } from '../../types';
-import { DEFAULT_SITE_CONFIG } from '../../config/siteConfig';
+import { getContactInfo } from '../../utils/contactInfo';
+import { SiteSettingsData } from '../../hooks/useSiteSettings';
 import { PageBottomNav } from '../common/PageBottomNav';
 import { ModalA11y } from '../common/ModalA11y';
 import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
@@ -11,7 +12,10 @@ import { ProfileTab } from './ProfileTab';
 import { COMPLETE_PROFILE, EmptyState, EnquiryRecord, NOT_AVAILABLE, PAYMENT_STATUS_LABEL, PaymentRecord, WebinarRecord, formatDate, formatINR } from './dashboardShared';
 import { User, Sparkles, Calendar, FileText, CreditCard, Download, CheckCircle2, Video, Headphones, MessageSquare, Bell, Eye, X, Send, Layers, ArrowRight, FolderDown, Printer, Lock, Settings } from 'lucide-react';
 
+const DASHBOARD_WHATSAPP_MESSAGE = 'Hi CareerBuddies team, I would like to know more about career counselling, mentorship, and webinars.';
+
 interface CandidateDashboardScreenProps {
+  siteSettings?: SiteSettingsData | null;
   setActivePage: (page: PageView) => void;
   candidate: CandidateProfile;
   onCandidateUpdate: (candidate: CandidateProfile) => void;
@@ -37,8 +41,10 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
   setActivePage,
   candidate,
   onCandidateUpdate,
-  onLogout
+  onLogout,
+  siteSettings
 }) => {
+  const contact = getContactInfo(siteSettings);
   const entryPrice = useWebinarEntryPrice();
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
@@ -448,13 +454,13 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                     Have questions about your plan, profile or upcoming sessions? Message the CareerBuddies advisor desk directly.
                   </p>
                   <a
-                    href={DEFAULT_SITE_CONFIG.whatsappLink}
+                    href={contact.whatsappLink(DASHBOARD_WHATSAPP_MESSAGE)}
                     target="_blank"
                     rel="noreferrer"
                     className="w-full py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp Advisor Desk ({DEFAULT_SITE_CONFIG.primaryWhatsApp})</span>
+                    <span>WhatsApp Advisor Desk ({contact.whatsappPrimary})</span>
                   </a>
                 </div>
 
@@ -986,13 +992,13 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   </p>
                 </div>
                 <a
-                  href={DEFAULT_SITE_CONFIG.whatsappLink}
+                  href={contact.whatsappLink(DASHBOARD_WHATSAPP_MESSAGE)}
                   target="_blank"
                   rel="noreferrer"
                   className="w-full py-3 rounded-xl bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black text-center shadow-xs cursor-pointer flex items-center justify-center gap-2"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>Chat on WhatsApp: {DEFAULT_SITE_CONFIG.primaryWhatsApp}</span>
+                  <span>Chat on WhatsApp: {contact.whatsappPrimary}</span>
                 </a>
               </div>
 
@@ -1008,10 +1014,10 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
                   </p>
                 </div>
                 <a
-                  href={`mailto:${DEFAULT_SITE_CONFIG.supportEmail}`}
+                  href={`mailto:${contact.supportEmail}`}
                   className="w-full py-3 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black text-center shadow-xs cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <span>Email: {DEFAULT_SITE_CONFIG.supportEmail}</span>
+                  <span>Email: {contact.supportEmail}</span>
                 </a>
               </div>
 
@@ -1056,8 +1062,8 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               <div>
                 <strong className="text-[#061b3b] block font-bold">Billed By:</strong>
                 <span className="text-[#434652] block font-semibold">CareerBuddies Private Limited</span>
-                <span className="text-[#666a76] block">{DEFAULT_SITE_CONFIG.officeAddress}</span>
-                <span className="text-[#666a76] block">Email: {DEFAULT_SITE_CONFIG.supportEmail}</span>
+                <span className="text-[#666a76] block">{contact.address}</span>
+                <span className="text-[#666a76] block">Email: {contact.supportEmail}</span>
               </div>
               <div className="text-right">
                 <strong className="text-[#061b3b] block font-bold">Billed To:</strong>

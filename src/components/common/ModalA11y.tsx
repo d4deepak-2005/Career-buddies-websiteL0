@@ -129,7 +129,9 @@ export const ModalA11y: React.FC<ModalA11yProps> = ({ label, onClose, modal = tr
         if (control && !control.hasAttribute('aria-required')) control.setAttribute('aria-required', 'true');
       });
       const described = new Set<HTMLElement>();
-      el.querySelectorAll<HTMLElement>('p[class*="text-red-"]').forEach((message) => {
+      el.querySelectorAll<HTMLElement>('p[class*="text-red-"], span[class*="text-red-"]').forEach((message) => {
+        // Skip the red "*" required markers inside labels; only real messages are linked.
+        if (message.closest('label') || (message.textContent?.trim().length ?? 0) < 3) return;
         const control = message.parentElement?.querySelector<HTMLElement>('input,select,textarea');
         if (!control || !message.textContent?.trim()) return;
         if (!message.id) message.id = `modal-error-${++errorSeq}-${Math.random().toString(36).slice(2, 7)}`;

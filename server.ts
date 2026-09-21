@@ -198,7 +198,7 @@ async function notifyWhatsAppAdmins(
     `_Action required: Review in CareerBuddies Lead Dashboard or connect directly._`;
 
   console.log(
-    `[Lead Processing] Stored Lead #${lead.serialNumber} (${lead.fullName}) from ${lead.source}`
+    `[Lead Processing] Stored Lead #${lead.serialNumber} from ${lead.source}`
   );
 
   // Optional WhatsApp Business API integration
@@ -1187,6 +1187,11 @@ async function startServer() {
     );
 
     app.get('*', (req, res) => {
+      // A missing file (image, script, source map...) is a real 404, not the app shell.
+      if (/\.[A-Za-z0-9]{1,8}$/.test(req.path)) {
+        res.status(404).type('text/plain').send('Not found.');
+        return;
+      }
       // Only the home page is meant to be indexed; any other path (e.g. a reset link) is not.
       if (req.path !== '/') res.setHeader('X-Robots-Tag', 'noindex');
       res.setHeader('Cache-Control', 'no-cache');

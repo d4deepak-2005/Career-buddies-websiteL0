@@ -131,7 +131,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setGeneralError('Please fill in all mandatory fields (*) before submitting.');
+      // Missing required fields and invalid values need different guidance.
+      const hasMissing = Object.values(newErrors).some((message) => /required/i.test(message));
+      setGeneralError(
+        hasMissing
+          ? 'Please fill in all mandatory fields (*) before submitting.'
+          : 'Please correct the highlighted fields and try again.'
+      );
       return;
     }
 

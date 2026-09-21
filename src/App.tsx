@@ -178,6 +178,15 @@ export default function App() {
     };
   }, []);
 
+  // Browser Back/Forward changes the page but dialogs are not history entries: close the read-only
+  // detail dialogs so one can never stay open on top of a different page.
+  useEffect(() => {
+    setSelectedArticle(null);
+    setSelectedService(null);
+    setSelectedWebinarForDetail(null);
+    setBioMentor(null);
+  }, [activePage]);
+
   // Page-specific title / description / robots for the current page.
   useEffect(() => {
     applyPageMeta(activePage);
@@ -650,6 +659,7 @@ export default function App() {
         {activePage === 'dashboard' && candidate && (
           <CandidateDashboardScreen
             key={candidate.id}
+            siteSettings={siteSettings}
             setActivePage={setActivePage}
             candidate={candidate}
             onCandidateUpdate={setCandidate}

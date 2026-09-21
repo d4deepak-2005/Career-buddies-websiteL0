@@ -292,8 +292,6 @@ export function AICareerAssistant() {
       // Try to read JSON response
       const data = await response.json();
 
-      console.log('[AI Assistant] Response:', data);
-
       if (!response.ok || !data?.success) {
         throw new Error(
           data?.error ||
