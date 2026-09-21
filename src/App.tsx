@@ -54,7 +54,6 @@ import {
   getCandidateToken,
   setCandidateToken
 } from './utils/candidateAuth';
-const UserDashboardDrawer = lazyNamed(() => import('./components/modals/UserDashboardDrawer'), 'UserDashboardDrawer');
 const CounsellingModal = lazyNamed(() => import('./components/modals/CounsellingModal'), 'CounsellingModal');
 const ServiceDetailModal = lazyNamed(() => import('./components/modals/ServiceDetailModal'), 'ServiceDetailModal');
 const ArticleReaderModal = lazyNamed(() => import('./components/modals/ArticleReaderModal'), 'ArticleReaderModal');
@@ -97,7 +96,6 @@ export default function App() {
   const [isBecomeMentorOpen, setIsBecomeMentorOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [isUserDashboardOpen, setIsUserDashboardOpen] = useState(false);
   const [isCounsellingOpen, setIsCounsellingOpen] = useState(false);
   const [counsellingPlanInterest, setCounsellingPlanInterest] = useState<string>('Free 1:1 Strategic Diagnostic');
 
@@ -404,10 +402,6 @@ export default function App() {
     setBookedSessions(prev => [session, ...prev]);
   };
 
-  const handleCancelSession = (id: string) => {
-    setBookedSessions(prev => prev.filter(s => s.id !== id));
-  };
-
   const handleOpenLogin = () => {
     setStartInForgot(false);
     setAuthMode('login');
@@ -516,6 +510,7 @@ export default function App() {
           <LeadershipScreen
             onNavigate={setActivePage}
             onOpenCounselling={() => handleOpenCounsellingWithPlan('1:1 Guidance with Leadership Team')}
+            onSelectLeader={handleSelectLeader}
           />
         )}
 
@@ -591,6 +586,7 @@ export default function App() {
             onSelectMentor={handleSelectMentorForBio}
             onBookMentor={handleBookMentor}
             onStartMatching={() => setIsSmartMatchingOpen(true)}
+            onBecomeMentor={() => setIsBecomeMentorOpen(true)}
             setActivePage={setActivePage}
           />
         )}
@@ -858,20 +854,6 @@ export default function App() {
         />
       )}
 
-      {/* User Dashboard & Bookings Drawer */}
-      <WhenOpen open={isUserDashboardOpen}>
-      <UserDashboardDrawer
-        isOpen={isUserDashboardOpen}
-        onClose={() => setIsUserDashboardOpen(false)}
-        sessions={bookedSessions}
-        onCancelSession={handleCancelSession}
-        onSelectMentor={handleSelectMentorForBio}
-        onStartMatching={() => {
-          setIsUserDashboardOpen(false);
-          setIsSmartMatchingOpen(true);
-        }}
-      />
-      </WhenOpen>
       </Suspense>
       </LazyBoundary>
 

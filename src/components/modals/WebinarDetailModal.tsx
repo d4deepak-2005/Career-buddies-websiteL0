@@ -167,7 +167,7 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#061b3b]">
               <span className="flex items-center gap-1.5">
                 <Video className="w-3.5 h-3.5 text-[#006e29]" />
-                Live interactive Google Meet session
+                Live interactive session
               </span>
               <span className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-[#006e29]" />

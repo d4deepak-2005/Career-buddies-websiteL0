@@ -22,6 +22,7 @@ interface MentorsScreenProps {
   onSelectMentor: (mentor: Mentor) => void;
   onBookMentor: (mentor: Mentor) => void;
   onStartMatching: () => void;
+  onBecomeMentor?: () => void;
   setActivePage?: (page: PageView) => void;
 }
 
@@ -39,6 +40,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
   onSelectMentor,
   onBookMentor,
   onStartMatching,
+  onBecomeMentor,
   setActivePage
 }) => {
   const MOCK_MENTORS = useMentors();
@@ -125,13 +127,23 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={onStartMatching}
-            className="flex items-center gap-2 px-5 py-3 bg-[#002869] hover:bg-[#0b3d91] text-white font-semibold text-sm rounded-xl shadow-sm transition-all shrink-0 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-[#79fd8d]" />
-            <span>Smart Match Me (30s)</span>
-          </button>
+          <div className="flex flex-col lg:flex-row gap-3 shrink-0">
+            <button
+              onClick={onStartMatching}
+              className="flex items-center gap-2 px-5 py-3 bg-[#002869] hover:bg-[#0b3d91] text-white font-semibold text-sm rounded-xl shadow-sm transition-all shrink-0 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-[#79fd8d]" />
+              <span>Smart Match Me (30s)</span>
+            </button>
+            {onBecomeMentor && (
+              <button
+                onClick={onBecomeMentor}
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-[#f1f3ff] text-[#002869] font-semibold text-sm rounded-xl border border-[#cbdaff] shadow-sm transition-all cursor-pointer"
+              >
+                <span>Become a Mentor</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filter Controls Bar */}

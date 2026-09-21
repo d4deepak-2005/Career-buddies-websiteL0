@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { LeaderProfile, LEADERSHIP_DATA, getLeaderBySlug, getLeaderByIndex } from '../../config/leadershipData';
+import { LeaderProfile } from '../../config/leadershipData';
+import { useLeaderList } from '../../hooks/useLeaders';
 import { PageView } from '../../types';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { StandardCandidateForm, StandardCandidateFormData } from '../common/StandardCandidateForm';
@@ -40,11 +41,17 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
   onOpenCounselling,
   previousPage = 'about-us'
 }) => {
-  const currentLeader: LeaderProfile = getLeaderBySlug(slug) || LEADERSHIP_DATA[0];
-  const currentIndex = LEADERSHIP_DATA.findIndex(l => l.profileSlug === currentLeader.profileSlug);
-  
-  const prevLeader = getLeaderByIndex(currentIndex - 1);
-  const nextLeader = getLeaderByIndex(currentIndex + 1);
+  // Same list as the Home / About / Leadership views: CMS visibility and order apply here too, so a
+  // hidden person can never be opened; an unknown slug shows the first visible leader instead.
+  const leaders = useLeaderList();
+  const currentLeader: LeaderProfile =
+    leaders.find((l) => l.profileSlug === slug || l.id === slug) ||
+    leaders.find((l) => slug.toLowerCase().includes(l.name.toLowerCase().split(/\s+/)[0])) ||
+    leaders[0];
+  const currentIndex = leaders.findIndex((l) => l.profileSlug === currentLeader.profileSlug);
+  const wrap = (index: number) => leaders[((index % leaders.length) + leaders.length) % leaders.length];
+  const prevLeader = wrap(currentIndex - 1);
+  const nextLeader = wrap(currentIndex + 1);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -395,84 +402,88 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             {currentLeader.roleAtCareerBuddies}
           </p>
 
-          <div className="bg-[#f9f9ff] p-6 rounded-2xl border border-[#cbdaff] flex flex-col gap-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#002869]">
-              Core Executive Responsibilities:
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {currentLeader.roleResponsibilities.map((resp, idx) => (
-                <div key={idx} className="flex items-start gap-2.5 text-xs text-[#061b3b] font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0 mt-0.5" />
-                  <span>{resp}</span>
-                </div>
-              ))}
+          {currentLeader.roleResponsibilities.length > 0 && (
+            <div className="bg-[#f9f9ff] p-6 rounded-2xl border border-[#cbdaff] flex flex-col gap-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#002869]">
+                Core Executive Responsibilities:
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {currentLeader.roleResponsibilities.map((resp, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 text-xs text-[#061b3b] font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0 mt-0.5" />
+                    <span>{resp}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* 7. LEADERSHIP PHILOSOPHY */}
-        <div className="bg-[#002869] text-white rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-[#79fd8d]/10 rounded-full blur-3xl pointer-events-none" />
+        {currentLeader.philosophy.quote && (
+          <div className="bg-[#002869] text-white rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-[#79fd8d]/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10">
-            <div className="w-14 h-14 rounded-2xl bg-white/10 text-[#79fd8d] flex items-center justify-center shrink-0 border border-white/20">
-              <Quote className="w-7 h-7" />
-            </div>
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-white/10 text-[#79fd8d] flex items-center justify-center shrink-0 border border-white/20">
+                <Quote className="w-7 h-7" />
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <span className="text-[11px] font-black uppercase text-[#79fd8d] tracking-wider">
-                Leadership Philosophy
-              </span>
-              <blockquote className="text-base sm:text-xl font-bold font-['Plus_Jakarta_Sans',sans-serif] leading-snug">
-                "{currentLeader.philosophy.quote}"
-              </blockquote>
-              <p className="text-xs sm:text-sm text-[#dae2ff] leading-relaxed">
-                — {currentLeader.name}, {currentLeader.role} • {currentLeader.philosophy.context}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* DIRECT MESSAGE / CONNECT BOX */}
-        <div id="leadership-direct-message" className="bg-white rounded-3xl p-6 sm:p-10 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
-          <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-            <div className="w-10 h-10 rounded-xl bg-[#006e29] text-white flex items-center justify-center shadow-xs">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[11px] font-black uppercase text-[#002869] tracking-wider">
-                Direct Communication
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
-                Connect with {currentLeader.name}
-              </h2>
-            </div>
-          </div>
-
-          <p className="text-xs sm:text-sm text-[#434652]">
-            Have a question about CareerBuddies programs, mentorship partnerships, or career advisory? Send a direct note to {currentLeader.name}'s desk.
-          </p>
-
-          {submitSuccess ? (
-            <div className="p-6 rounded-2xl bg-[#d7f8df] border border-[#006e29]/30 text-[#00531d] flex items-center gap-3 animate-in fade-in">
-              <CheckCircle2 className="w-6 h-6 shrink-0" />
-              <div className="text-xs sm:text-sm">
-                <span className="font-bold">Message received, {submittedName}!</span> We have forwarded your message to {currentLeader.name} and the advisory team. Expect a response shortly at your provided email/phone.
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] font-black uppercase text-[#79fd8d] tracking-wider">
+                  Leadership Philosophy
+                </span>
+                <blockquote className="text-base sm:text-xl font-bold font-['Plus_Jakarta_Sans',sans-serif] leading-snug">
+                  "{currentLeader.philosophy.quote}"
+                </blockquote>
+                <p className="text-xs sm:text-sm text-[#dae2ff] leading-relaxed">
+                  — {currentLeader.name}, {currentLeader.role} • {currentLeader.philosophy.context}
+                </p>
               </div>
             </div>
-          ) : (
-            <StandardCandidateForm
-              submitButtonText={`Send Note to ${currentLeader.name}`}
-              submitButtonColor="blue"
-              contextTag={`Leadership Desk: ${currentLeader.name} (${currentLeader.role})`}
-              additionalInfoLabel={`Message for ${currentLeader.name}`}
-              additionalInfoPlaceholder={`Hi ${currentLeader.name}, I would like your guidance on...`}
-              onSubmit={handleFormSubmit}
-                submitError={submitError}
-              isLoading={submitting}
-            />
-          )}
-        </div>
+          </div>
+        )}
+
+          {/* DIRECT MESSAGE / CONNECT BOX */}
+          <div id="leadership-direct-message" className="bg-white rounded-3xl p-6 sm:p-10 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+              <div className="w-10 h-10 rounded-xl bg-[#006e29] text-white flex items-center justify-center shadow-xs">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase text-[#002869] tracking-wider">
+                  Direct Communication
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+                  Connect with {currentLeader.name}
+                </h2>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#434652]">
+              Have a question about CareerBuddies programs, mentorship partnerships, or career advisory? Send a direct note to {currentLeader.name}'s desk.
+            </p>
+
+            {submitSuccess ? (
+              <div className="p-6 rounded-2xl bg-[#d7f8df] border border-[#006e29]/30 text-[#00531d] flex items-center gap-3 animate-in fade-in">
+                <CheckCircle2 className="w-6 h-6 shrink-0" />
+                <div className="text-xs sm:text-sm">
+                  <span className="font-bold">Message received, {submittedName}!</span> We have forwarded your message to {currentLeader.name} and the advisory team. Expect a response shortly at your provided email/phone.
+                </div>
+              </div>
+            ) : (
+              <StandardCandidateForm
+                submitButtonText={`Send Note to ${currentLeader.name}`}
+                submitButtonColor="blue"
+                contextTag={`Leadership Desk: ${currentLeader.name} (${currentLeader.role})`}
+                additionalInfoLabel={`Message for ${currentLeader.name}`}
+                additionalInfoPlaceholder={`Hi ${currentLeader.name}, I would like your guidance on...`}
+                onSubmit={handleFormSubmit}
+                  submitError={submitError}
+                isLoading={submitting}
+              />
+            )}
+          </div>
 
         {/* 8. NAVIGATION TO ANOTHER LEADERSHIP PROFILE */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">

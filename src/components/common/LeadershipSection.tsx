@@ -5,7 +5,7 @@ import { SectionHeading } from './SectionHeading';
 import { LeadershipProfileModal } from '../modals/LeadershipProfileModal';
 import { HandshakeIcon } from './HandshakeIcon';
 import { LeaderPortrait } from './LeaderPortrait';
-import { usePeople } from '../../hooks/usePeople';
+import { useLeaderList } from '../../hooks/useLeaders';
 import { 
   Quote, 
   Mail, 
@@ -40,29 +40,11 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
   setActivePage
 }) => {
   const [modalFounder, setModalFounder] = useState<FounderInfo | null>(null);
-  const { people } = usePeople();
 
   // CMS-backed Founder/Co-Founder records take over once an admin has added
   // any; an empty or unavailable `people` collection falls back to the
   // existing hardcoded LEADERSHIP_DATA exactly as before.
-  const founderRecords = people.filter((p) => p.role === 'founder' || p.role === 'co-founder');
-  const displayLeaders: DisplayLeader[] =
-    founderRecords.length > 0
-      ? founderRecords.map((p) => ({
-          id: p._id,
-          profileSlug: p.slug || p.name.toLowerCase().replace(/\s+/g, '-'),
-          name: p.name,
-          role: p.role === 'founder' ? 'Founder' : 'Co-Founder',
-          title: p.title,
-          yearsOfExperience: p.yearsOfExperience,
-          image: p.photoUrl,
-          shortBio: p.shortBio,
-          expertise: p.expertise,
-          email: p.email,
-          linkedIn: p.linkedIn,
-          roleAtCareerBuddies: p.longBio,
-        }))
-      : LEADERSHIP_DATA;
+  const displayLeaders: DisplayLeader[] = useLeaderList();
 
   const handleViewProfile = (leader: DisplayLeader) => {
     if (onSelectLeader) {

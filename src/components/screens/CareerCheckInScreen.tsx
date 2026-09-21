@@ -16,7 +16,9 @@ import {
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { buttonProps } from '../../utils/a11y';
-import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
+import { useMentors, useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
+import { RESOURCE_ARTICLES } from '../../data/resources';
+import { ActionId, buildCheckInResult } from '../../utils/careerCheckInRules';
 
 interface CareerCheckInScreenProps {
   onNavigate: (page: PageView) => void;
@@ -28,6 +30,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
   onOpenCounselling
 }) => {
   const entryPrice = useWebinarEntryPrice();
+  const mentors = useMentors();
   const [step, setStep] = useState<number>(1);
   const [stage, setStage] = useState<string>('');
   const [direction, setDirection] = useState<string>('');
@@ -80,6 +83,25 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
     setSupport('');
     setSubmitted(false);
   };
+
+  const result = submitted
+    ? buildCheckInResult(
+        { stage, direction, challenge, support },
+        {
+          stage: stageOptions.find((o) => o.id === stage)?.title,
+          direction: directionOptions.find((o) => o.id === direction)?.title,
+          challenge: challengeOptions.find((o) => o.id === challenge)?.title,
+        },
+        mentors,
+        RESOURCE_ARTICLES
+      )
+    : null;
+  // The action matching the chosen support style is listed first (CSS order keeps the markup as is).
+  const actionOrder = (id: ActionId) => (result && result.preferredAction === id ? 0 : 1);
+  const preferenceBadge = (id: ActionId) =>
+    result && result.preferredAction === id ? (
+      <span className="text-[11px] font-black uppercase tracking-wide text-[#006e29]">Matches your preference</span>
+    ) : null;
 
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
@@ -317,7 +339,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
               <div className="relative z-10 flex flex-col gap-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-bold text-[#79fd8d] w-fit">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Your Personalized Career Pathway</span>
+                  <span>Your Career Check-in Summary</span>
                 </div>
 
                 <h2 className="text-2xl sm:text-3xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
@@ -325,7 +347,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                 </h2>
 
                 <p className="text-sm text-[#dae2ff] leading-relaxed">
-                  "Based on your responses, you may benefit from career guidance, mentor support or a focused learning session to bridge your current gap and structure a 90-day trajectory."
+                  {result?.summary}
                 </p>
               </div>
             </div>
@@ -344,6 +366,18 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
               </span>
             </div>
 
+            {/* How the suggestions below were chosen */}
+            {result && (
+              <div className="p-4 rounded-xl bg-[#f9f9ff] border border-[#e0e8ff] text-xs text-[#434652] flex flex-col gap-1.5">
+                <span className="font-bold text-[#061b3b]">How these suggestions were chosen</span>
+                <ul className="list-disc pl-4 flex flex-col gap-1">
+                  {result.reasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Recommended Concrete Action Cards */}
             <div className="flex flex-col gap-4">
               <h3 className="text-lg font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
@@ -354,6 +388,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                 
                 {/* 1. Free Counselling */}
                 <div 
+                  style={{ order: actionOrder('counselling') }}
                   onClick={() => onOpenCounselling && onOpenCounselling()}
                   className="p-5 rounded-2xl border border-[#cbdaff] hover:border-[#002869] bg-white transition-all hover:shadow-xs cursor-pointer flex flex-col justify-between group"
                 >
@@ -366,6 +401,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                         100% Free
                       </span>
                     </div>
+                    {preferenceBadge('counselling')}
                     <h4 className="font-bold text-sm text-[#061b3b] group-hover:text-[#002869] transition-colors">
                       Book Free 1:1 Career Counselling
                     </h4>
@@ -380,6 +416,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
 
                 {/* 2. Find a Mentor */}
                 <div 
+                  style={{ order: actionOrder('mentors') }}
                   onClick={() => onNavigate('mentors')}
                   className="p-5 rounded-2xl border border-[#cbdaff] hover:border-[#002869] bg-white transition-all hover:shadow-xs cursor-pointer flex flex-col justify-between group"
                 >
@@ -392,11 +429,15 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                         1:1 Support
                       </span>
                     </div>
+                    {preferenceBadge('mentors')}
                     <h4 className="font-bold text-sm text-[#061b3b] group-hover:text-[#002869] transition-colors">
                       Connect with a Verified Mentor
                     </h4>
                     <p className="text-xs text-[#434652]">
-                      Browse 12+ senior practitioners from Google, Meta, Stripe, and Amazon for ongoing guidance.
+                      Browse our {result?.mentorTotal ?? 0} mentors for ongoing guidance.
+                      {result && result.mentorMatches.length > 0
+                        ? ` Best matches for your answers: ${result.mentorMatches.map((m) => m.name).join(', ')}.`
+                        : ' None is tagged specifically for your answers, so browse them all.'}
                     </p>
                   </div>
                   <span className="text-xs font-bold text-[#002869] mt-4 flex items-center gap-1">
@@ -406,6 +447,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
 
                 {/* 3. Browse Webinars */}
                 <div 
+                  style={{ order: actionOrder('webinars') }}
                   onClick={() => onNavigate('webinars')}
                   className="p-5 rounded-2xl border border-[#a6f5b7] hover:border-[#006e29] bg-white transition-all hover:shadow-xs cursor-pointer flex flex-col justify-between group"
                 >
@@ -418,6 +460,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                         ₹{entryPrice} Access
                       </span>
                     </div>
+                    {preferenceBadge('webinars')}
                     <h4 className="font-bold text-sm text-[#061b3b] group-hover:text-[#006e29] transition-colors">
                       Join Live Weekend Masterclass
                     </h4>
@@ -432,6 +475,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
 
                 {/* 4. Explore Resources */}
                 <div 
+                  style={{ order: actionOrder('resources') }}
                   onClick={() => onNavigate('resources')}
                   className="p-5 rounded-2xl border border-[#cbdaff] hover:border-[#002869] bg-white transition-all hover:shadow-xs cursor-pointer flex flex-col justify-between group"
                 >
@@ -444,11 +488,14 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                         Free Library
                       </span>
                     </div>
+                    {preferenceBadge('resources')}
                     <h4 className="font-bold text-sm text-[#061b3b] group-hover:text-[#002869] transition-colors">
                       Read Curated Career Playbooks
                     </h4>
                     <p className="text-xs text-[#434652]">
-                      Deep dive into salary negotiation rubrics, System Design cheatsheets, and PM transition guides.
+                      {result && result.articleMatches.length > 0
+                        ? `Suggested for your answers: ${result.articleMatches.map((a) => a.title).join('; ')}.`
+                        : 'Browse the full library of career playbooks and guides.'}
                     </p>
                   </div>
                   <span className="text-xs font-bold text-[#002869] mt-4 flex items-center gap-1">
@@ -484,7 +531,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
         <div className="flex items-start gap-3 p-4 rounded-2xl bg-white border border-[#e0e8ff] text-xs text-[#666a76]">
           <ShieldCheck className="w-4 h-4 text-[#002869] shrink-0 mt-0.5" />
           <p>
-            <strong>Transparency Note:</strong> The CareerBuddies Career Check-in is designed as an interactive discovery and guidance tool to help you reflect on your goals. It is not presented as a psychological assessment.
+            <strong>Transparency Note:</strong> The CareerBuddies Career Check-in is designed as an interactive discovery and guidance tool to help you reflect on your goals. It is not presented as a psychological assessment. The summary and suggestions are chosen by simple rules from your answers and our current mentor and playbook lists; no AI is used.
           </p>
         </div>
 

@@ -175,8 +175,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       timeSlot: selectedSlot,
       topic: topic || mentor.topics[0] || '1:1 Career Strategy & Leveling',
       notes: notes,
-      status: 'confirmed',
-      meetLink: `https://meet.google.com/cb-${Math.random().toString(36).substring(2, 7)}`,
+      // A booking is only a request until the team confirms it; no meeting link exists yet.
+      status: 'requested',
       createdAt: new Date().toISOString()
     };
 

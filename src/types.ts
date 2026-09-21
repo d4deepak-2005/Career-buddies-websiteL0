@@ -175,8 +175,8 @@ export interface BookedSession {
   timeSlot: string;
   topic: string;
   notes?: string;
-  status: 'confirmed' | 'completed' | 'cancelled';
-  meetLink: string;
+  status: 'requested' | 'confirmed' | 'completed' | 'cancelled';
+  meetLink?: string; // only ever set from a real source
   createdAt: string;
 }
 
@@ -255,7 +255,7 @@ export interface WebinarRegistration {
   amountPaidINR: number;
   paymentId: string;
   paymentStatus: 'success' | 'pending' | 'failed';
-  meetLink: string;
+  meetLink?: string;
 }
 
 export interface CareerCheckInState {

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { PageView } from '../../types';
 import { LEADERSHIP_PROFILES, LEADERSHIP_PHILOSOPHY } from '../../config/leadership';
+import { useCmsLeaders } from '../../hooks/useLeaders';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
 import { ModalA11y } from '../common/ModalA11y';
@@ -21,15 +22,42 @@ import { ModalA11y } from '../common/ModalA11y';
 interface LeadershipScreenProps {
   onNavigate: (page: PageView) => void;
   onOpenCounselling: () => void;
+  onSelectLeader?: (slug: string) => void;
 }
 
 export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
   onNavigate,
-  onOpenCounselling
+  onOpenCounselling,
+  onSelectLeader
 }) => {
   const [selectedLeaderId, setSelectedLeaderId] = useState<string | null>(null);
 
-  const activeLeader = LEADERSHIP_PROFILES.find(l => l.id === selectedLeaderId);
+  // CMS people (visibility + order) drive this page; the built-in list is the fallback when the CMS
+  // has none. The extra long-form lists in the profile dialog come from the built-in entry for the
+  // same person (matched by e-mail) when there is one.
+  const cmsLeaders = useCmsLeaders();
+  const leaders = cmsLeaders
+    ? cmsLeaders.map((l) => {
+        const extra = LEADERSHIP_PROFILES.find((x) => x.email.toLowerCase() === l.email.toLowerCase());
+        return {
+          id: l.id,
+          slug: l.profileSlug,
+          name: l.name,
+          role: l.role,
+          title: l.title,
+          email: l.email,
+          avatar: l.image,
+          bio: l.shortBio,
+          expertise: l.expertise,
+          contribution: extra?.contribution || l.roleAtCareerBuddies || l.shortBio,
+          careerHighlights: extra?.careerHighlights || [],
+          areasOfGuidance: extra?.areasOfGuidance || l.focusAreas,
+        };
+      })
+    : LEADERSHIP_PROFILES;
+
+  const activeLeader = leaders.find(l => l.id === selectedLeaderId);
+  const activeSlug = activeLeader ? ('slug' in activeLeader ? (activeLeader as { slug: string }).slug : activeLeader.id) : '';
 
   return (
     <div className="w-full min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-white">
@@ -58,7 +86,7 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
 
         {/* Leadership Cards Grid (Founder & Co-Founders) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-14">
-          {LEADERSHIP_PROFILES.map((leader) => (
+          {leaders.map((leader) => (
             <div
               key={leader.id}
               className="bg-[#f9f9ff] rounded-3xl border border-[#cbdaff] overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all group"
@@ -146,14 +174,14 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
             <ModalA11y label={`About ${activeLeader.name}`} onClose={() => setSelectedLeaderId(null)} />
             <div className="bg-white rounded-3xl border border-[#cbdaff] max-w-2xl w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95">
               <div className="flex items-start justify-between gap-4 pb-6 border-b border-gray-100">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-w-0">
                   <img
                     src={activeLeader.avatar}
                     alt={activeLeader.name}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-[#002869]"
                     style={{ objectPosition: activeLeader.name.toLowerCase().includes('nishant') ? '88% 12%' : 'center top' }}
                   />
-                  <div>
+                  <div className="min-w-0">
                     <span className="px-2.5 py-0.5 rounded-full bg-[#dae2ff] text-[#002869] text-[11px] font-black uppercase tracking-wider">
                       {activeLeader.role}
                     </span>
@@ -166,7 +194,7 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#002869] hover:underline mt-1"
                     >
                       <Mail className="w-3.5 h-3.5 text-[#006e29]" />
-                      <span className="font-mono text-xs">{activeLeader.email}</span>
+                      <span className="font-mono text-xs break-all">{activeLeader.email}</span>
                     </a>
                   </div>
                 </div>
@@ -189,41 +217,56 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
                   </p>
                 </div>
 
-                <div>
-                  <div className="text-xs font-black uppercase text-[#002869] tracking-wider mb-2">
-                    Key Career Highlights & Track Record
+                {activeLeader.careerHighlights.length > 0 && (
+                  <div>
+                    <div className="text-xs font-black uppercase text-[#002869] tracking-wider mb-2">
+                      Key Career Highlights & Track Record
+                    </div>
+                    <ul className="space-y-2">
+                      {activeLeader.careerHighlights.map((hl, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-[#434652] font-medium leading-relaxed">
+                          <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0 mt-0.5" />
+                          <span>{hl}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-2">
-                    {activeLeader.careerHighlights.map((hl, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-[#434652] font-medium leading-relaxed">
-                        <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0 mt-0.5" />
-                        <span>{hl}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                )}
 
-                <div>
-                  <div className="text-xs font-black uppercase text-[#002869] tracking-wider mb-2">
-                    Areas of 1:1 Guidance
+                {activeLeader.areasOfGuidance.length > 0 && (
+                  <div>
+                    <div className="text-xs font-black uppercase text-[#002869] tracking-wider mb-2">
+                      Areas of 1:1 Guidance
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {activeLeader.areasOfGuidance.map((area, i) => (
+                        <span key={i} className="px-3 py-1 bg-[#f1f3ff] rounded-lg text-xs font-bold text-[#002869] border border-[#cbdaff]">
+                          {area}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {activeLeader.areasOfGuidance.map((area, i) => (
-                      <span key={i} className="px-3 py-1 bg-[#f1f3ff] rounded-lg text-xs font-bold text-[#002869] border border-[#cbdaff]">
-                        {area}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                )}
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+              <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
                 <button
                   onClick={() => setSelectedLeaderId(null)}
                   className="px-4 py-2.5 rounded-xl border border-[#cbdaff] text-xs font-bold text-[#434652] hover:bg-[#f1f3ff]"
                 >
                   Close
                 </button>
+                {onSelectLeader && (
+                  <button
+                    onClick={() => {
+                      setSelectedLeaderId(null);
+                      onSelectLeader(activeSlug);
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-[#cbdaff] text-xs font-bold text-[#002869] hover:bg-[#f1f3ff] cursor-pointer"
+                  >
+                    Full Profile
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setSelectedLeaderId(null);

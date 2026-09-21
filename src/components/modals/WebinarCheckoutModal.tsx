@@ -66,8 +66,6 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
   const [cardCvv, setCardCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState('');
-  const [completedRegistration, setCompletedRegistration] = useState<WebinarRegistration | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
 
   const price = webinar.priceINR || DEFAULT_SITE_CONFIG.webinarDefaultPriceINR;
 
@@ -141,14 +139,6 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
     if (!result.ok) {
       setPaymentError(result.error || 'Unable to start payment.');
       setIsProcessing(false);
-    }
-  };
-
-  const handleCopyLink = () => {
-    if (completedRegistration) {
-      navigator.clipboard.writeText(completedRegistration.meetLink);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
     }
   };
 
@@ -574,86 +564,6 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                   <ShieldCheck className="w-4 h-4 text-[#79fd8d]" />
                   <span>{isProcessing ? 'Redirecting to secure checkout...' : `Pay Securely (₹${price})`}</span>
                 </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: Success & Ticket Confirmation */}
-          {step === 'success' && completedRegistration && (
-            <div className="flex flex-col gap-5 text-center animate-in zoom-in-95">
-              <div className="w-14 h-14 rounded-full bg-[#79fd8d]/25 text-[#006e29] flex items-center justify-center mx-auto border border-[#006e29]/20 shadow-xs">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-[#006e29]">
-                  Pass Confirmed & Registered
-                </span>
-                <h3 className="text-xl sm:text-2xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif] mt-1">
-                  You're all set for the Masterclass!
-                </h3>
-                <p className="text-xs text-[#434652] mt-1">
-                  Confirmation receipt has been sent to <strong>{completedRegistration.email}</strong>
-                </p>
-              </div>
-
-              {/* Ticket Card */}
-              <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-3 text-left">
-                <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                  <div>
-                    <span className="text-[11px] uppercase font-bold text-[#666a76]">Registration ID</span>
-                    <p className="text-xs font-mono font-bold text-[#002869]">{completedRegistration.id}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[11px] uppercase font-bold text-[#666a76]">Payment Ref</span>
-                    <p className="text-xs font-mono font-bold text-[#006e29]">{completedRegistration.paymentId}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-[#666a76]">Session Link (Google Meet):</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={completedRegistration.meetLink}
-                      className="flex-1 px-3 py-1.5 bg-white border border-[#cbdaff] rounded-xl text-xs font-mono text-[#002869]"
-                    />
-                    <button
-                      onClick={handleCopyLink}
-                      className="px-3 py-1.5 bg-[#002869] text-white text-xs font-bold rounded-xl flex items-center gap-1 hover:bg-[#0b3d91] cursor-pointer"
-                    >
-                      {copiedLink ? <Check className="w-3.5 h-3.5 text-[#79fd8d]" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedLink ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex items-center gap-2 text-xs text-[#061b3b]">
-                  <MessageSquare className="w-4 h-4 text-[#006e29]" />
-                  <span>WhatsApp reminder will be sent to {completedRegistration.mobile} 2 hours before the start.</span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                <button
-                  onClick={onClose}
-                  className="px-5 py-2.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
-                >
-                  Done & Close
-                </button>
-
-                {onBackToHome && (
-                  <button
-                    onClick={() => {
-                      onClose();
-                      onBackToHome();
-                    }}
-                    className="px-5 py-2.5 bg-white border border-[#cbdaff] text-[#002869] text-xs font-bold rounded-xl hover:bg-[#dae2ff] transition-all cursor-pointer"
-                  >
-                    ← Back to Home
-                  </button>
-                )}
               </div>
             </div>
           )}

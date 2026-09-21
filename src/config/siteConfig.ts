@@ -170,7 +170,7 @@ export const WEBINAR_FAQS: FAQItem[] = [
   {
     id: "wfaq-3",
     question: "How do I join the live session on the day of the event?",
-    answer: "You will receive calendar invites, WhatsApp reminders, and a direct Google Meet / Zoom link sent to your registered email and mobile number prior to the event.",
+    answer: "Our team will share the joining details with registered attendees before the event.",
     category: "webinars"
   },
   {

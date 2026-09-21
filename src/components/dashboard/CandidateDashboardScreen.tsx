@@ -566,7 +566,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Payment history table">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-[#cbdaff] text-[#666a76] font-bold uppercase tracking-wider bg-[#f1f3ff]">
