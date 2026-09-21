@@ -434,10 +434,14 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                       Connect with a Verified Mentor
                     </h4>
                     <p className="text-xs text-[#434652]">
-                      Browse our {result?.mentorTotal ?? 0} mentors for ongoing guidance.
-                      {result && result.mentorMatches.length > 0
-                        ? ` Best matches for your answers: ${result.mentorMatches.map((m) => m.name).join(', ')}.`
-                        : ' None is tagged specifically for your answers, so browse them all.'}
+                      {(result?.mentorTotal ?? 0) === 0
+                        ? 'Mentor profiles are being updated. Check back soon, or contact us for guidance.'
+                        : <>
+                            Browse our {result?.mentorTotal} mentors for ongoing guidance.
+                            {result && result.mentorMatches.length > 0
+                              ? ` Best matches for your answers: ${result.mentorMatches.map((m) => m.name).join(', ')}.`
+                              : ' None is tagged specifically for your answers, so browse them all.'}
+                          </>}
                     </p>
                   </div>
                   <span className="text-xs font-bold text-[#002869] mt-4 flex items-center gap-1">

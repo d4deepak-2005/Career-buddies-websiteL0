@@ -254,9 +254,11 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
         {filteredMentors.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center border border-[#e0e8ff]">
             <Search className="w-12 h-12 text-[#666a76] mx-auto mb-3 opacity-50" />
-            <h2 className="text-lg font-bold text-[#061b3b] mb-1">No mentors match your filter</h2>
+            <h2 className="text-lg font-bold text-[#061b3b] mb-1">{MOCK_MENTORS.length === 0 ? 'Mentor profiles are being updated' : 'No mentors match your filter'}</h2>
             <p className="text-sm text-[#434652] max-w-md mx-auto mb-4">
-              Try adjusting your search terms or select "All" categories to see all verified leaders.
+              {MOCK_MENTORS.length === 0
+                ? 'Please check back soon, or contact us and we will help you find the right guidance.'
+                : 'Try adjusting your search terms or select "All" categories to see all verified leaders.'}
             </p>
             <button
               onClick={() => {

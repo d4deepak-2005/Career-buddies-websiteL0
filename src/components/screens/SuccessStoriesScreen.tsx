@@ -80,6 +80,11 @@ export const SuccessStoriesScreen: React.FC<SuccessStoriesScreenProps> = ({
 
         {/* Testimonials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          {SUCCESS_STORIES.length === 0 && (
+            <div className="col-span-full bg-[#f9f9ff] rounded-2xl p-10 text-center border border-[#cbdaff] text-sm text-[#434652]">
+              Success stories will be shared here soon.
+            </div>
+          )}
           {filteredStories.map((story) => (
             <div
               key={story.id}

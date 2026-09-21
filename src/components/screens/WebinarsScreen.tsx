@@ -162,9 +162,9 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
         {filteredWebinars.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center border border-[#cbdaff] flex flex-col items-center gap-3">
             <Search className="w-8 h-8 text-[#666a76]" />
-            <h2 className="text-lg font-bold text-[#061b3b]">No masterclasses found</h2>
-            <p className="text-xs text-[#666a76]">Try changing your search keywords or category filters.</p>
-            <button
+            <h2 className="text-lg font-bold text-[#061b3b]">{INITIAL_WEBINARS.length === 0 ? 'No live masterclasses are scheduled right now' : 'No masterclasses found'}</h2>
+            <p className="text-xs text-[#666a76]">{INITIAL_WEBINARS.length === 0 ? 'Please check back soon for upcoming sessions.' : 'Try changing your search keywords or category filters.'}</p>
+            <button hidden={INITIAL_WEBINARS.length === 0}
               onClick={() => {
                 setSelectedCategory('All');
                 setSearchQuery('');

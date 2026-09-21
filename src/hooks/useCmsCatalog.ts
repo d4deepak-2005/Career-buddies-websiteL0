@@ -9,15 +9,16 @@ import {
   PlanItem,
 } from '../types';
 import { PROGRAMMES_CATALOGUE } from '../config/programmes';
-import { INITIAL_WEBINARS } from '../config/siteConfig';
 import { WEBINAR_ENTRY_PRICE_INR } from '../config/webinars';
-import { SUCCESS_STORIES } from '../config/testimonials';
-import { STRUCTURED_SERVICES, CAREER_PLANS, MOCK_MENTORS } from '../data/mockData';
+import { STRUCTURED_SERVICES, CAREER_PLANS } from '../data/mockData';
 
 // Each hook returns MongoDB-backed content mapped to the exact item shape the
 // existing screen already renders. If the collection is empty, still loading,
 // or the request failed, the existing static content is returned instead — so
 // no public section can ever go blank because CMS data is missing.
+// Exception: mentors, webinars and success stories have NO built-in fallback. The built-in copies were
+// demo records (stock photos, invented speakers/outcomes), so when the CMS has no visible entries these
+// sections are simply empty rather than showing demo content.
 
 export function useProgrammes(): ProgrammeItem[] {
   const { items } = usePublicCollection<any>('/api/programmes');
@@ -52,7 +53,6 @@ export function useProgrammes(): ProgrammeItem[] {
 export function useWebinars(): WebinarItem[] {
   const { items } = usePublicCollection<any>('/api/webinars');
   return useMemo(() => {
-    if (!items.length) return INITIAL_WEBINARS;
     return items.map((w) => ({
       id: w._id,
       title: w.title || '',
@@ -86,7 +86,6 @@ export function useWebinars(): WebinarItem[] {
 export function useSuccessStories(): TestimonialItem[] {
   const { items } = usePublicCollection<any>('/api/testimonials');
   return useMemo(() => {
-    if (!items.length) return SUCCESS_STORIES;
     return items.map((t) => ({
       id: t._id,
       name: t.name || '',
@@ -159,7 +158,6 @@ export function usePlans(): PlanItem[] {
 export function useMentors(): Mentor[] {
   const { items } = usePublicCollection<any>('/api/mentors');
   return useMemo(() => {
-    if (!items.length) return MOCK_MENTORS;
     return items.map((m) => ({
       id: m._id,
       name: m.name || '',

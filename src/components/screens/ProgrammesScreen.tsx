@@ -245,6 +245,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                       </div>
                     </div>
 
+                    {programme.cohortStartDate && (
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-[#006e29] shrink-0" />
                       <div>
@@ -252,6 +253,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                         <div className="text-xs font-black text-[#061b3b]">{programme.cohortStartDate.replace('Next Cohort: ', '')}</div>
                       </div>
                     </div>
+                    )}
                   </div>
 
                   {/* Mentor Assigned */}
