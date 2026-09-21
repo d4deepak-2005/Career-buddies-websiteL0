@@ -1033,7 +1033,7 @@ export const CandidateDashboardScreen: React.FC<CandidateDashboardScreenProps> =
         {/* ============================================================ */}
         {/* These three tabs stay mounted (hidden) so half-typed forms survive switching tabs, as before. */}
         <div hidden={activeTab !== 'settings'}>
-          <SettingsTab />
+          <SettingsTab hasPassword={candidateProfile.hasPassword !== false} />
         </div>
 
       </div>

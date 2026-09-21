@@ -17,6 +17,8 @@ export interface CandidateProfile {
   portfolioUrl: string;
   bio: string;
   joinedAt: string;
+  // false for accounts that only sign in with Google / LinkedIn / Microsoft / Facebook
+  hasPassword?: boolean;
 }
 
 export function getCandidateToken(): string | null {

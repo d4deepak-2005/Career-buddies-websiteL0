@@ -59,6 +59,8 @@ function publicCandidate(c: any) {
     portfolioUrl: c.portfolioUrl,
     bio: c.bio,
     joinedAt: c.createdAt,
+    // Lets the Settings screen hide the password form for accounts that only sign in with a provider.
+    hasPassword: c.hasPassword !== false,
   };
 }
 
@@ -170,14 +172,40 @@ router.post('/logout', requireCandidateAuth, async (req: Request, res: Response)
   res.json({ success: true });
 });
 
+// Wrong current-password guesses are limited per account (not per IP), so a stolen session
+// token cannot be used to guess the password.
+const CHANGE_PW_MAX_FAILURES = 5;
+const CHANGE_PW_WINDOW_MS = 15 * 60 * 1000;
+const changePwFailures = new Map<string, { count: number; reset: number }>();
+
 router.post('/change-password', requireCandidateAuth, async (req: Request, res: Response) => {
+  const ownerKey = String((req as any).candidate._id);
+  const failed = changePwFailures.get(ownerKey);
+  if (failed && Date.now() < failed.reset && failed.count >= CHANGE_PW_MAX_FAILURES) {
+    return void res.status(429).json({ success: false, error: 'Too many incorrect attempts. Please try again in a few minutes.' });
+  }
+
   const current = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
   const next = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
 
   const candidate = await Candidate.findById((req as any).candidate._id).select('+passwordHash +tokenVersion');
-  if (!candidate || !verifyPassword(current, candidate.passwordHash)) {
+  if (!candidate) {
+    return void res.status(400).json({ success: false, error: 'Unable to update your password.' });
+  }
+  if (candidate.hasPassword === false) {
+    // Provider-only account: there is no password to change.
+    return void res.status(400).json({
+      success: false,
+      error: 'Your account signs in with a social provider, so it has no password to change.',
+    });
+  }
+  if (!verifyPassword(current, candidate.passwordHash)) {
+    const now = Date.now();
+    const entry = changePwFailures.get(ownerKey);
+    changePwFailures.set(ownerKey, !entry || now > entry.reset ? { count: 1, reset: now + CHANGE_PW_WINDOW_MS } : { count: entry.count + 1, reset: entry.reset });
     return void res.status(400).json({ success: false, error: 'Current password is incorrect.' });
   }
+  changePwFailures.delete(ownerKey);
   const passwordIssue = passwordProblem(next, candidate.email);
   if (passwordIssue) {
     return void res.status(400).json({ success: false, error: passwordIssue });

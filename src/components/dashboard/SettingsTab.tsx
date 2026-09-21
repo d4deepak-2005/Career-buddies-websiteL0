@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { candidateFetch, setCandidateToken } from '../../utils/candidateAuth';
 import { AlertTriangle, CheckCircle2, ShieldCheck, Lock } from 'lucide-react';
 
-interface SettingsTabProps {}
+interface SettingsTabProps {
+  // false for accounts that sign in only with a social provider (nothing to change)
+  hasPassword?: boolean;
+}
 
-export const SettingsTab: React.FC<SettingsTabProps> = () => {
+export const SettingsTab: React.FC<SettingsTabProps> = ({ hasPassword = true }) => {
   // Security / Settings State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -66,20 +69,28 @@ export const SettingsTab: React.FC<SettingsTabProps> = () => {
             <span>Update Password</span>
           </h3>
 
-          {passwordSuccess && (
+          {!hasPassword && (
+            <p className="text-xs text-[#434652] leading-relaxed">
+              Your account signs in with a social provider (Google, LinkedIn, Microsoft or Facebook), so it has no CareerBuddies password to change.
+              Your sign-in security is managed by that provider.
+            </p>
+          )}
+
+          {hasPassword && passwordSuccess && (
             <div className="p-3 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-xl flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>Password updated successfully!</span>
             </div>
           )}
 
-          {passwordError && (
+          {hasPassword && passwordError && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{passwordError}</span>
             </div>
           )}
 
+          {hasPassword && (
           <form onSubmit={handlePasswordChange} className="flex flex-col gap-3">
             <div>
               <label htmlFor="dash-field-16" className="block text-xs font-bold text-[#061b3b] mb-1">Current Password *</label>
@@ -121,6 +132,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = () => {
               Save New Password
             </button>
           </form>
+          )}
         </div>
 
         {/* Notification Preferences & 2FA */}
