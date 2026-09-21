@@ -117,7 +117,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#dae2ff] text-[#001947] text-xs font-bold mb-2">
               <Sparkles className="w-3.5 h-3.5 text-[#002869]" />
-              <span>Verified Top 3% Tech Leaders</span>
+              <span>Experienced Career Mentors</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#061b3b]">
               Find Your Ideal Career Mentor

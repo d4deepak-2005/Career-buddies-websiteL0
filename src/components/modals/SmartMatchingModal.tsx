@@ -363,7 +363,7 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
               className="flex items-center gap-2 px-6 py-2.5 bg-[#006e29] text-white text-xs font-bold rounded-lg hover:bg-[#00531d] active:scale-95 transition-all shadow-xs"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isCalculating ? 'Matching with 1,200+ Mentors...' : 'Generate My Matches'}</span>
+              <span>{isCalculating ? 'Matching with our mentors...' : 'Generate My Matches'}</span>
             </button>
           ) : (
             <button

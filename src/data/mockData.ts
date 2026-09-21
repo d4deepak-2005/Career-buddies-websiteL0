@@ -77,7 +77,7 @@ export const STRUCTURED_SERVICES: ServiceItem[] = [
       "Tailored Outreach Template for Recruiters"
     ],
     idealFor: ["Candidates applying for tier-1 tech & product companies", "Professionals receiving low recruiter response rates"],
-    keyOutcome: "Top 2% ATS-optimized resume ready for FAANG/MNC applications.",
+    keyOutcome: "ATS-optimized resume ready for FAANG/MNC applications.",
     popular: true,
     badge: "High Demand"
   },
@@ -317,7 +317,7 @@ export const CAREER_PLANS: PlanItem[] = [
       { title: "Full Compensation & Equity Package Negotiation", included: true, detail: "Direct advisor intervention on multi-tier offers" },
       { title: "Direct 24/7 WhatsApp Hotline with Lead Mentor", included: true },
       { title: "Custom Organizational Design & Team Scaling Playbook", included: true },
-      { title: "Guaranteed Executive Network Introductions", included: true },
+      { title: "Executive Network Introductions", included: true },
       { title: "VIP Access to Private Leader Masterminds", included: true }
     ]
   }

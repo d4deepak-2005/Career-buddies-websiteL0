@@ -43,7 +43,7 @@ export const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
               </span>
               <span className="flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#79fd8d]" />
-                100% Vetted Mentors
+                Vetted Mentors
               </span>
             </div>
           </div>

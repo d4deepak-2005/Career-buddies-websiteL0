@@ -6,6 +6,7 @@ import { HandshakeIcon } from './common/HandshakeIcon';
 import { SiteSettingsData, pickText } from '../hooks/useSiteSettings';
 import { ModalA11y } from './common/ModalA11y';
 import { getContactInfo } from '../utils/contactInfo';
+import { useMentors, usePlans, useProgrammes, useWebinars } from '../hooks/useCmsCatalog';
 import { 
   Users, 
   Map, 
@@ -94,6 +95,11 @@ export const Footer: React.FC<FooterProps> = ({
 
   // WhatsApp configuration
   const contact = getContactInfo(siteSettings);
+  // Real numbers from the same lists the site shows (CMS, or the built-in fallback when the CMS is empty).
+  const mentorCount = useMentors().length;
+  const webinarCount = useWebinars().length;
+  const programmeCount = useProgrammes().length;
+  const planCount = usePlans().length;
   const WHATSAPP_MESSAGE = `Hello CareerBuddies,
 
 I visited the CareerBuddies website and would like to know more about your programmes and career guidance services.
@@ -224,7 +230,7 @@ Thank you!`;
                     <Map className="w-4 h-4" />
                   </div>
                   <h2 className="text-[11px] font-black uppercase tracking-tight text-[#006e29] leading-tight">
-                    Verified Roadmaps
+                    Career Roadmaps
                   </h2>
                 </div>
                 <p className="text-[11px] text-[#434652] leading-relaxed font-medium mt-0.5">
@@ -283,7 +289,7 @@ Thank you!`;
                     What Makes Us Different
                   </h2>
                   <span className="text-[11px] font-extrabold text-[#006e29] bg-[#d7f8df]/90 px-2.5 py-0.5 rounded-full border border-[#006e29]/20 shadow-2xs">
-                    Verified Outcomes
+                    Our Approach
                   </span>
                 </div>
 
@@ -333,7 +339,7 @@ Thank you!`;
                           Trust & Transparency
                         </h3>
                         <p className="text-[11px] text-[#434652] leading-relaxed mt-0.5">
-                          Verified roadmaps, unbiased guidance and complete transparency.
+                          Career roadmaps, unbiased guidance and complete transparency.
                         </p>
                       </div>
                     </div>
@@ -562,16 +568,16 @@ Thank you!`;
         {/* ====================================================
             LOWER SOCIAL + STATS SECTION: BALANCED TWO COLUMNS
             Left Side: Follow Us (LinkedIn, Facebook, Instagram, YouTube, X)
-            Right Side: Glass Statistics Panel (5000+, 200+, 95%, 50+)
+            Right Side: Glass Panel with live counts from the CMS (mentors, webinars, programmes, plans)
             ==================================================== */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch mb-8">
           
           {/* Left Column: Follow Us Social Icons (col-span-4) */}
-          <div className="lg:col-span-4 bg-white/85 backdrop-blur-md rounded-2xl border border-[#cbdaff]/75 px-5 py-3.5 sm:py-3 shadow-[0_4px_20px_-4px_rgba(0,40,105,0.06)] flex items-center justify-between sm:justify-start gap-3 sm:gap-4 h-full">
+          <div className="lg:col-span-4 bg-white/85 backdrop-blur-md rounded-2xl border border-[#cbdaff]/75 px-5 py-3.5 sm:py-3 shadow-[0_4px_20px_-4px_rgba(0,40,105,0.06)] flex flex-wrap items-center justify-between sm:justify-start gap-3 sm:gap-4 h-full">
             <span className="text-xs font-black uppercase tracking-wider text-[#002869] whitespace-nowrap">
               Follow Us:
             </span>
-            <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               {SOCIAL_MEDIA_LINKS.map((social) => (
                 <a
                   key={social.name}
@@ -600,10 +606,10 @@ Thank you!`;
                   <Users className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-base sm:text-lg font-black text-[#002869] tracking-tight group-hover:text-[#0a3578] transition-colors duration-150">
-                  5000+
+                  {mentorCount}
                 </span>
                 <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
-                  Professionals Guided
+                  Mentors
                 </span>
               </div>
 
@@ -613,10 +619,10 @@ Thank you!`;
                   <Video className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-base sm:text-lg font-black text-[#006e29] tracking-tight group-hover:text-[#00531d] transition-colors duration-150">
-                  200+
+                  {webinarCount}
                 </span>
                 <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
-                  Live Masterclasses Conducted
+                  Live Webinars
                 </span>
               </div>
 
@@ -626,10 +632,10 @@ Thank you!`;
                   <TrendingUp className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-base sm:text-lg font-black text-[#002869] tracking-tight group-hover:text-[#0a3578] transition-colors duration-150">
-                  95%
+                  {programmeCount}
                 </span>
                 <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
-                  Career Growth Achieved
+                  Programmes
                 </span>
               </div>
 
@@ -639,10 +645,10 @@ Thank you!`;
                   <Map className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-base sm:text-lg font-black text-[#006e29] tracking-tight group-hover:text-[#00531d] transition-colors duration-150">
-                  50+
+                  {planCount}
                 </span>
                 <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
-                  Verified Career Roadmaps
+                  Career Plans
                 </span>
               </div>
 

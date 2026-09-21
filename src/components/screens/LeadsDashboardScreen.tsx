@@ -401,9 +401,9 @@ export const LeadsDashboardScreen: React.FC<LeadsDashboardScreenProps> = ({ setA
             <ModalA11y label="Lead details" onClose={() => setSelectedLead(null)} />
             <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#e0e8ff] flex flex-col gap-4">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <h3 className="text-base font-bold text-[#061b3b]">
+                <h2 className="text-base font-bold text-[#061b3b]">
                   Lead Details: {selectedLead.firstName} {selectedLead.lastName}
-                </h3>
+                </h2>
                 <button
                   onClick={() => setSelectedLead(null)}
                   className="text-[#666a76] hover:text-[#061b3b] font-bold text-sm"

@@ -70,13 +70,15 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ children }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoFocus
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'gate-error' : undefined}
               className="w-full px-3 py-2 bg-[#f9f9ff] border border-[#e0e8ff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]"
               placeholder="Enter admin password"
             />
           </div>
 
           {error && (
-            <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl">
+            <div id="gate-error" role="alert" className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl">
               {error}
             </div>
           )}

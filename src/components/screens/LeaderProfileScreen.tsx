@@ -142,7 +142,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
 
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-semibold text-[#006e29] bg-[#d7f8df] px-2.5 py-0.5 rounded-full">
-              Verified Leadership Profile
+              Leadership Profile
             </span>
           </div>
         </div>
