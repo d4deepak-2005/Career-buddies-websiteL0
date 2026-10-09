@@ -1,25 +1,29 @@
 import mongoose from 'mongoose';
 
-// One document per checkout attempt. `status` is driven by verified Dodo
-// Payments webhooks (never by the browser), and `processedWebhookIds` makes
-// webhook handling idempotent (Dodo retries deliveries).
+// One document per checkout attempt. `status` is driven by verified Razorpay
+// webhooks / checkout signatures (never by the browser), and `processedWebhookIds`
+// makes webhook handling idempotent.
 const paymentSchema = new mongoose.Schema(
   {
     orderRef: { type: String, required: true, unique: true, index: true },
     itemType: { type: String, enum: ['webinar', 'plan', 'programme'], required: true },
     itemId: { type: String, default: '' },
     itemName: { type: String, default: '' },
-    provider: { type: String, default: 'dodo' },
+    provider: { type: String, default: 'razorpay' },
     productId: { type: String, default: '' },
     status: {
       type: String,
       enum: ['created', 'processing', 'succeeded', 'failed', 'cancelled', 'expired'],
       default: 'created',
     },
-    // Amount/currency the server verified (Dodo product vs CMS) before creating the checkout, in minor units.
+    // Amount/currency the server took from the CMS before creating the Razorpay order, in paise.
+    // expectedAmount is the payable total after 18% GST.
     expectedAmount: { type: Number },
+    baseAmount: { type: Number },
+    gstAmount: { type: Number },
+    gstRate: { type: Number },
     expectedCurrency: { type: String, default: '' },
-    // Amount/currency actually reported by Dodo's verified webhook / API.
+    // Amount/currency actually reported by Razorpay's verified webhook / API.
     amount: { type: Number },
     currency: { type: String, default: '' },
     amountMismatch: { type: Boolean, default: false },
@@ -30,6 +34,9 @@ const paymentSchema = new mongoose.Schema(
     customerMobile: { type: String, default: '' },
     details: { type: mongoose.Schema.Types.Mixed, default: {} },
     dodoSessionId: { type: String, default: '', index: true },
+    razorpayOrderId: { type: String, default: '', index: true },
+    razorpayKeyId: { type: String, default: '' },
+    razorpayPaymentId: { type: String, default: '' },
     checkoutUrl: { type: String, default: '' },
     // Set only while this candidate has an unfinished checkout for the item (makes a repeat click reuse it).
     openKey: { type: String },
@@ -39,6 +46,7 @@ const paymentSchema = new mongoose.Schema(
     lastEventAt: { type: Date },
     failureReason: { type: String, default: '' },
     processedWebhookIds: { type: [String], default: [] },
+    confirmationEmailSentAt: { type: Date },
   },
   { timestamps: true }
 );
@@ -48,5 +56,9 @@ paymentSchema.index({ createdAt: -1 });
 // At most one unfinished checkout per candidate + item.
 paymentSchema.index({ openKey: 1 }, { unique: true, partialFilterExpression: { openKey: { $type: 'string' } } });
 
-export const Payment: mongoose.Model<any> =
-  mongoose.models.Payment || mongoose.model('Payment', paymentSchema);
+export const Payment: mongoose.Model<any> = (() => {
+  if (mongoose.models.Payment) {
+    mongoose.deleteModel('Payment');
+  }
+  return mongoose.model('Payment', paymentSchema);
+})();

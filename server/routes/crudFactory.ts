@@ -1,6 +1,7 @@
 import express, { Router } from 'express';
 import { Model } from 'mongoose';
 import { requireAdminAuth } from '../middleware/adminAuth.ts';
+import { actorFromReq, itemLabel, recordAdminAudit, safeDetails } from '../services/adminAudit.ts';
 
 // One reusable router per repeatable content collection (mentors, programmes,
 // webinars, testimonials, services, plans, people) instead of hand-writing
@@ -13,10 +14,16 @@ import { requireAdminAuth } from '../middleware/adminAuth.ts';
 // Public responses never carry internal payment-provider identifiers. The frontend only
 // needs to know whether online payment is enabled for an item, so the provider product
 // id is replaced by a boolean. (Admin endpoints keep the raw field for editing.)
+function cmsHasPrice(obj: any): boolean {
+  const raw = obj.feeINR ?? obj.priceINR;
+  const value = typeof raw === 'number' ? raw : parseFloat(String(raw ?? '').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(value) && value > 0;
+}
+
 function toPublic(doc: any) {
   const obj = typeof doc?.toObject === 'function' ? doc.toObject() : { ...doc };
-  if ('dodoProductId' in obj) {
-    obj.onlinePayment = !!obj.dodoProductId;
+  if ('dodoProductId' in obj || 'priceINR' in obj || 'feeINR' in obj) {
+    obj.onlinePayment = cmsHasPrice(obj);
     delete obj.dodoProductId;
   }
   return obj;
@@ -58,6 +65,14 @@ export function createCrudRouter(model: Model<any>): Router {
   router.post('/admin', requireAdminAuth, async (req, res) => {
     try {
       const item = await model.create(req.body);
+      const who = actorFromReq(req).name;
+      recordAdminAudit(req, {
+        action: 'create',
+        entity: model.modelName,
+        entityId: String(item._id),
+        summary: `${who} created ${model.modelName} "${itemLabel(item, model.modelName)}"`,
+        details: safeDetails(req.body),
+      });
       res.status(201).json({ success: true, item });
     } catch (error) {
       console.error(`Error creating ${model.modelName} record:`, error);
@@ -83,6 +98,14 @@ export function createCrudRouter(model: Model<any>): Router {
         return;
       }
 
+      const who = actorFromReq(req).name;
+      recordAdminAudit(req, {
+        action: 'update',
+        entity: model.modelName,
+        entityId: String(item._id),
+        summary: `${who} updated ${model.modelName} "${itemLabel(item, model.modelName)}"`,
+        details: safeDetails(req.body),
+      });
       res.json({ success: true, item });
     } catch (error) {
       console.error(`Error updating ${model.modelName} record:`, error);
@@ -105,6 +128,13 @@ export function createCrudRouter(model: Model<any>): Router {
         return;
       }
 
+      const who = actorFromReq(req).name;
+      recordAdminAudit(req, {
+        action: 'delete',
+        entity: model.modelName,
+        entityId: String(item._id),
+        summary: `${who} deleted ${model.modelName} "${itemLabel(item, model.modelName)}"`,
+      });
       res.json({ success: true });
     } catch (error) {
       console.error(`Error deleting ${model.modelName} record:`, error);

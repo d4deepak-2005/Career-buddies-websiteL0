@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useServices } from '../../hooks/useCmsCatalog';
+import { usePublicLoading } from '../../hooks/usePublicCollection';
+import { PageSkeleton } from '../common/Skeleton';
 import { ServiceItem, PageView } from '../../types';
 import { 
   Compass, 
@@ -38,21 +40,14 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
   setActivePage
 }) => {
   const STRUCTURED_SERVICES = useServices();
+  const servicesLoading = usePublicLoading('/api/services');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const categories = [
-    'All',
-    'Career Strategy',
-    'Job Search',
-    'Technical Prep',
-    'Interview Prep',
-    'Leadership',
-    'Compensation',
-    'Product Management',
-    'Startup Advisory',
-    'Global Career'
-  ];
+  const categories = useMemo(() => {
+    const fromCms = Array.from(new Set(STRUCTURED_SERVICES.map((s) => s.category).filter(Boolean)));
+    return ['All', ...fromCms];
+  }, [STRUCTURED_SERVICES]);
 
   const getServiceIcon = (name: string) => {
     switch (name) {
@@ -85,6 +80,8 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
     });
   }, [selectedCategory, searchQuery, STRUCTURED_SERVICES]);
 
+  if (servicesLoading && STRUCTURED_SERVICES.length === 0) return <PageSkeleton />;
+
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
       <div className="max-w-[1280px] mx-auto flex flex-col gap-10">
@@ -111,7 +108,7 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
           }}
           backLabel="Our Journey"
           nextLabel="Find a Mentor (1:1)"
-          currentStepLabel="12 Structured Mentorship Tracks"
+          currentStepLabel="Structured Mentorship Tracks"
         />
 
         {/* Header Banner */}
@@ -121,7 +118,7 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
           <div className="relative z-10 max-w-2xl flex flex-col gap-3">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-[#dae2ff] w-fit">
               <Sparkles className="w-3.5 h-3.5 text-[#79fd8d]" />
-              <span>12 Structured Career Acceleration Tracks</span>
+              <span>Structured Career Acceleration Tracks</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight font-['Plus_Jakarta_Sans',sans-serif] leading-tight">
@@ -157,7 +154,7 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
             </div>
 
             <div className="text-xs font-bold text-[#434652]">
-              Showing <span className="text-[#002869] font-black">{filteredServices.length}</span> of 12 Services
+              Showing <span className="text-[#002869] font-black">{filteredServices.length}</span> of {STRUCTURED_SERVICES.length} Services
             </div>
           </div>
 
@@ -180,6 +177,18 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
         </div>
 
         {/* Services Grid */}
+        {filteredServices.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-[#e0e8ff] p-12 text-center">
+            <p className="text-sm font-bold text-[#061b3b]">
+              {STRUCTURED_SERVICES.length === 0 ? 'Services are being updated' : 'No services match your filter'}
+            </p>
+            <p className="text-xs text-[#434652] mt-1">
+              {STRUCTURED_SERVICES.length === 0
+                ? 'Please check back soon, or contact us and we will help you find the right track.'
+                : 'Try another category or clear your search.'}
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredServices.map((service) => (
             <div
@@ -233,6 +242,7 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({
             </div>
           ))}
         </div>
+        )}
 
       </div>
     </div>

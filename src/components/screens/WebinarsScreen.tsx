@@ -19,7 +19,10 @@ import {
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { SectionHeading } from '../common/SectionHeading';
-import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
+import { useWebinarOffer, withEntryPrice } from '../../hooks/useCmsCatalog';
+import { useOwnedPurchases } from '../../hooks/useOwnedPurchases';
+import { usePublicLoading } from '../../hooks/usePublicCollection';
+import { PageSkeleton } from '../common/Skeleton';
 
 interface WebinarsScreenProps {
   onSelectWebinar: (webinar: WebinarItem) => void;
@@ -34,8 +37,10 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
   onOpenCounselling,
   setActivePage
 }) => {
-  const entryPrice = useWebinarEntryPrice();
+  const { hasLive, priceINR: entryPrice } = useWebinarOffer();
   const INITIAL_WEBINARS = useWebinars();
+  const webinarsLoading = usePublicLoading('/api/webinars');
+  const owned = useOwnedPurchases();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [openFaq, setOpenFaq] = useState<string | null>(null);
@@ -66,6 +71,8 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
     }
   };
 
+  if (webinarsLoading && INITIAL_WEBINARS.length === 0) return <PageSkeleton />;
+
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
       <div className="max-w-[1280px] mx-auto flex flex-col gap-10">
@@ -81,7 +88,7 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
           }}
           backLabel="Home"
           nextLabel="View Featured Masterclass"
-          currentStepLabel={`Live Masterclasses & Webinars (₹${entryPrice})`}
+          currentStepLabel={hasLive && entryPrice ? `Live Masterclasses & Webinars (₹${entryPrice})` : 'Live Masterclasses & Webinars'}
         />
 
         {/* Hero Banner */}
@@ -103,10 +110,12 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-bold text-white">
+              {hasLive && entryPrice ? (
               <span className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/15">
                 <Sparkles className="w-3.5 h-3.5 text-[#79fd8d]" />
-                Standard All-Access Pass: ₹{entryPrice}
+                Starting at ₹{entryPrice}
               </span>
+              ) : null}
               <span className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/15">
                 <Video className="w-3.5 h-3.5 text-[#79fd8d]" />
                 Full HD Recording Included
@@ -240,13 +249,23 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
                   >
                     View Details
                   </button>
+                  {owned.has('webinar', webinar.id) ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-[#e8f8ee] text-[#00531d] text-xs font-black cursor-default"
+                    >
+                      Already registered
+                    </button>
+                  ) : (
                   <button
                     onClick={() => onRegisterWebinar(webinar)}
                     className="flex-1 py-2.5 px-3 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
                   >
-                    <span>Register (₹{webinar.priceINR || entryPrice})</span>
+                    <span>Register{webinar.priceINR ? ` (₹${webinar.priceINR})` : entryPrice ? ` (₹${entryPrice})` : ''}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />
                   </button>
+                  )}
                 </div>
               </div>
             ))}

@@ -44,14 +44,19 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
   // Same list as the Home / About / Leadership views: CMS visibility and order apply here too, so a
   // hidden person can never be opened; an unknown slug shows the first visible leader instead.
   const leaders = useLeaderList();
-  const currentLeader: LeaderProfile =
+  const currentLeader: LeaderProfile | undefined =
     leaders.find((l) => l.profileSlug === slug || l.id === slug) ||
     leaders.find((l) => slug.toLowerCase().includes(l.name.toLowerCase().split(/\s+/)[0])) ||
     leaders[0];
-  const currentIndex = leaders.findIndex((l) => l.profileSlug === currentLeader.profileSlug);
-  const wrap = (index: number) => leaders[((index % leaders.length) + leaders.length) % leaders.length];
-  const prevLeader = wrap(currentIndex - 1);
-  const nextLeader = wrap(currentIndex + 1);
+  const currentIndex = currentLeader
+    ? leaders.findIndex((l) => l.profileSlug === currentLeader.profileSlug)
+    : -1;
+  const wrap = (index: number) =>
+    leaders.length
+      ? leaders[((index % leaders.length) + leaders.length) % leaders.length]
+      : undefined;
+  const prevLeader = currentIndex >= 0 ? wrap(currentIndex - 1) : undefined;
+  const nextLeader = currentIndex >= 0 ? wrap(currentIndex + 1) : undefined;
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -79,9 +84,9 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
           alternateEmail: data.alternateEmail,
           linkedinUrl: data.linkedinUrl,
           notes: data.additionalInfo,
-          requirement: `Direct Message to ${currentLeader.name} (${currentLeader.role}): ${data.additionalInfo || 'Leadership Advisory Connect'}`,
-          planInterest: `Leadership Connect - ${currentLeader.name}`,
-          source: `Leader Profile Page - ${currentLeader.name}`
+          requirement: `Direct Message to ${currentLeader?.name} (${currentLeader?.role}): ${data.additionalInfo || 'Leadership Advisory Connect'}`,
+          planInterest: `Leadership Connect - ${currentLeader?.name}`,
+          source: `Leader Profile Page - ${currentLeader?.name}`
         });
       if (!result.ok) {
         setSubmitError(result.error || 'We could not send your details. Please try again.');
@@ -96,6 +101,26 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
       setSubmitting(false);
     }
   };
+
+  if (!currentLeader) {
+    return (
+      <div className="w-full bg-[#f9f9ff] py-16 px-4 sm:px-6">
+        <div className="max-w-xl mx-auto text-center">
+          <h1 className="text-2xl font-black text-[#061b3b] mb-2">Leadership profiles are being updated</h1>
+          <p className="text-sm text-[#666a76] mb-6">
+            Add people in Admin → People & Mentors to show leadership profiles.
+          </p>
+          <button
+            type="button"
+            onClick={() => setActivePage('leadership')}
+            className="px-5 py-2.5 rounded-xl bg-[#002869] text-white text-xs font-bold cursor-pointer"
+          >
+            Back to Leadership
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-[#f9f9ff] py-8 sm:py-12 px-4 sm:px-6 lg:px-10">
@@ -112,11 +137,13 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onNext={() => {
-            onSelectLeader(nextLeader.profileSlug);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (nextLeader) {
+              onSelectLeader(nextLeader.profileSlug);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
           }}
           backLabel={`Back to ${previousPage === 'about-us' ? 'About' : 'Previous'}`}
-          nextLabel={`Next: ${nextLeader.name}`}
+          nextLabel={nextLeader ? `Next: ${nextLeader.name}` : 'Leadership'}
           currentStepLabel={`Leader Profile: ${currentLeader.name}`}
         />
 
@@ -207,19 +234,21 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
                 {currentLeader.title}
               </p>
 
-              {/* Verified Experience Badge */}
-              <div className="inline-flex items-center gap-2 self-center lg:self-start px-4 py-2 rounded-2xl bg-[#002869] text-white text-xs sm:text-sm font-bold shadow-xs mt-1">
-                <Award className="w-4 h-4 text-[#79fd8d]" />
-                <span>{currentLeader.yearsOfExperience}</span>
-              </div>
+              {currentLeader.yearsOfExperience && (
+                <div className="inline-flex items-center gap-2 self-center lg:self-start px-4 py-2 rounded-2xl bg-[#002869] text-white text-xs sm:text-sm font-bold shadow-xs mt-1">
+                  <Award className="w-4 h-4 text-[#79fd8d]" />
+                  <span>{currentLeader.yearsOfExperience}</span>
+                </div>
+              )}
             </div>
 
-            {/* Headline Subtext */}
-            <p className="text-sm sm:text-base text-[#434652] leading-relaxed font-medium">
-              {currentLeader.headline}
-            </p>
+            {currentLeader.headline && (
+              <p className="text-sm sm:text-base text-[#434652] leading-relaxed font-medium">
+                {currentLeader.headline}
+              </p>
+            )}
 
-            {/* Key Expertise Chips */}
+            {currentLeader.expertise.length > 0 && (
             <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#666a76]">
                 Core Competencies & Strategic Domains:
@@ -235,6 +264,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
                 ))}
               </div>
             </div>
+            )}
 
             {/* Action CTA */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2">
@@ -260,7 +290,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
           </div>
         </div>
 
-        {/* 3. ABOUT SECTION */}
+        {currentLeader.about.length > 0 && (
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
           <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
             <div className="w-10 h-10 rounded-xl bg-[#002869] text-white flex items-center justify-center shadow-xs">
@@ -284,8 +314,9 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             ))}
           </div>
         </div>
+        )}
 
-        {/* 4. PROFESSIONAL EXPERIENCE SECTION */}
+        {currentLeader.experienceHighlights.length > 0 && (
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 flex-wrap gap-3">
             <div className="flex items-center gap-3">
@@ -348,8 +379,9 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             ))}
           </div>
         </div>
+        )}
 
-        {/* 5. AREAS OF FOCUS / EXPERTISE */}
+        {currentLeader.focusAreas.length > 0 && (
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
           <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
             <div className="w-10 h-10 rounded-xl bg-[#002869] text-white flex items-center justify-center shadow-xs">
@@ -381,8 +413,9 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             ))}
           </div>
         </div>
+        )}
 
-        {/* 6. ROLE AT CAREERBUDDIES */}
+        {currentLeader.roleAtCareerBuddies && (
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#cbdaff] shadow-xs flex flex-col gap-6">
           <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
             <div className="w-10 h-10 rounded-xl bg-[#002869] text-white flex items-center justify-center shadow-xs">
@@ -418,6 +451,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* 7. LEADERSHIP PHILOSOPHY */}
         {currentLeader.philosophy.quote && (
@@ -488,6 +522,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
         {/* 8. NAVIGATION TO ANOTHER LEADERSHIP PROFILE */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Previous Leader Button */}
+          {prevLeader && leaders.length > 1 && (
           <button
             onClick={() => {
               onSelectLeader(prevLeader.profileSlug);
@@ -503,6 +538,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
               <span>{prevLeader.name} ({prevLeader.role})</span>
             </div>
           </button>
+          )}
 
           {/* 9. BACK TO HOME */}
           <button
@@ -516,7 +552,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             <span>Back to Home</span>
           </button>
 
-          {/* Next Leader Button */}
+          {nextLeader && leaders.length > 1 && (
           <button
             onClick={() => {
               onSelectLeader(nextLeader.profileSlug);
@@ -532,6 +568,7 @@ export const LeaderProfileScreen: React.FC<LeaderProfileScreenProps> = ({
             </div>
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
+          )}
         </div>
 
       </div>

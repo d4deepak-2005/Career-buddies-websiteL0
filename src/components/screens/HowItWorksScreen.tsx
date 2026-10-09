@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { HOW_IT_WORKS_STEPS } from '../../data/mockData';
+import { WebinarItem } from '../../types';
 import { 
   Target, 
   Compass, 
@@ -18,7 +19,7 @@ import {
 import { PageView } from '../../types';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { SectionHeading } from '../common/SectionHeading';
-import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
+import { useWebinarOffer, webinarPriceSuffix, withEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface HowItWorksScreenProps {
   onStartMatching: () => void;
@@ -26,6 +27,7 @@ interface HowItWorksScreenProps {
   onBookCounselling?: () => void;
   onBecomeMentor?: () => void;
   setActivePage: (page: PageView) => void;
+  onOpenLiveWebinar?: (webinar?: WebinarItem | null) => void;
 }
 
 export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
@@ -33,11 +35,40 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
   onOpenCounselling,
   onBookCounselling,
   onBecomeMentor,
-  setActivePage
+  setActivePage,
+  onOpenLiveWebinar
 }) => {
-  const entryPrice = useWebinarEntryPrice();
+  const { hasLive, priceINR: entryPrice, webinar: liveWebinar } = useWebinarOffer();
   const handleCounselling = onOpenCounselling || onBookCounselling || (() => {});
   const [selectedStep, setSelectedStep] = useState<number>(1);
+  const goToLiveWebinar = () => {
+    if (onOpenLiveWebinar) onOpenLiveWebinar(liveWebinar);
+    else setActivePage('webinars');
+  };
+  const journeySteps = useMemo(
+    () =>
+      HOW_IT_WORKS_STEPS.map((step) => {
+        if (step.step !== 1) return step;
+        if (!hasLive) {
+          return {
+            ...step,
+            subtitle: 'Begin with a conversation with our Career Advisor',
+            description:
+              'When a live mentor webinar is running, this is the first step. Right now, start by speaking with a Career Advisor who will map your profile and recommend the right plan.',
+            deliverable: 'Advisor conversation to understand your goals',
+          };
+        }
+        const fee = entryPrice ? ` (Entry Fee: ₹${entryPrice})` : '';
+        return {
+          ...step,
+          subtitle: `Start your journey with a live masterclass${fee}`,
+          deliverable: entryPrice
+            ? `₹${entryPrice} Webinar Pass, Live Q&A & Resource Pack`
+            : 'Webinar Pass, Live Q&A & Resource Pack',
+        };
+      }),
+    [hasLive, entryPrice]
+  );
 
   const getStepIcon = (name: string) => {
     switch (name) {
@@ -52,7 +83,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
     }
   };
 
-  const activeStepData = HOW_IT_WORKS_STEPS.find(s => s.step === selectedStep) || HOW_IT_WORKS_STEPS[0];
+  const activeStepData = journeySteps.find(s => s.step === selectedStep) || journeySteps[0];
 
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
@@ -93,13 +124,16 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+            {hasLive && (
             <button
-              onClick={() => setActivePage('webinars')}
-              className="px-6 py-3 bg-[#006e29] hover:bg-[#00531d] text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2"
+              type="button"
+              onClick={goToLiveWebinar}
+              className="shine-btn px-6 py-3 bg-[#006e29] hover:bg-[#00531d] text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2"
             >
               <Calendar className="w-4 h-4" />
-              <span>Step 1: Join Live Webinar (₹{entryPrice})</span>
+              <span>Step 1: Join Live Webinar{webinarPriceSuffix(entryPrice)}</span>
             </button>
+            )}
             <button
               onClick={handleCounselling}
               className="px-6 py-3 bg-[#e8edff] hover:bg-[#d7e2ff] text-[#002869] font-black text-xs sm:text-sm rounded-xl transition-all cursor-pointer border border-[#cbdaff] flex items-center gap-2"
@@ -118,7 +152,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
               Progression Steps
             </span>
 
-            {HOW_IT_WORKS_STEPS.map((stepItem) => {
+            {journeySteps.map((stepItem) => {
               const isSelected = selectedStep === stepItem.step;
               return (
                 <button
@@ -221,16 +255,19 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
               </button>
 
               <div className="flex items-center gap-2">
+                {hasLive && selectedStep === 1 && (
                 <button
-                  onClick={() => setActivePage('webinars')}
+                  type="button"
+                  onClick={goToLiveWebinar}
                   className="px-4 py-2 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl shadow-xs cursor-pointer"
                 >
-                  Join ₹{entryPrice} Webinar
+                  Join{entryPrice ? ` ₹${entryPrice}` : ''} Webinar
                 </button>
+                )}
 
                 <button
                   onClick={() => {
-                    if (selectedStep < HOW_IT_WORKS_STEPS.length) {
+                    if (selectedStep < journeySteps.length) {
                       setSelectedStep(selectedStep + 1);
                     } else {
                       setActivePage('programmes');
@@ -238,7 +275,7 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({
                   }}
                   className="px-4 py-2 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl shadow-xs cursor-pointer flex items-center gap-1"
                 >
-                  <span>{selectedStep === HOW_IT_WORKS_STEPS.length ? 'Explore Programmes' : 'Next Stage'}</span>
+                  <span>{selectedStep === journeySteps.length ? 'Explore Programmes' : 'Next Stage'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>

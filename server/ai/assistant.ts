@@ -5,6 +5,7 @@ import { Service } from '../models/Service.ts';
 import { Webinar } from '../models/Webinar.ts';
 import { Mentor } from '../models/Mentor.ts';
 import { Testimonial } from '../models/Testimonial.ts';
+import { Resource } from '../models/Resource.ts';
 import {
   CONFIRMED_SENTENCE,
   Offering,
@@ -77,11 +78,13 @@ const digitsOf = (v: unknown) => String(v ?? '').replace(/[^\d.]/g, '').replace(
 async function buildCatalog(): Promise<Catalog> {
   const visible = { visible: { $ne: false } };
   const hidden = { visible: false };
-  const [plans, programmes, services, webinars, hiddenMentors, hiddenTestimonials, hiddenWebinars] = await Promise.all([
+  const [plans, programmes, services, webinars, mentors, resources, hiddenMentors, hiddenTestimonials, hiddenWebinars] = await Promise.all([
     Plan.find(visible).sort({ displayOrder: 1, createdAt: 1 }).lean(),
     Programme.find(visible).sort({ displayOrder: 1, createdAt: 1 }).lean(),
     Service.find(visible).sort({ displayOrder: 1, createdAt: 1 }).lean(),
     Webinar.find(visible).sort({ displayOrder: 1, createdAt: 1 }).lean(),
+    Mentor.find(visible).sort({ displayOrder: 1, createdAt: 1 }).lean(),
+    Resource.find(visible).sort({ displayOrder: 1, createdAt: 1 }).lean(),
     Mentor.find(hidden).select('name').lean(),
     Testimonial.find(hidden).select('name').lean(),
     Webinar.find(hidden).select('speakerName').lean(),
@@ -154,6 +157,33 @@ async function buildCatalog(): Promise<Catalog> {
     }
   }
 
+  lines.push('', 'MENTORS (public profiles you MAY name; never invent a name):');
+  const visibleMentors = mentors as any[];
+  if (visibleMentors.length === 0) {
+    lines.push('- No individual mentor profiles are listed right now. Do not name or invent mentors.');
+  } else {
+    for (const m of visibleMentors.slice(0, 16)) {
+      const skills = neutralizeList([...(m.expertise || []), ...(m.topics || [])], 6, 80);
+      lines.push(
+        `- ${clean(m.name, 80)}${clean(m.designation, 80) ? `, ${clean(m.designation, 80)}` : ''}` +
+          `${clean(m.category, 40) ? ` (${clean(m.category, 40)})` : ''}.` +
+          `${skills.length ? ` Focus: ${skills.join('; ')}.` : ''}`
+      );
+    }
+  }
+
+  lines.push('', 'RESOURCES (career playbooks you MAY mention by title):');
+  const visibleResources = resources as any[];
+  if (visibleResources.length === 0) {
+    lines.push('- No resource articles are listed right now.');
+  } else {
+    for (const r of visibleResources.slice(0, 12)) {
+      lines.push(
+        `- ${clean(r.title, 140)}${clean(r.category, 40) ? ` [${clean(r.category, 40)}]` : ''}. ${neutralizeText(r.summary, 180)}`
+      );
+    }
+  }
+
   const text = lines.join('\n');
   const liveList: LiveWebinar[] = liveWebinars.map((w) => ({ title: clean(w.title, 160), date: clean(w.date, 60), time: clean(w.time, 60), price: w.priceINR ? rupees(w.priceINR) : '' }));
   return { text, offerings, allPrices, webinarsAvailable: liveWebinars.length > 0, blockedNames, catalogNorm: normalizeName(text), liveWebinars: liveList };
@@ -189,14 +219,33 @@ async function getCatalog(): Promise<Catalog> {
 
 const POLICY_TOPIC = /placement|assured|verified|vetted|job offer|will i get (a )?job/i;
 
-function buildSystemPrompt(catalog: Catalog, latestMessage: string): string {
+function visitorLine(visitor: { firstName?: string; role?: string; target?: string; experience?: string } | null): string {
+  if (!visitor) return '';
+  const bits = [
+    visitor.firstName && `Name: ${visitor.firstName}`,
+    visitor.role && `Current role: ${visitor.role}`,
+    visitor.experience && `Experience: ${visitor.experience}`,
+    visitor.target && `Target role: ${visitor.target}`,
+  ].filter(Boolean);
+  if (!bits.length) return '';
+  return `
+
+VISITOR (signed-in; treat as already known — do not re-ask these):
+${bits.join('. ')}.`;
+}
+
+function buildSystemPrompt(
+  catalog: Catalog,
+  latestMessage: string,
+  visitor: { firstName?: string; role?: string; target?: string; experience?: string } | null
+): string {
   const policyNote = POLICY_TOPIC.test(latestMessage)
     ? `
 
 NOTE FOR THIS REPLY: the user's latest message touches a topic that is not confirmed (placement, assured outcomes or verification). Do not state that CareerBuddies does or does not provide it. Say: "${CONFIRMED_SENTENCE}" You may then briefly ask how you can help with their career goal.`
     : '';
 
-  return `You are "CB AI Assistant", the career consultant of CareerBuddies (an Indian career guidance platform for software engineers, product managers, designers, data/AI professionals and technical leaders). You are not a generic chatbot and not an FAQ bot.
+  return `You are "CB AI Assistant", the career consultant of CareerBuddies (an Indian career guidance platform for software engineers, product managers, designers, data/AI professionals and technical leaders). You are not a generic chatbot and not an FAQ bot.${visitorLine(visitor)}
 
 GOAL
 Understand the user's actual career problem, work out what they really need, and - only when there is a genuine fit - point them to the most relevant CareerBuddies offering from the CATALOG below and explain why it fits. Never push the most expensive option; recommend what matches the person's situation.
@@ -211,9 +260,10 @@ HOW TO CONVERSE
 
 TRUTH RULES (very important)
 - Offerings, prices, durations and features may ONLY come from the CATALOG. If the user asks about something not in the catalog or that you are not sure about, say: "I don't have confirmed information about that right now. I can connect you with an advisor for the latest details."
-- Never invent or mention: mentor names, mentor availability, ratings, reviews, testimonials, webinar dates or speakers, programme start dates, salary or promotion outcomes, statistics or percentages, company affiliations, guarantees, refunds, certificates, recordings, response times, or features that are not in the catalog. Do not say anyone is "verified". Do not create urgency ("only a few seats", "limited time").
-- CareerBuddies currently lists no individual mentor profiles publicly; do not name or promise specific mentors, and do not describe mentors' quality, employers or experience.
-- Topics that are NOT confirmed: guarantees, refunds, money-back or job-placement promises, certificates, session recordings, response times, mentor verification. For any question about these, do NOT say CareerBuddies does or does not offer them; reply that you don't have confirmed information right now and offer to connect them with an advisor.
+- Never invent or mention: mentor availability, ratings, reviews, testimonials, webinar dates or speakers, programme start dates, salary or promotion outcomes, statistics or percentages, company affiliations, guarantees, refunds, certificates, recordings, response times, or features that are not in the catalog. Do not say anyone is "verified". Do not create urgency ("only a few seats", "limited time").
+- Mentors: you MAY name only mentors listed in the MENTORS section. Never invent a mentor, rating, employer prestige or availability. If none are listed, do not name anyone.
+- Resources: you MAY mention resource titles from the RESOURCES section and invite them to the Resources page.
+- Topics that are NOT confirmed: guarantees, refunds, money-back or job-placement promises, certificates, session recordings, response times, mentor verification. For those, say you don't have confirmed information, then still give useful career guidance and offer an advisor. Do not stop at that sentence alone.
 - When giving an example (for example how to word a resume bullet) never include real-looking numbers or percentages as facts; use placeholders like [X%].
 - Prices are in Indian rupees exactly as listed. Only plans and programmes have listed prices; services have none, so never mention, estimate or write a placeholder for a service price (if asked, say an advisor will share the details). Never quote or estimate a price for a "custom pricing" plan; say it is tailored and an advisor will confirm.
 - Webinars: answer ONLY from the LIVE WEBINARS section of the catalog. If it says none are scheduled, state plainly that there are no live webinars scheduled right now (do not use the "no confirmed information" sentence for this) and point to the free Career Check-in or Career Counselling instead. Never invent a webinar, date or speaker.
@@ -229,6 +279,7 @@ MATCHING GUIDE (use only offerings that exist in the catalog)
 - Moving into management or leadership -> the leadership related service or programme.
 - Senior executive / director-level or bespoke needs -> "Executive & Premium Plan" ONLY if their situation is genuinely that senior or bespoke; otherwise a lighter option.
 - Not sure where to start -> suggest the free Career Check-in or Free Career Counselling, then a plan.
+- Wants a specific mentor / 1:1 practitioner -> a listed mentor if one matches their domain, otherwise Find a Mentor / an advisor.
 
 RECOMMENDATION TAG (machine-readable, hidden from the user)
 Only when you recommend ONE specific catalog offering after understanding the user's situation, end your reply with exactly one line:
@@ -328,18 +379,30 @@ const USER_ERROR: Record<ErrorCode, string> = {
   failed: 'Something went wrong. Please try again.',
 };
 
-function validate(body: any): { message: string; history: HistoryMessage[] } | { error: string } {
-  const { message, history, profile } = body || {};
+function pickVisitor(raw: unknown): { firstName?: string; role?: string; target?: string; experience?: string } | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const o = raw as Record<string, unknown>;
+  const firstName = typeof o.firstName === 'string' ? o.firstName.trim().slice(0, 40) : '';
+  const role = typeof o.role === 'string' ? o.role.trim().slice(0, 80) : '';
+  const target = typeof o.target === 'string' ? o.target.trim().slice(0, 80) : '';
+  const experience = typeof o.experience === 'string' ? o.experience.trim().slice(0, 40) : '';
+  if (!firstName && !role && !target && !experience) return null;
+  return { firstName, role, target, experience };
+}
+
+function validate(body: any):
+  | { message: string; history: HistoryMessage[]; visitor: { firstName?: string; role?: string; target?: string; experience?: string } | null }
+  | { error: string } {
+  const { message, history, profile, visitor } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) return { error: 'Message is required' };
   if (message.length > MAX_MESSAGE_CHARS) return { error: `Message is too long (maximum ${MAX_MESSAGE_CHARS} characters).` };
   if (history !== undefined && history !== null && !Array.isArray(history)) return { error: 'Invalid conversation history.' };
-  // `profile` is an optional field of the original API contract; it is validated (and otherwise ignored).
   if (profile !== undefined && profile !== null && (typeof profile !== 'object' || Array.isArray(profile))) return { error: 'Invalid profile.' };
   const safe: HistoryMessage[] = (Array.isArray(history) ? history : [])
     .filter((h: any) => h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string' && h.content.trim())
     .slice(-MAX_HISTORY_ITEMS)
     .map((h: any) => ({ role: h.role, content: h.content.slice(0, MAX_HISTORY_ITEM_CHARS) }));
-  return { message: message.trim(), history: safe };
+  return { message: message.trim(), history: safe, visitor: pickVisitor(visitor || profile) };
 }
 
 export async function aiChatHandler(req: Request, res: Response) {
@@ -417,7 +480,7 @@ export async function aiChatHandler(req: Request, res: Response) {
     }
 
     const messages = [
-      { role: 'system', content: buildSystemPrompt(catalog, parsed.message) },
+      { role: 'system', content: buildSystemPrompt(catalog, parsed.message, parsed.visitor) },
       ...parsed.history,
       { role: 'user', content: parsed.message },
     ];
@@ -457,6 +520,7 @@ export async function aiChatHandler(req: Request, res: Response) {
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
     headersSent = true;
+    sse('status', { thinking: true, message: 'Just a moment…' });
 
     let raw = '';
     let sent = 0;

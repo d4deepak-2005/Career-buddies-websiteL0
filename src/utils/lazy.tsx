@@ -1,4 +1,5 @@
 import React, { Component, ComponentType, LazyExoticComponent, ReactNode, lazy } from 'react';
+import { ModalSkeleton, PageSkeleton } from '../components/common/Skeleton';
 
 // Code-splitting helpers. Screens and dialogs that are not needed for the first paint are
 // loaded on demand; the app keeps its existing state-based navigation.
@@ -19,18 +20,10 @@ export function lazyNamed<T extends Record<K, ComponentType<any>>, K extends key
 
 // Shown in place of a screen while its chunk loads. Same minimum height as the loading states
 // already used elsewhere so the footer does not jump around.
-export const ScreenFallback: React.FC = () => (
-  <div role="status" aria-live="polite" className="min-h-[60vh] w-full flex items-center justify-center">
-    <span className="text-sm font-semibold text-[#434652]">Loading…</span>
-  </div>
-);
+export const ScreenFallback: React.FC = () => <PageSkeleton />;
 
 // Small centred indicator for dialogs that are still loading.
-export const ModalFallback: React.FC = () => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" role="status" aria-live="polite">
-    <span className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#061b3b] shadow-lg">Loading…</span>
-  </div>
-);
+export const ModalFallback: React.FC = () => <ModalSkeleton />;
 
 // Renders its children only while `open` is true, so a lazy dialog is not even requested
 // until someone opens it.

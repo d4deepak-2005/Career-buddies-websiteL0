@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { WebinarItem, WebinarRegistration } from '../../types';
-import { startCheckout } from '../../utils/checkout';
+import { CheckoutRequest, startCheckout } from '../../utils/checkout';
+import { formatINR, withGstRupees } from '../../utils/gst';
 import { DEFAULT_SITE_CONFIG } from '../../config/siteConfig';
 import { 
   X, 
@@ -26,10 +27,20 @@ import {
 import { HandshakeIcon } from '../common/HandshakeIcon';
 import { ModalA11y } from '../common/ModalA11y';
 
+export interface CheckoutEnrollment {
+  itemType: CheckoutRequest['itemType'];
+  itemId: string;
+  title: string;
+  subtitle: string;
+  priceINR: number;
+  extraDetails?: Record<string, string | number>;
+}
+
 interface WebinarCheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
-  webinar: WebinarItem | null;
+  webinar?: WebinarItem | null;
+  enrollment?: CheckoutEnrollment | null;
   onRegistrationSuccess?: (registration: WebinarRegistration) => void;
   onBackToHome?: () => void;
 }
@@ -38,10 +49,21 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
   isOpen,
   onClose,
   webinar,
+  enrollment,
   onRegistrationSuccess,
   onBackToHome
 }) => {
-  if (!isOpen || !webinar) return null;
+  const item: CheckoutEnrollment | null = enrollment
+    ? enrollment
+    : webinar
+      ? {
+          itemType: 'webinar',
+          itemId: webinar.id,
+          title: webinar.title,
+          subtitle: `Speaker: ${webinar.speaker.name} (${webinar.speaker.company}) • ${webinar.date} at ${webinar.time}`,
+          priceINR: webinar.priceINR || DEFAULT_SITE_CONFIG.webinarDefaultPriceINR,
+        }
+      : null;
 
   const [step, setStep] = useState<'details' | 'review' | 'payment' | 'success'>('details');
   const [firstName, setFirstName] = useState('');
@@ -67,7 +89,16 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState('');
 
-  const price = webinar.priceINR || DEFAULT_SITE_CONFIG.webinarDefaultPriceINR;
+  useEffect(() => {
+    if (!isOpen) return;
+    setStep('details');
+    setPaymentError('');
+    setIsProcessing(false);
+    setFieldErrors({});
+  }, [isOpen, item?.itemId]);
+
+  const price = item?.priceINR || 0;
+  const priced = withGstRupees(price);
 
   const validateEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
   const validateMobile = (val: string) => {
@@ -114,25 +145,32 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
     setIsProcessing(true);
     setPaymentError('');
 
-    // Real payment: the server creates a Dodo Payments checkout session and
-    // we redirect to Dodo's hosted checkout. Payment status is confirmed by
-    // Dodo's signed webhook, not by this browser.
+    // Real payment: the server creates a Razorpay order (CMS price) and
+    // Checkout opens here. Status is confirmed by signature verify + webhook.
+    if (!item) {
+      setPaymentError('Unable to start payment.');
+      setIsProcessing(false);
+      return;
+    }
+
     const result = await startCheckout({
-      itemType: 'webinar',
-      itemId: webinar.id,
-      itemName: webinar.title,
+      itemType: item.itemType,
+      itemId: item.itemId,
+      itemName: item.title,
       customer: {
         name: `${firstName.trim()} ${lastName.trim()}`.trim(),
         email: email.trim(),
         mobile: mobile.trim()
       },
       details: {
+        source: 'enroll-form',
         currentDesignation,
         totalExperience,
         alternateNumber,
         alternateEmail,
         linkedinUrl,
-        questionForSpeaker: questionForSpeaker.trim()
+        notes: questionForSpeaker.trim(),
+        ...item.extraDetails,
       }
     });
 
@@ -149,9 +187,17 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
     success: 4
   };
 
+  if (!isOpen || !item) return null;
+
+  const passLabel =
+    item.itemType === 'plan' ? 'Plan Enrollment' : item.itemType === 'programme' ? 'Programme Enrollment' : 'Masterclass Pass';
+  const notesLabel = webinar
+    ? `Question for ${webinar.speaker.name}`
+    : 'Notes for our team';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#061b3b]/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
-      <ModalA11y label="Webinar registration" onClose={onClose} />
+      <ModalA11y label="Enrollment" onClose={onClose} />
       <div className="bg-white rounded-3xl w-full max-w-2xl border border-[#cbdaff] shadow-2xl overflow-hidden my-8 animate-in zoom-in-95 max-h-[90vh] flex flex-col">
         
         {/* Navigation & Header Bar */}
@@ -171,8 +217,8 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                 </button>
               )}
               <span className="text-xs font-bold text-[#dae2ff] flex items-center gap-1.5">
-                <span>Masterclass Pass</span>
-                <span className="text-[#79fd8d]">| ₹{price}</span>
+                <span>{passLabel}</span>
+                <span className="text-[#79fd8d]">| {formatINR(priced.total)} incl. GST</span>
               </span>
             </div>
 
@@ -187,10 +233,10 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
 
           <div className="mt-3">
             <h2 className="text-lg sm:text-xl font-bold font-['Plus_Jakarta_Sans',sans-serif] leading-tight line-clamp-1">
-              {webinar.title}
+              {item.title}
             </h2>
             <p className="text-xs text-[#dae2ff] mt-0.5">
-              Speaker: {webinar.speaker.name} ({webinar.speaker.company}) • {webinar.date} at {webinar.time}
+              {item.subtitle}
             </p>
           </div>
 
@@ -225,7 +271,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                   Enter Attendee Information
                 </h3>
                 <span className="text-xs font-bold text-[#006e29] bg-[#79fd8d]/20 px-2 py-0.5 rounded">
-                  Pass: ₹{price}
+                  {formatINR(priced.total)} incl. GST
                 </span>
               </div>
 
@@ -412,7 +458,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
 
                 <div className="flex flex-col gap-1">
                   <label htmlFor="webinar-field-10" className="text-xs font-medium text-[#434652]">
-                    Question for {webinar.speaker.name} <span className="text-[#666a76] font-normal">(Optional)</span>
+                    {notesLabel} <span className="text-[#666a76] font-normal">(Optional)</span>
                   </label>
                   <textarea id="webinar-field-10"
                     rows={2}
@@ -455,11 +501,11 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                 <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                   <div>
                     <span className="text-xs text-[#666a76] block">Item</span>
-                    <span className="text-sm font-bold text-[#061b3b]">{webinar.title}</span>
+                    <span className="text-sm font-bold text-[#061b3b]">{item.title}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-xs text-[#666a76] block">Price</span>
-                    <span className="text-sm font-black text-[#006e29]">₹{price}</span>
+                    <span className="text-sm font-black text-[#006e29]">{formatINR(priced.base)}</span>
                   </div>
                 </div>
 
@@ -484,15 +530,27 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                     <span className="text-[#666a76]">Experience:</span>
                     <p className="font-bold text-[#061b3b]">{totalExperience}</p>
                   </div>
+                  {webinar && (
                   <div>
                     <span className="text-[#666a76]">Session Date:</span>
                     <p className="font-bold text-[#061b3b]">{webinar.date}</p>
                   </div>
+                  )}
                 </div>
 
-                <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#061b3b]">Total Amount Payable:</span>
-                  <span className="text-base font-black text-[#002869]">₹{price} (All Inclusive)</span>
+                <div className="pt-3 border-t border-gray-200 flex flex-col gap-1.5 text-xs">
+                  <div className="flex justify-between text-[#434652]">
+                    <span>Base price</span>
+                    <span className="font-bold text-[#061b3b]">{formatINR(priced.base)}</span>
+                  </div>
+                  <div className="flex justify-between text-[#434652]">
+                    <span>GST ({priced.gstPercent}%)</span>
+                    <span className="font-bold text-[#061b3b]">{formatINR(priced.gst)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="font-bold text-[#061b3b]">Total payable (incl. GST)</span>
+                    <span className="text-base font-black text-[#002869]">{formatINR(priced.total)}</span>
+                  </div>
                 </div>
               </div>
 
@@ -511,7 +569,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                   onClick={() => setStep('payment')}
                   className="px-6 py-2.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
-                  <span>Proceed to Payment (₹{price})</span>
+                  <span>Proceed to Payment ({formatINR(priced.total)})</span>
                   <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />
                 </button>
               </div>
@@ -525,17 +583,18 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                 <h3 className="text-base font-bold text-[#061b3b]">
                   Secure Payment
                 </h3>
-                <span className="text-xs font-black text-[#006e29]">Pay ₹{price}</span>
+                <span className="text-xs font-black text-[#006e29]">Pay {formatINR(priced.total)}</span>
               </div>
 
               <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#cbdaff] flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-xs font-black text-[#002869]">
                   <ShieldCheck className="w-4 h-4 text-[#006e29]" />
-                  <span>Powered by Dodo Payments</span>
+                  <span>Powered by Razorpay</span>
                 </div>
                 <p className="text-xs text-[#434652] leading-relaxed">
-                  You will be taken to a secure hosted checkout page to complete your payment.
-                  Your card and bank details are never entered or stored on CareerBuddies.
+                  Razorpay Checkout will charge {formatINR(priced.total)} including {priced.gstPercent}% GST.
+                  Pay with UPI, card, or netbanking. Your card and bank details are never stored on CareerBuddies.
+                  If you already paid for this while logged in, you will not be charged again.
                 </p>
               </div>
 
@@ -562,7 +621,7 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
                   className="px-6 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <ShieldCheck className="w-4 h-4 text-[#79fd8d]" />
-                  <span>{isProcessing ? 'Redirecting to secure checkout...' : `Pay Securely (₹${price})`}</span>
+                  <span>{isProcessing ? 'Opening secure checkout...' : `Pay Securely (${formatINR(priced.total)})`}</span>
                 </button>
               </div>
             </div>

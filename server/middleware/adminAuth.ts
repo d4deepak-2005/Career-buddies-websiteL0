@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { AdminUser } from '../models/AdminUser.ts';
+import { verifyPassword } from './candidateAuth.ts';
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
@@ -31,49 +33,69 @@ function getAdminPassword(): string {
   return password;
 }
 
-function sign(expiresAt: number): string {
-  return crypto
-    .createHmac('sha256', getSecret())
-    .update(String(expiresAt))
-    .digest('hex');
+export type AdminActor = { name: string; source: 'owner' | 'team' };
+
+function signPayload(payload: string): string {
+  return crypto.createHmac('sha256', getSecret()).update(payload).digest('hex');
 }
 
-export function createAdminToken(): { token: string; expiresAt: number } {
+function signaturesMatch(expected: string, actual: string): boolean {
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  const actualBuffer = Buffer.from(actual, 'hex');
+  if (expectedBuffer.length !== actualBuffer.length) return false;
+  return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+}
+
+export function createAdminToken(actor: AdminActor = { name: 'Owner', source: 'owner' }): { token: string; expiresAt: number } {
   const expiresAt = Date.now() + TOKEN_TTL_MS;
-  const signature = sign(expiresAt);
+  const body = Buffer.from(JSON.stringify({
+    name: String(actor.name || 'Owner').slice(0, 80),
+    source: actor.source === 'team' ? 'team' : 'owner',
+  })).toString('base64url');
+  const payload = `${expiresAt}.${body}`;
 
   return {
-    token: `${expiresAt}.${signature}`,
+    token: `${payload}.${signPayload(payload)}`,
     expiresAt,
   };
 }
 
-export function verifyAdminToken(token: string | undefined | null): boolean {
-  if (!token) return false;
+export function readAdminSession(token: string | undefined | null): (AdminActor & { expiresAt: number }) | null {
+  if (!token) return null;
 
-  // Fail closed: if signing isn't configured, no token is valid.
   try {
     getSecret();
   } catch {
-    return false;
+    return null;
   }
 
-  const [expiresAtRaw, signature] = token.split('.');
+  const parts = token.split('.');
+  if (parts.length === 2) {
+    const [expiresAtRaw, signature] = parts;
+    const expiresAt = Number(expiresAtRaw);
+    if (!expiresAtRaw || !signature || !Number.isFinite(expiresAt) || Date.now() > expiresAt) return null;
+    if (!signaturesMatch(signPayload(String(expiresAt)), signature)) return null;
+    return { name: 'Owner', source: 'owner', expiresAt };
+  }
 
-  if (!expiresAtRaw || !signature) return false;
-
+  if (parts.length !== 3) return null;
+  const [expiresAtRaw, body, signature] = parts;
   const expiresAt = Number(expiresAtRaw);
+  if (!expiresAtRaw || !body || !signature || !Number.isFinite(expiresAt) || Date.now() > expiresAt) return null;
+  if (!signaturesMatch(signPayload(`${expiresAt}.${body}`), signature)) return null;
 
-  if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) return false;
+  try {
+    const parsed = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as { name?: string; source?: string };
+    const name = String(parsed?.name || 'Owner').slice(0, 80);
+    const source = parsed?.source === 'team' ? 'team' : 'owner';
+    return { name, source, expiresAt };
+  } catch {
+    return null;
+  }
+}
 
-  const expectedSignature = sign(expiresAt);
-
-  const expectedBuffer = Buffer.from(expectedSignature, 'hex');
-  const actualBuffer = Buffer.from(signature, 'hex');
-
-  if (expectedBuffer.length !== actualBuffer.length) return false;
-
-  return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+export function verifyAdminToken(token: string | undefined | null): boolean {
+  return readAdminSession(token) !== null;
 }
 
 export function verifyAdminPassword(password: string | undefined | null): boolean {
@@ -87,6 +109,33 @@ export function verifyAdminPassword(password: string | undefined | null): boolea
   return crypto.timingSafeEqual(expected, actual);
 }
 
+export async function resolveAdminLogin(password: string | undefined | null): Promise<AdminActor | null> {
+  if (!password) return null;
+
+  try {
+    const users = await AdminUser.find().select('+passwordHash').lean();
+    for (const user of users) {
+      if (user.passwordHash && verifyPassword(password, user.passwordHash)) {
+        return { name: String(user.name || 'Team').slice(0, 80), source: 'team' };
+      }
+    }
+  } catch {
+    /* fall through to owner password */
+  }
+
+  try {
+    if (verifyAdminPassword(password)) return { name: 'Owner', source: 'owner' };
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+export async function verifyAdminPasswordAsync(password: string | undefined | null): Promise<boolean> {
+  return (await resolveAdminLogin(password)) !== null;
+}
+
 export function requireAdminAuth(
   req: Request,
   res: Response,
@@ -94,8 +143,9 @@ export function requireAdminAuth(
 ): void {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : undefined;
+  const session = readAdminSession(token);
 
-  if (!verifyAdminToken(token)) {
+  if (!session) {
     res.status(401).json({
       success: false,
       error: 'Unauthorized. Admin login required.',
@@ -103,5 +153,6 @@ export function requireAdminAuth(
     return;
   }
 
+  (req as any).adminActor = { name: session.name, source: session.source };
   next();
 }

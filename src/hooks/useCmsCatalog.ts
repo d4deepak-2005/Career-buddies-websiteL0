@@ -7,23 +7,16 @@ import {
   TestimonialItem,
   ServiceItem,
   PlanItem,
+  ResourceArticle,
 } from '../types';
-import { PROGRAMMES_CATALOGUE } from '../config/programmes';
 import { WEBINAR_ENTRY_PRICE_INR } from '../config/webinars';
-import { STRUCTURED_SERVICES, CAREER_PLANS } from '../data/mockData';
 
-// Each hook returns MongoDB-backed content mapped to the exact item shape the
-// existing screen already renders. If the collection is empty, still loading,
-// or the request failed, the existing static content is returned instead — so
-// no public section can ever go blank because CMS data is missing.
-// Exception: mentors, webinars and success stories have NO built-in fallback. The built-in copies were
-// demo records (stock photos, invented speakers/outcomes), so when the CMS has no visible entries these
-// sections are simply empty rather than showing demo content.
+// Public catalogue screens render MongoDB-backed CMS items only. If a collection
+// has no visible rows, that section is empty — there is no demo fallback.
 
 export function useProgrammes(): ProgrammeItem[] {
   const { items } = usePublicCollection<any>('/api/programmes');
   return useMemo(() => {
-    if (!items.length) return PROGRAMMES_CATALOGUE;
     return items.map((p) => ({
       id: p._id,
       name: p.name || '',
@@ -107,7 +100,6 @@ export function useSuccessStories(): TestimonialItem[] {
 export function useServices(): ServiceItem[] {
   const { items } = usePublicCollection<any>('/api/services');
   return useMemo(() => {
-    if (!items.length) return STRUCTURED_SERVICES;
     return items.map((s) => ({
       id: s._id,
       title: s.title || '',
@@ -129,7 +121,6 @@ export function useServices(): ServiceItem[] {
 export function usePlans(): PlanItem[] {
   const { items } = usePublicCollection<any>('/api/plans');
   return useMemo(() => {
-    if (!items.length) return CAREER_PLANS;
     return items.map((p) => ({
       id: p._id as any,
       name: p.name || '',
@@ -185,21 +176,77 @@ export function useMentors(): Mentor[] {
   }, [items]);
 }
 
-// ---------------------------------------------------------------------------
-// Webinar entry price: one source of truth for the "₹199"-style price mentioned across the site.
-// It follows the live webinar prices in the CMS (the lowest one); if the CMS is empty or
-// unreachable it is the built-in WEBINAR_ENTRY_PRICE_INR.
-// ---------------------------------------------------------------------------
-export function useWebinarEntryPrice(): number {
+// Live webinars = anything not marked completed. Public CTAs use the cheapest
+// of those and can open that webinar. If none are listed, those CTAs hide.
+export function useResources(): ResourceArticle[] {
+  const { items } = usePublicCollection<any>('/api/resources');
+  return useMemo(() => {
+    return items.map((r) => {
+      const category = String(r.category || '').trim();
+      return {
+        id: r._id,
+        categoryId: category || 'general',
+        categoryName: category || 'General',
+        title: r.title || '',
+        readTime: r.readTime || '',
+        publishedDate: r.publishedDate || '',
+        summary: r.summary || '',
+        content: r.content || '',
+        tags: Array.isArray(r.tags) ? r.tags : [],
+        author: r.author || '',
+        authorRole: r.authorRole || '',
+      };
+    });
+  }, [items]);
+}
+
+export function useWebinarOffer(): {
+  hasLive: boolean;
+  priceINR: number | null;
+  webinar: WebinarItem | null;
+} {
   const webinars = useWebinars();
   return useMemo(() => {
-    const prices = webinars.map((w) => w.priceINR).filter((p) => typeof p === 'number' && p > 0);
-    return prices.length ? Math.min(...prices) : WEBINAR_ENTRY_PRICE_INR;
+    const live = webinars.filter((w) => w.status !== 'completed');
+    if (live.length === 0) return { hasLive: false, priceINR: null, webinar: null };
+    const ranked = [...live].sort((a, b) => {
+      const ap = Number(a.priceINR);
+      const bp = Number(b.priceINR);
+      const aOk = Number.isFinite(ap) && ap > 0;
+      const bOk = Number.isFinite(bp) && bp > 0;
+      if (aOk && bOk) return ap - bp;
+      if (aOk) return -1;
+      if (bOk) return 1;
+      return 0;
+    });
+    const webinar = ranked[0];
+    const price = Number(webinar.priceINR);
+    return {
+      hasLive: true,
+      priceINR: Number.isFinite(price) && price > 0 ? price : null,
+      webinar,
+    };
   }, [webinars]);
 }
 
+export function useWebinarEntryPrice(): number {
+  return useWebinarOffer().priceINR || 0;
+}
+
+export function webinarPriceSuffix(priceINR: number | null | undefined): string {
+  return priceINR && priceINR > 0 ? ` (₹${priceINR})` : '';
+}
+
 // Static copy (FAQs, step descriptions) is written with the built-in entry price; this swaps it for
-// the current one at render time, so the text can never disagree with the CMS price.
-export function withEntryPrice(text: string, price: number): string {
-  return price === WEBINAR_ENTRY_PRICE_INR ? text : text.split(`₹${WEBINAR_ENTRY_PRICE_INR}`).join(`₹${price}`);
+// the current lowest live webinar price. If there is no live webinar, the ₹199 figure is removed.
+export function withEntryPrice(text: string, price: number | null | undefined): string {
+  if (!price || price <= 0) {
+    return text
+      .replace(/\s*\(?\s*Entry Fee:?\s*₹\s*199\s*\)?/gi, '')
+      .replace(/\s*₹\s*199\b/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([.,)])/g, '$1')
+      .trim();
+  }
+  return text.split(`₹${WEBINAR_ENTRY_PRICE_INR}`).join(`₹${price}`);
 }

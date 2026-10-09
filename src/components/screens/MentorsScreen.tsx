@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useMentors } from '../../hooks/useCmsCatalog';
+import { usePublicLoading } from '../../hooks/usePublicCollection';
+import { PageSkeleton } from '../common/Skeleton';
 import { Mentor, Category, PageView } from '../../types';
 import { 
   Search, 
@@ -44,6 +46,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
   setActivePage
 }) => {
   const MOCK_MENTORS = useMentors();
+  const mentorsLoading = usePublicLoading('/api/mentors');
   const [selectedCategory, setSelectedCategory] = useState<Category>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCompany, setSelectedCompany] = useState<string>('All');
@@ -83,6 +86,8 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
   }, [selectedCategory, selectedCompany, searchQuery, sortBy, MOCK_MENTORS]);
 
   const uniqueCompanies = ['All', ...Array.from(new Set(MOCK_MENTORS.map(m => m.company)))];
+
+  if (mentorsLoading && MOCK_MENTORS.length === 0) return <PageSkeleton />;
 
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
@@ -348,7 +353,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
                         <span className="text-[#666a76] font-normal">({mentor.reviewCount})</span>
                       </div>
                       <span className="text-xs text-[#006e29] font-bold">
-                        ${mentor.hourlyRate}<span className="text-[11px] text-[#666a76] font-normal">/session</span>
+                        ₹{mentor.hourlyRate.toLocaleString('en-IN')}<span className="text-[11px] text-[#666a76] font-normal">/session</span>
                       </span>
                     </div>
 
@@ -417,7 +422,7 @@ export const MentorsScreen: React.FC<MentorsScreenProps> = ({
                         <span className="text-[#666a76] font-normal">({mentor.reviewCount})</span>
                       </div>
                       <div className="text-sm font-bold text-[#006e29]">
-                        ${mentor.hourlyRate}<span className="text-[11px] text-[#666a76] font-normal">/session</span>
+                        ₹{mentor.hourlyRate.toLocaleString('en-IN')}<span className="text-[11px] text-[#666a76] font-normal">/session</span>
                       </div>
                     </div>
 

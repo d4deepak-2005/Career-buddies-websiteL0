@@ -2,7 +2,7 @@ export interface LeaderProfile {
   id: string;
   profileSlug: string;
   name: string;
-  role: 'Founder' | 'Co-Founder';
+  role: 'Founder' | 'Co-Founder' | 'Leadership';
   title: string;
   image: string;
   fallbackImage?: string;
@@ -19,6 +19,7 @@ export interface LeaderProfile {
     keyDeliverables: string[];
   }[];
   expertise: string[];
+  careerHighlights?: string[];
   focusAreas: string[];
   roleAtCareerBuddies: string;
   roleResponsibilities: string[];

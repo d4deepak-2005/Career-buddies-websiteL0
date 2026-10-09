@@ -1,16 +1,17 @@
+import './server/loadEnv.ts';
 import express, { Request, Response } from 'express';
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import { connectDatabase } from './server/config/database.ts';
 import { Lead } from './server/models/Lead.ts';
 import {
   createAdminToken,
+  readAdminSession,
   requireAdminAuth,
-  verifyAdminPassword,
+  resolveAdminLogin,
 } from './server/middleware/adminAuth.ts';
 import { createCrudRouter } from './server/routes/crudFactory.ts';
 import siteSettingsRouter from './server/routes/siteSettings.ts';
@@ -21,18 +22,30 @@ import { Webinar } from './server/models/Webinar.ts';
 import { Testimonial } from './server/models/Testimonial.ts';
 import { Service } from './server/models/Service.ts';
 import { Plan } from './server/models/Plan.ts';
+import { Resource } from './server/models/Resource.ts';
 import { paymentsRouter, paymentsWebhookHandler } from './server/routes/payments.ts';
 import mediaRouter from './server/routes/media.ts';
 import candidateRouter from './server/routes/candidate.ts';
 import { aiChatHandler } from './server/ai/assistant.ts';
 import { candidateItemsRouter, adminCandidateItemsRouter } from './server/routes/candidateItems.ts';
+import { listAdminCandidates, getAdminCandidate } from './server/routes/adminCandidates.ts';
+import { listAdminNotifications, streamAdminNotifications } from './server/routes/adminNotifications.ts';
+import {
+  createAdminTeamUser,
+  deleteAdminTeamUser,
+  listAdminTeam,
+  updateAdminTeamUser,
+} from './server/routes/adminTeam.ts';
+import { notifyLead } from './server/services/adminNotify.ts';
+import { actorFromReq, recordAdminAudit } from './server/services/adminAudit.ts';
+import { listAdminLogs } from './server/routes/adminLogs.ts';
+import { getMailInboxMessage, getMailStatus, listMailInbox, listMailRecipients, listSentMail, sendAdminMail, sendBulkMail } from './server/routes/adminMail.ts';
+import { getAnalyticsReport, recordPageView } from './server/routes/analytics.ts';
 import oauthRouter from './server/routes/oauth.ts';
 import { createRateLimiter } from './server/middleware/rateLimit.ts';
 import { getPublicBaseUrl } from './server/config/baseUrl.ts';
 import { securityHeaders } from './server/middleware/securityHeaders.ts';
 import { validateLead } from './server/utils/leadValidation.ts';
-
-dotenv.config();
 
 const app = express();
 
@@ -66,9 +79,10 @@ const leadsDailyLimiter = createRateLimiter({ windowMs: 24 * 60 * 60 * 1000, max
 const aiBurstLimiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 20, message: 'You are sending messages too quickly. Please wait a few minutes and try again.' });
 const aiDailyLimiter = createRateLimiter({ windowMs: 24 * 60 * 60 * 1000, max: 200, message: 'Daily assistant limit reached. Please try again tomorrow.' });
 const adminLoginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many failed attempts. Please try again later.' });
+const analyticsLimiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 80, message: 'Too many requests.' });
 const PORT = Number(process.env.PORT) || 3000;
 
-// Dodo Payments webhook — needs the RAW body for signature verification,
+// Razorpay webhook — needs the RAW body for signature verification,
 // so it is registered before the JSON body parser.
 app.post(
   '/api/payments/webhook',
@@ -77,6 +91,7 @@ app.post(
 );
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Interface for Lead (API response shape — backed by MongoDB, not stored in-memory)
 export interface ServerLead {
@@ -296,7 +311,7 @@ app.get(
 // 1b. Admin login — issues a signed session token for the leads dashboard/admin screen
 app.post(
   '/api/admin/login',
-  (req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     const key = req.ip || 'unknown';
 
     // Failed attempts are counted per client; once blocked, even the right password
@@ -315,7 +330,8 @@ app.post(
 
     const { password } = (req.body || {}) as { password?: string };
 
-    if (!verifyAdminPassword(password)) {
+    const actor = await resolveAdminLogin(password);
+    if (!actor) {
       adminLoginLimiter.fail(key);
       res.status(401).json({
         success: false,
@@ -325,12 +341,20 @@ app.post(
     }
 
     try {
-      const { token, expiresAt } = createAdminToken();
+      const { token, expiresAt } = createAdminToken(actor);
       adminLoginLimiter.reset(key);
+      recordAdminAudit(null, {
+        action: 'login',
+        entity: 'session',
+        summary: `${actor.name} signed in`,
+        actor,
+      });
       res.json({
         success: true,
         token,
         expiresAt,
+        name: actor.name,
+        source: actor.source,
       });
     } catch (error) {
       // ADMIN_SESSION_SECRET missing/too short: fail closed.
@@ -401,6 +425,7 @@ app.post(
 
       // No personal details in the log line.
       console.log(`[Lead] Saved new lead from "${input.source}".`);
+      notifyLead(doc);
 
       try {
         const newLead = serializeLead(doc, await computeSerialNumber(doc));
@@ -494,6 +519,12 @@ app.patch(
         return;
       }
 
+      recordAdminAudit(req, {
+        action: 'status',
+        entity: 'lead',
+        entityId: String(doc._id),
+        summary: `${actorFromReq(req).name} set lead status to ${status} for ${doc.firstName || 'lead'}`,
+      });
       res.json({
         success: true,
         lead: serializeLead(doc, await computeSerialNumber(doc)),
@@ -565,6 +596,13 @@ app.patch(
         return;
       }
 
+      recordAdminAudit(req, {
+        action: 'update',
+        entity: 'lead',
+        entityId: String(doc._id),
+        summary: `${actorFromReq(req).name} updated lead ${doc.firstName || ''}`.trim(),
+        details: { fields: Object.keys(update) },
+      });
       res.json({
         success: true,
         lead: serializeLead(doc, await computeSerialNumber(doc)),
@@ -617,6 +655,12 @@ app.post(
         return;
       }
 
+      recordAdminAudit(req, {
+        action: 'update',
+        entity: 'lead',
+        entityId: String(doc._id),
+        summary: `${actorFromReq(req).name} added a note on lead ${doc.firstName || ''}`.trim(),
+      });
       res.json({
         success: true,
         lead: serializeLead(doc, await computeSerialNumber(doc)),
@@ -787,12 +831,41 @@ app.use('/api/webinars', createCrudRouter(Webinar));
 app.use('/api/testimonials', createCrudRouter(Testimonial));
 app.use('/api/services', createCrudRouter(Service));
 app.use('/api/plans', createCrudRouter(Plan));
+app.use('/api/resources', createCrudRouter(Resource));
 app.use('/api/payments', paymentsRouter);
 app.use('/api/media', mediaRouter);
 // Candidate Area records (notifications, materials, sessions, invoices). Mounted before the
 // general candidate router; the admin side lives under /api/admin and is admin-only.
 app.use('/api/candidate/items', candidateItemsRouter);
 app.use('/api/admin/candidate-items', adminCandidateItemsRouter);
+app.get('/api/admin/candidates', requireAdminAuth, listAdminCandidates);
+app.get('/api/admin/candidates/:id', requireAdminAuth, getAdminCandidate);
+app.get('/api/admin/me', requireAdminAuth, (req: Request, res: Response) => {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const session = readAdminSession(token);
+  res.json({
+    success: true,
+    name: session?.name || 'Owner',
+    source: session?.source || 'owner',
+  });
+});
+app.get('/api/admin/notifications/stream', streamAdminNotifications);
+app.get('/api/admin/notifications', requireAdminAuth, listAdminNotifications);
+app.get('/api/admin/logs', requireAdminAuth, listAdminLogs);
+app.get('/api/admin/mail/status', requireAdminAuth, getMailStatus);
+app.get('/api/admin/mail/inbox', requireAdminAuth, listMailInbox);
+app.get('/api/admin/mail/inbox/:uid', requireAdminAuth, getMailInboxMessage);
+app.get('/api/admin/mail/sent', requireAdminAuth, listSentMail);
+app.get('/api/admin/mail/recipients', requireAdminAuth, listMailRecipients);
+app.post('/api/admin/mail/send', requireAdminAuth, sendAdminMail);
+app.post('/api/admin/mail/bulk', requireAdminAuth, sendBulkMail);
+app.post('/api/analytics/pageview', analyticsLimiter.middleware, recordPageView);
+app.get('/api/admin/analytics', requireAdminAuth, getAnalyticsReport);
+app.get('/api/admin/team', requireAdminAuth, listAdminTeam);
+app.post('/api/admin/team', requireAdminAuth, createAdminTeamUser);
+app.put('/api/admin/team/:id', requireAdminAuth, updateAdminTeamUser);
+app.delete('/api/admin/team/:id', requireAdminAuth, deleteAdminTeamUser);
 app.use('/api/candidate', candidateRouter);
 app.use('/api/auth', oauthRouter);
 
@@ -877,32 +950,57 @@ async function startServer() {
       res.type('text/plain').send(lines.join('\n') + '\n');
     });
 
-    // The site is a single-page app whose sections are not separate URLs yet, so the only
-    // genuinely addressable public page is the home page. No made-up page URLs are listed.
+    // Sitemap listing all public addressable pages
     app.get('/sitemap.xml', (req, res) => {
       const base = getPublicBaseUrl();
       if (!base) {
         res.status(404).type('text/plain').send('Sitemap unavailable.\n');
         return;
       }
+      const publicRoutes = [
+        '',
+        '/services',
+        '/programmes',
+        '/career-check-in',
+        '/how-it-works',
+        '/webinars',
+        '/mentors',
+        '/leadership',
+        '/leadership/nishant-sharma',
+        '/leadership/divyanshu-verma',
+        '/leadership/deepak-singh',
+        '/success-stories',
+        '/plans',
+        '/resources',
+        '/about-us',
+        '/contact',
+        '/counselling',
+        '/privacy',
+        '/terms',
+        '/refund',
+      ];
+      const urls = publicRoutes
+        .map((r) => `  <url><loc>${base}${r}</loc></url>`)
+        .join('\n');
       res
         .set('Cache-Control', 'no-cache')
         .type('application/xml')
         .send(
           '<?xml version="1.0" encoding="UTF-8"?>\n' +
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-            `  <url><loc>${base}/</loc></url>\n` +
+            urls + '\n' +
             '</urlset>\n'
         );
     });
 
     const indexTemplate = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
-    const renderIndex = () => {
+    const renderIndex = (reqPath: string = '/') => {
       const base = getPublicBaseUrl();
+      const canonicalPath = reqPath === '/' ? '' : reqPath.replace(/\/+$/, '');
       const tags = base
         ? [
-            `<link rel="canonical" href="${base}/" />`,
-            `<meta property="og:url" content="${base}/" />`,
+            `<link rel="canonical" href="${base}${canonicalPath}" />`,
+            `<meta property="og:url" content="${base}${canonicalPath}" />`,
             `<meta property="og:image" content="${base}/logo.png" />`,
             `<meta name="twitter:image" content="${base}/logo.png" />`,
           ].join('\n    ')
@@ -928,16 +1026,19 @@ async function startServer() {
       })
     );
 
+    const PRIVATE_PATHS = /^\/(admin|dashboard|leads-dashboard|mentor|mentor-portal|reset-password)(\/|$)/;
     app.get('*', (req, res) => {
       // A missing file (image, script, source map...) is a real 404, not the app shell.
       if (/\.[A-Za-z0-9]{1,8}$/.test(req.path)) {
         res.status(404).type('text/plain').send('Not found.');
         return;
       }
-      // Only the home page is meant to be indexed; any other path (e.g. a reset link) is not.
-      if (req.path !== '/') res.setHeader('X-Robots-Tag', 'noindex');
+      // Private areas and reset links should not be indexed by search engines.
+      if (PRIVATE_PATHS.test(req.path)) {
+        res.setHeader('X-Robots-Tag', 'noindex');
+      }
       res.setHeader('Cache-Control', 'no-cache');
-      res.type('html').send(renderIndex());
+      res.type('html').send(renderIndex(req.path));
     });
   }
 

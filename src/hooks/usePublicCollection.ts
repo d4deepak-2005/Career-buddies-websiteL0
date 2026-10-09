@@ -33,3 +33,7 @@ export function usePublicCollection<T = any>(apiPath: string) {
 
   return { items, loading };
 }
+
+export function usePublicLoading(apiPath: string): boolean {
+  return usePublicCollection(apiPath).loading;
+}

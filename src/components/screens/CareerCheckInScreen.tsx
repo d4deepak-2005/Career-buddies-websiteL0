@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageView } from '../../types';
 import { 
   Compass, 
@@ -12,31 +12,65 @@ import {
   PhoneCall,
   RefreshCw,
   Target,
-  ShieldCheck
+  ShieldCheck,
+  User,
+  Mail,
+  Phone,
+  Briefcase,
+  AlertCircle,
+  Loader2,
+  Lock
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { buttonProps } from '../../utils/a11y';
-import { useMentors, useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
-import { RESOURCE_ARTICLES } from '../../data/resources';
+import { useMentors, useResources, useWebinarOffer } from '../../hooks/useCmsCatalog';
 import { ActionId, buildCheckInResult } from '../../utils/careerCheckInRules';
+import { CandidateProfile } from '../../utils/candidateAuth';
+import { submitLead } from '../../utils/submitLead';
 
 interface CareerCheckInScreenProps {
   onNavigate: (page: PageView) => void;
   onOpenCounselling: (planName?: string) => void;
+  candidate?: CandidateProfile | null;
 }
 
 export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
   onNavigate,
-  onOpenCounselling
+  onOpenCounselling,
+  candidate
 }) => {
-  const entryPrice = useWebinarEntryPrice();
+  const { hasLive, priceINR: entryPrice } = useWebinarOffer();
   const mentors = useMentors();
+  const articles = useResources();
   const [step, setStep] = useState<number>(1);
   const [stage, setStage] = useState<string>('');
   const [direction, setDirection] = useState<string>('');
   const [challenge, setChallenge] = useState<string>('');
   const [support, setSupport] = useState<string>('');
   const [submitted, setSubmitted] = useState<boolean>(false);
+
+  // Lead capture state (Step 5)
+  const [name, setName] = useState<string>(() => {
+    if (candidate) return `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim();
+    return '';
+  });
+  const [mobile, setMobile] = useState<string>(() => candidate?.mobile || '');
+  const [email, setEmail] = useState<string>(() => candidate?.email || '');
+  const [targetRole, setTargetRole] = useState<string>(() => candidate?.targetRole || candidate?.currentDesignation || '');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submittedName, setSubmittedName] = useState<string>('');
+
+  useEffect(() => {
+    if (candidate) {
+      if (!name) setName(`${candidate.firstName || ''} ${candidate.lastName || ''}`.trim());
+      if (!mobile && candidate.mobile) setMobile(candidate.mobile);
+      if (!email && candidate.email) setEmail(candidate.email);
+      if (!targetRole && (candidate.targetRole || candidate.currentDesignation)) {
+        setTargetRole(candidate.targetRole || candidate.currentDesignation);
+      }
+    }
+  }, [candidate]);
 
   const stageOptions = [
     { id: 'student', title: 'Student / Recent Graduate', desc: 'Preparing to break into tech or landing first full-time role' },
@@ -62,16 +96,17 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
 
   const supportOptions = [
     { id: '1on1', title: 'Dedicated Master Sessions & Guidance', desc: 'Ongoing strategic sessions, code/architecture teardowns, and mock interviews' },
-    { id: 'webinars', title: 'Live Interactive Masterclasses & Webinars', desc: `Affordable (₹${entryPrice}) deep-dive weekend workshops on specific topics` },
+    ...(hasLive
+      ? [{ id: 'webinars', title: 'Live Interactive Masterclasses & Webinars', desc: entryPrice ? `Affordable (₹${entryPrice}) deep-dive weekend workshops on specific topics` : 'Deep-dive weekend workshops on specific topics' }]
+      : []),
     { id: 'counselling', title: 'Free 30-Min Diagnostic Counselling', desc: 'Quick assessment call with our team to diagnose roadblocks and next steps' },
     { id: 'resources', title: 'Self-Paced Playbooks & Frameworks', desc: 'Curated promotion rubrics, salary negotiation scripts, and system design templates' }
   ];
 
   const handleNext = () => {
-    if (step < 4) {
+    if (step < 5) {
       setStep(step + 1);
-    } else {
-      setSubmitted(true);
+      window.scrollTo({ top: 120, behavior: 'smooth' });
     }
   };
 
@@ -82,6 +117,76 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
     setChallenge('');
     setSupport('');
     setSubmitted(false);
+    setSubmitError(null);
+  };
+
+  const handleSubmitLead = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSubmitError(null);
+
+    const trimmedName = name.trim();
+    const trimmedMobile = mobile.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      setSubmitError('Please enter your full name.');
+      return;
+    }
+
+    if (!trimmedMobile) {
+      setSubmitError('Please enter your mobile or WhatsApp number.');
+      return;
+    }
+
+    const digitsOnly = trimmedMobile.replace(/\D/g, '');
+    if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+      setSubmitError('Please enter a valid mobile number (e.g. 10 digits).');
+      return;
+    }
+
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setSubmitError('Please enter a valid email address.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const [firstName, ...rest] = trimmedName.split(/\s+/);
+      const lastName = rest.join(' ');
+      const stageTitle = stageOptions.find((o) => o.id === stage)?.title || stage;
+      const directionTitle = directionOptions.find((o) => o.id === direction)?.title || direction;
+      const challengeTitle = challengeOptions.find((o) => o.id === challenge)?.title || challenge;
+      const supportTitle = supportOptions.find((o) => o.id === support)?.title || support;
+
+      const result = await submitLead({
+        firstName,
+        lastName,
+        mobile: trimmedMobile,
+        email: trimmedEmail,
+        currentRole: targetRole.trim() || stageTitle,
+        experience: stageTitle,
+        industry: 'Technology',
+        requirement: `Career Check-in Diagnostic: ${challengeTitle}`,
+        planInterest: supportTitle,
+        source: 'Career Check-in Diagnostic',
+        candidateId: candidate?.id || undefined,
+        notes: `[Career Check-in Diagnostic Responses]\n• Career Stage: ${stageTitle}\n• 6-12 Month Direction: ${directionTitle}\n• Core Challenge: ${challengeTitle}\n• Preferred Support: ${supportTitle}${targetRole.trim() ? `\n• Target / Current Role: ${targetRole.trim()}` : ''}`
+      });
+
+      if (!result.ok) {
+        setSubmitError(result.error || 'Unable to submit your details. Please check your information and try again.');
+        return;
+      }
+
+      setSubmittedName(trimmedName);
+      setSubmitted(true);
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+    } catch {
+      setSubmitError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const result = submitted
@@ -93,7 +198,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
           challenge: challengeOptions.find((o) => o.id === challenge)?.title,
         },
         mentors,
-        RESOURCE_ARTICLES
+        articles
       )
     : null;
   // The action matching the chosen support style is listed first (CSS order keeps the markup as is).
@@ -149,13 +254,13 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
             {/* Progress Bar */}
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center text-xs font-bold text-[#666a76]">
-                <span>Question {step} of 4</span>
-                <span className="text-[#002869]">{Math.round((step / 4) * 100)}% Complete</span>
+                <span>{step === 5 ? 'Step 5 of 5: Receive Your Roadmap' : `Question ${step} of 4`}</span>
+                <span className="text-[#002869]">{Math.round((step / 5) * 100)}% Complete</span>
               </div>
               <div className="w-full h-2 rounded-full bg-[#f1f3ff] overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-[#002869] to-[#006e29] transition-all duration-300 rounded-full"
-                  style={{ width: `${(step / 4) * 100}%` }}
+                  style={{ width: `${(step / 5) * 100}%` }}
                 />
               </div>
             </div>
@@ -300,11 +405,155 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
               </div>
             )}
 
+            {/* Step 5: Contact Details to Receive Report */}
+            {step === 5 && (
+              <form onSubmit={handleSubmitLead} className="flex flex-col gap-5">
+                <div className="flex flex-col gap-1.5">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#79fd8d]/20 text-[#00531d] text-xs font-bold w-fit">
+                    <Sparkles className="w-3.5 h-3.5 text-[#006e29]" />
+                    <span>Your Personalized Diagnostic is Ready</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
+                    Where should we send your customized career roadmap?
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#434652] leading-relaxed">
+                    Provide your contact details to instantly unlock your tailored career report and receive direct recommendations from our advisory team.
+                  </p>
+                </div>
+
+                {/* Selected Answers Summary Box */}
+                <div className="p-4 rounded-2xl bg-[#f1f3ff] border border-[#cbdaff] flex flex-col gap-2">
+                  <span className="text-[11px] font-bold text-[#002869] uppercase tracking-wider">
+                    Your Diagnostic Profile Summary
+                  </span>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-[#cbdaff] text-[#061b3b] font-medium">
+                      Stage: <strong className="text-[#002869]">{stageOptions.find(o => o.id === stage)?.title}</strong>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-[#cbdaff] text-[#061b3b] font-medium">
+                      Direction: <strong className="text-[#002869]">{directionOptions.find(o => o.id === direction)?.title}</strong>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-[#cbdaff] text-[#061b3b] font-medium">
+                      Core Goal: <strong className="text-[#002869]">{challengeOptions.find(o => o.id === challenge)?.title}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Logged in notification pill if candidate is logged in */}
+                {candidate && (
+                  <div className="p-3.5 rounded-xl bg-[#e6f4ea] border border-[#a6f5b7] text-xs text-[#00531d] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0" />
+                      <span>Prefilled from your candidate account: <strong>{candidate.firstName} {candidate.lastName}</strong></span>
+                    </div>
+                    <span className="text-[11px] font-mono text-[#006e29]">{candidate.email}</span>
+                  </div>
+                )}
+
+                {/* Error Banner */}
+                {submitError && (
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>{submitError}</span>
+                  </div>
+                )}
+
+                {/* Form Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#061b3b] mb-1.5">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          if (submitError) setSubmitError(null);
+                        }}
+                        placeholder="e.g. Rahul Sharma"
+                        required
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#cbdaff] focus:border-[#002869] focus:outline-none text-xs text-[#061b3b] bg-white transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#061b3b] mb-1.5">
+                      WhatsApp / Mobile Number <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="tel"
+                        value={mobile}
+                        onChange={(e) => {
+                          setMobile(e.target.value);
+                          if (submitError) setSubmitError(null);
+                        }}
+                        placeholder="e.g. +91 98765 43210"
+                        required
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#cbdaff] focus:border-[#002869] focus:outline-none text-xs text-[#061b3b] bg-white transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#061b3b] mb-1.5">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (submitError) setSubmitError(null);
+                        }}
+                        placeholder="e.g. rahul.sharma@example.com"
+                        required
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#cbdaff] focus:border-[#002869] focus:outline-none text-xs text-[#061b3b] bg-white transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#061b3b] mb-1.5">
+                      Current or Target Role <span className="text-[#666a76] font-normal">(Optional)</span>
+                    </label>
+                    <div className="relative">
+                      <Briefcase className="w-4 h-4 text-[#666a76] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={targetRole}
+                        onChange={(e) => setTargetRole(e.target.value)}
+                        placeholder="e.g. Senior Frontend Engineer"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#cbdaff] focus:border-[#002869] focus:outline-none text-xs text-[#061b3b] bg-white transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] text-[#666a76]">
+                  <ShieldCheck className="w-4 h-4 text-[#006e29] shrink-0" />
+                  <span>100% Free & Confidential. We strictly respect your privacy and never spam or share your contact info.</span>
+                </div>
+              </form>
+            )}
+
             {/* Step Navigation Buttons */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
               {step > 1 ? (
                 <button
-                  onClick={() => setStep(step - 1)}
+                  type="button"
+                  onClick={() => {
+                    setSubmitError(null);
+                    setStep(step - 1);
+                    window.scrollTo({ top: 120, behavior: 'smooth' });
+                  }}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#434652] hover:bg-[#f1f3ff] transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -312,19 +561,41 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                 </button>
               ) : <div />}
 
-              <button
-                disabled={
-                  (step === 1 && !stage) ||
-                  (step === 2 && !direction) ||
-                  (step === 3 && !challenge) ||
-                  (step === 4 && !support)
-                }
-                onClick={handleNext}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#002869] hover:bg-[#0b3d91] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-              >
-                <span>{step === 4 ? 'Generate Recommendation' : 'Continue'}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              {step < 5 ? (
+                <button
+                  type="button"
+                  disabled={
+                    (step === 1 && !stage) ||
+                    (step === 2 && !direction) ||
+                    (step === 3 && !challenge) ||
+                    (step === 4 && !support)
+                  }
+                  onClick={handleNext}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#002869] hover:bg-[#0b3d91] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  <span>{step === 4 ? 'Continue to Results' : 'Continue'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmitLead}
+                  disabled={isSubmitting || !name.trim() || !mobile.trim() || !email.trim()}
+                  className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-[#002869] hover:bg-[#0b3d91] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving & Generating Roadmap...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Generate & View My Roadmap</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
           </div>
@@ -332,6 +603,16 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
           /* Tailored Result Screen */
           <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#cbdaff] shadow-md flex flex-col gap-8">
             
+            {/* Candidate Friendly Greeting */}
+            {submittedName && (
+              <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[#e6f4ea] border border-[#a6f5b7] text-xs text-[#00531d]">
+                <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0" />
+                <span>
+                  Welcome, <strong>{submittedName}</strong>! Your customized career roadmap is ready below.
+                </span>
+              </div>
+            )}
+
             {/* Recommendation Header */}
             <div className="bg-[#002869] text-white rounded-2xl p-6 sm:p-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#79fd8d]/20 rounded-full blur-3xl pointer-events-none" />
@@ -449,7 +730,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                   </span>
                 </div>
 
-                {/* 3. Browse Webinars */}
+                {hasLive && (
                 <div 
                   style={{ order: actionOrder('webinars') }}
                   onClick={() => onNavigate('webinars')}
@@ -460,9 +741,11 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                       <div className="p-2 rounded-lg bg-[#79fd8d]/20 text-[#006e29]">
                         <GraduationCap className="w-4 h-4" />
                       </div>
+                      {entryPrice ? (
                       <span className="px-2 py-0.5 rounded-full bg-[#79fd8d]/30 text-[#00531d] text-[11px] font-bold">
                         ₹{entryPrice} Access
                       </span>
+                      ) : null}
                     </div>
                     {preferenceBadge('webinars')}
                     <h4 className="font-bold text-sm text-[#061b3b] group-hover:text-[#006e29] transition-colors">
@@ -476,6 +759,7 @@ export const CareerCheckInScreen: React.FC<CareerCheckInScreenProps> = ({
                     Browse Upcoming Webinars <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
+                )}
 
                 {/* 4. Explore Resources */}
                 <div 

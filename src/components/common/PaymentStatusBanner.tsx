@@ -4,12 +4,11 @@ import { candidateFetch } from '../../utils/candidateAuth';
 
 type Status = 'created' | 'processing' | 'succeeded' | 'failed' | 'cancelled' | 'expired';
 
-// Shown after Dodo redirects back to `/?order=<ref>`. The status shown comes
-// from the server (updated by verified webhooks), not from the URL, so it
-// cannot be spoofed by editing the query string.
+// Shown after checkout returns to `/?order=<ref>`. The status shown comes
+// from the server (verified Razorpay signature / webhook), not from the URL.
 export const PaymentStatusBanner: React.FC = () => {
   const [orderRef] = useState(() => new URLSearchParams(window.location.search).get('order'));
-  // Dodo sends the customer to the cancel URL (…&cancelled=1) when they leave checkout without paying.
+  // Checkout may send …&cancelled=1 if the customer leaves without paying.
   const [cameBackCancelled] = useState(() => new URLSearchParams(window.location.search).get('cancelled') === '1');
   const [gaveUp, setGaveUp] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);

@@ -92,6 +92,7 @@ const META: Partial<Record<PageView, PageMeta>> = {
   dashboard: { title: `My Dashboard | ${BRAND}`, description: 'Your CareerBuddies account.', noindex: true },
   admin: { title: `Admin | ${BRAND}`, description: 'CareerBuddies administration.', noindex: true },
   'leads-dashboard': { title: `Admin | ${BRAND}`, description: 'CareerBuddies administration.', noindex: true },
+  'mentor-portal': { title: `Mentor Portal | ${BRAND}`, description: 'Career Buddies Mentor Portal.', noindex: true },
 };
 
 function setMeta(selector: string, attr: 'name' | 'property', key: string, content: string) {
@@ -112,6 +113,17 @@ export function applyPageMeta(page: PageView) {
   setMeta('meta[property="og:description"]', 'property', 'og:description', meta.description);
   setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', meta.title);
   setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', meta.description);
+
+  if (typeof window !== 'undefined') {
+    setMeta('meta[property="og:url"]', 'property', 'og:url', window.location.href);
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = `${window.location.origin}${window.location.pathname}`;
+  }
 
   const robots = document.head.querySelector('meta[name="robots"]');
   if (meta.noindex) {

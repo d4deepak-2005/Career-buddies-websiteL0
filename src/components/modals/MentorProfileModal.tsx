@@ -162,7 +162,7 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
         <div className="px-6 py-4 bg-[#f9f9ff] border-t border-[#e0e8ff] flex items-center justify-between gap-4">
           <div>
             <span className="text-base font-bold text-[#006e29]">
-              ${mentor.hourlyRate}
+              ₹{mentor.hourlyRate.toLocaleString('en-IN')}
             </span>
             <span className="text-xs text-[#666a76]"> / 45-min session</span>
           </div>

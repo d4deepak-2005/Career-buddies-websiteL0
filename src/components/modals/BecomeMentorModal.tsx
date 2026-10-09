@@ -24,7 +24,7 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
   const [currentCompany, setCurrentCompany] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [category, setCategory] = useState('Engineering');
-  const [hourlyRate, setHourlyRate] = useState('80');
+  const [hourlyRate, setHourlyRate] = useState('');
   const [motivation, setMotivation] = useState('');
   const [alternateNumber, setAlternateNumber] = useState('');
   const [alternateEmail, setAlternateEmail] = useState('');
@@ -118,7 +118,7 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
           alternateNumber: alternateNumber || undefined,
           alternateEmail: alternateEmail || undefined,
           linkedinUrl: linkedinUrl || undefined,
-          notes: `Mentor Application | Company: ${currentCompany || 'N/A'} | Track: ${category} | Rate: $${hourlyRate}/hr | Philosophy: ${motivation || 'N/A'}`,
+          notes: `Mentor Application | Company: ${currentCompany || 'N/A'} | Track: ${category} | Rate: ₹${hourlyRate}/hr | Philosophy: ${motivation || 'N/A'}`,
           requirement: `Mentor Application - ${category}`,
           planInterest: 'Mentor Onboarding',
           source: 'Become a Mentor Modal'
@@ -399,13 +399,13 @@ export const BecomeMentorModal: React.FC<BecomeMentorModalProps> = ({
 
                 <div>
                   <label htmlFor="mentor-field-10" className="block text-xs font-medium text-[#434652] mb-1">
-                    Target Session Rate ($ / 45 min) (Optional)
+                    Target Session Rate (₹ / 45 min) (Optional)
                   </label>
                   <input id="mentor-field-10"
                     type="number"
                     value={hourlyRate}
                     onChange={(e) => setHourlyRate(e.target.value)}
-                    placeholder="80"
+                    placeholder="e.g. 2500"
                     className="w-full px-3 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs sm:text-sm text-[#061b3b] focus:outline-none focus:border-[#002869]"
                   />
                 </div>

@@ -13,8 +13,9 @@ import {
   Compass
 } from 'lucide-react';
 import { PageView } from '../../types';
-import { LEADERSHIP_PROFILES, LEADERSHIP_PHILOSOPHY } from '../../config/leadership';
-import { useCmsLeaders } from '../../hooks/useLeaders';
+import { LEADERSHIP_PHILOSOPHY } from '../../config/leadership';
+import { useLeaderListState } from '../../hooks/useLeaders';
+import { PageSkeleton } from '../common/Skeleton';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
 import { ModalA11y } from '../common/ModalA11y';
@@ -32,32 +33,26 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
 }) => {
   const [selectedLeaderId, setSelectedLeaderId] = useState<string | null>(null);
 
-  // CMS people (visibility + order) drive this page; the built-in list is the fallback when the CMS
-  // has none. The extra long-form lists in the profile dialog come from the built-in entry for the
-  // same person (matched by e-mail) when there is one.
-  const cmsLeaders = useCmsLeaders();
-  const leaders = cmsLeaders
-    ? cmsLeaders.map((l) => {
-        const extra = LEADERSHIP_PROFILES.find((x) => x.email.toLowerCase() === l.email.toLowerCase());
-        return {
-          id: l.id,
-          slug: l.profileSlug,
-          name: l.name,
-          role: l.role,
-          title: l.title,
-          email: l.email,
-          avatar: l.image,
-          bio: l.shortBio,
-          expertise: l.expertise,
-          contribution: extra?.contribution || l.roleAtCareerBuddies || l.shortBio,
-          careerHighlights: extra?.careerHighlights || [],
-          areasOfGuidance: extra?.areasOfGuidance || l.focusAreas,
-        };
-      })
-    : LEADERSHIP_PROFILES;
+  const { leaders: leaderRecords, loading: leadersLoading } = useLeaderListState();
+  const leaders = leaderRecords.map((l) => ({
+    id: l.id,
+    slug: l.profileSlug,
+    name: l.name,
+    role: l.role,
+    title: l.title,
+    email: l.email,
+    avatar: l.image,
+    bio: l.shortBio,
+    expertise: l.expertise,
+    contribution: l.roleAtCareerBuddies || l.shortBio,
+    careerHighlights: l.careerHighlights || [],
+    areasOfGuidance: l.focusAreas,
+  }));
 
   const activeLeader = leaders.find(l => l.id === selectedLeaderId);
-  const activeSlug = activeLeader ? ('slug' in activeLeader ? (activeLeader as { slug: string }).slug : activeLeader.id) : '';
+  const activeSlug = activeLeader?.slug || '';
+
+  if (leadersLoading && leaders.length === 0) return <PageSkeleton />;
 
   return (
     <div className="w-full min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-white">
@@ -84,7 +79,15 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
           </p>
         </div>
 
-        {/* Leadership Cards Grid (Founder & Co-Founders) */}
+        {/* Leadership Cards Grid */}
+        {leaders.length === 0 ? (
+          <div className="mb-14 rounded-3xl border border-[#cbdaff] bg-[#f9f9ff] px-6 py-14 text-center">
+            <h2 className="text-lg font-bold text-[#061b3b] mb-1">Leadership profiles are being updated</h2>
+            <p className="text-sm text-[#666a76]">
+              Add Founder, Co-Founder, or Leadership people in Admin to show them here and on Home.
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-14">
           {leaders.map((leader) => (
             <div
@@ -167,6 +170,7 @@ export const LeadershipScreen: React.FC<LeadershipScreenProps> = ({
             </div>
           ))}
         </div>
+        )}
 
         {/* Selected Leader Modal Details */}
         {activeLeader && (

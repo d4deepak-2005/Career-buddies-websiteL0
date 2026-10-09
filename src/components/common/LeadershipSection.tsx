@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { LEADERSHIP_DATA, LEADERSHIP_SECTION_HEADER, LeaderProfile } from '../../config/leadershipData';
+import { LEADERSHIP_SECTION_HEADER, LeaderProfile } from '../../config/leadershipData';
 import { PageView, FounderInfo } from '../../types';
 import { SectionHeading } from './SectionHeading';
 import { LeadershipProfileModal } from '../modals/LeadershipProfileModal';
 import { HandshakeIcon } from './HandshakeIcon';
 import { LeaderPortrait } from './LeaderPortrait';
 import { useLeaderList } from '../../hooks/useLeaders';
+import { Reveal, RevealItem, Stagger } from '../home/MotionReveal';
 import { 
   Quote, 
   Mail, 
@@ -41,10 +42,11 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
 }) => {
   const [modalFounder, setModalFounder] = useState<FounderInfo | null>(null);
 
-  // CMS-backed Founder/Co-Founder records take over once an admin has added
-  // any; an empty or unavailable `people` collection falls back to the
-  // existing hardcoded LEADERSHIP_DATA exactly as before.
   const displayLeaders: DisplayLeader[] = useLeaderList();
+
+  if (displayLeaders.length === 0) {
+    return null;
+  }
 
   const handleViewProfile = (leader: DisplayLeader) => {
     if (onSelectLeader) {
@@ -76,19 +78,21 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
       <div className="relative z-10 max-w-[1280px] mx-auto flex flex-col gap-10 sm:gap-12">
         
         {/* Section Header */}
-        <SectionHeading
-          eyebrow={LEADERSHIP_SECTION_HEADER.eyebrow}
-          title={LEADERSHIP_SECTION_HEADER.headline}
-          description={LEADERSHIP_SECTION_HEADER.supportingText}
-          badgeIcon={Sparkles}
-          badgeColor="blue"
-          dark={true}
-          align="center"
-          size="xl"
-        />
+        <Reveal>
+          <SectionHeading
+            eyebrow={LEADERSHIP_SECTION_HEADER.eyebrow}
+            title={LEADERSHIP_SECTION_HEADER.headline}
+            description={LEADERSHIP_SECTION_HEADER.supportingText}
+            badgeIcon={Sparkles}
+            badgeColor="blue"
+            dark={true}
+            align="center"
+            size="xl"
+          />
+        </Reveal>
 
         {/* Leadership Philosophy Callout */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs relative overflow-hidden">
+        <Reveal className="bg-white rounded-3xl p-6 sm:p-8 border border-[#cbdaff] shadow-xs relative overflow-hidden">
           <div className="absolute top-0 right-0 w-80 h-80 bg-[#79fd8d]/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
           
           <div className="flex flex-col md:flex-row items-start md:items-center gap-5 sm:gap-6 relative z-10">
@@ -108,13 +112,13 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
               </p>
             </div>
           </div>
-        </div>
+        </Reveal>
 
         {/* Leaders Grid: 3 columns with equal visual importance, same dimensions and ratio */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch">
+        <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch">
           {displayLeaders.map((leader) => (
+            <RevealItem key={leader.id} hover className="h-full">
             <div
-              key={leader.id}
               className="bg-white rounded-3xl border border-[#cbdaff] hover:border-[#002869]/60 transition-all duration-300 hover:shadow-xl flex flex-col justify-between overflow-hidden group h-full"
             >
               <div className="flex flex-col flex-1">
@@ -189,8 +193,9 @@ export const LeadershipSection: React.FC<LeadershipSectionProps> = ({
                 )}
               </div>
             </div>
+            </RevealItem>
           ))}
-        </div>
+        </Stagger>
 
       </div>
 

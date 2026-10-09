@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePlans } from '../../hooks/useCmsCatalog';
+import { usePlans, useWebinarOffer } from '../../hooks/useCmsCatalog';
 import { OnlineCheckoutModal } from '../modals/OnlineCheckoutModal';
 import { PlanItem, PageView } from '../../types';
 import { 
@@ -15,6 +15,9 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
+import { useOwnedPurchases } from '../../hooks/useOwnedPurchases';
+import { usePublicLoading } from '../../hooks/usePublicCollection';
+import { PageSkeleton } from '../common/Skeleton';
 
 interface PlansScreenProps {
   onSelectPlan: (plan: PlanItem) => void;
@@ -28,8 +31,12 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
   setActivePage
 }) => {
   const CAREER_PLANS = usePlans();
-  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
+  const plansLoading = usePublicLoading('/api/plans');
+  const { hasLive } = useWebinarOffer();
   const [payPlan, setPayPlan] = useState<PlanItem | null>(null);
+  const owned = useOwnedPurchases();
+
+  if (plansLoading && CAREER_PLANS.length === 0) return <PageSkeleton />;
 
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
@@ -51,12 +58,12 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
           }}
           onNext={() => {
             if (setActivePage) {
-              setActivePage('webinars');
+              setActivePage(hasLive ? 'webinars' : 'programmes');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }}
           backLabel="Services"
-          nextLabel="Browse Masterclasses"
+          nextLabel={hasLive ? 'Browse Masterclasses' : 'Explore Programmes'}
           currentStepLabel="Plans & Milestone Pricing"
         />
 
@@ -74,33 +81,15 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
           <p className="text-sm sm:text-base text-[#434652] leading-relaxed font-medium">
             Choose the structured guidance level that matches your current career milestone. Most mentees recoup their program investment within their first salary leveling negotiation.
           </p>
-
-          {/* Currency Toggle */}
-          <div className="inline-flex items-center bg-white p-1 rounded-xl border border-[#cbdaff] mt-2 shadow-2xs">
-            <button
-              onClick={() => setCurrency('INR')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                currency === 'INR'
-                  ? 'bg-[#002869] text-white shadow-xs'
-                  : 'text-[#434652] hover:text-[#061b3b]'
-              }`}
-            >
-              INR (₹)
-            </button>
-            <button
-              onClick={() => setCurrency('USD')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                currency === 'USD'
-                  ? 'bg-[#002869] text-white shadow-xs'
-                  : 'text-[#434652] hover:text-[#061b3b]'
-              }`}
-            >
-              USD ($)
-            </button>
-          </div>
         </div>
 
         {/* Pricing Cards Grid */}
+        {CAREER_PLANS.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-[#e0e8ff] p-12 text-center">
+            <p className="text-sm font-bold text-[#061b3b]">Plans are being updated</p>
+            <p className="text-xs text-[#434652] mt-1">Please check back soon, or contact us for a tailored plan.</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
           {CAREER_PLANS.map((plan) => {
             const isFeatured = plan.isRecommended;
@@ -147,7 +136,7 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
                       <div className="flex flex-col gap-1">
                         <div className="flex items-baseline gap-1">
                           <span className="text-3xl sm:text-4xl font-black text-[#061b3b]">
-                            {currency === 'INR' ? plan.priceINR : plan.priceUSD}
+                            {plan.priceINR}
                           </span>
                           <span className="text-xs text-[#666a76] font-semibold">{plan.period}</span>
                         </div>
@@ -191,18 +180,25 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   {plan.onlinePayment && !plan.isCustomPricing && (
+                    owned.has('plan', plan.id) ? (
+                    <p className="w-full mt-2 py-2.5 rounded-xl font-black text-xs text-center bg-[#e8f8ee] text-[#00531d]">
+                      Already purchased
+                    </p>
+                    ) : (
                     <button
                       onClick={() => setPayPlan(plan)}
                       className="w-full mt-2 py-2.5 rounded-xl font-black text-xs bg-white border border-[#006e29] text-[#006e29] hover:bg-[#f0faf3] transition-all cursor-pointer"
                     >
                       Pay online securely
                     </button>
+                    )
                   )}
                 </div>
               </div>
             );
           })}
         </div>
+        )}
 
       </div>
       <OnlineCheckoutModal

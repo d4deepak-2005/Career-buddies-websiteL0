@@ -282,7 +282,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <p className="text-xs text-[#434652] truncate">{mentor.title}</p>
               </div>
               <div className="text-right">
-                <span className="text-sm font-bold text-[#006e29]">${mentor.hourlyRate}</span>
+                <span className="text-sm font-bold text-[#006e29]">₹{mentor.hourlyRate.toLocaleString('en-IN')}</span>
                 <span className="text-[11px] text-[#666a76] block">45-min session</span>
               </div>
             </div>
@@ -566,7 +566,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               className="w-full py-3 bg-[#002869] hover:bg-[#0b3d91] text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>Confirm & Lock In Session (${mentor.hourlyRate})</span>
+              <span>Confirm & Lock In Session (₹{mentor.hourlyRate.toLocaleString('en-IN')})</span>
             </button>
 
             <p className="text-[11px] text-center text-[#666a76]">

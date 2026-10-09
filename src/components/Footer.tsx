@@ -4,6 +4,8 @@ import { PageView } from '../types';
 import { BrandLogo } from './BrandLogo';
 import { HandshakeIcon } from './common/HandshakeIcon';
 import { SiteSettingsData, pickText } from '../hooks/useSiteSettings';
+import { visibleNavTabs } from '../config/navTabs';
+import { getUrlForRoute } from '../utils/routes';
 import { ModalA11y } from './common/ModalA11y';
 import { getContactInfo } from '../utils/contactInfo';
 import { useMentors, usePlans, useProgrammes, useWebinars } from '../hooks/useCmsCatalog';
@@ -136,7 +138,7 @@ Thank you!`;
             Right Side: Large Glass Panel ("What Makes Us Different" with 2 internal columns)
             Both sides equal width & balanced height.
             ==================================================== */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch mb-8">
+        <div className="home-stagger grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch mb-8">
           
           {/* ----------------------------------------------------
               LEFT SIDE (50% width on desktop)
@@ -179,34 +181,33 @@ Thank you!`;
               </p>
             </div>
 
-            {/* Clean Quick Links Bar */}
+            {visibleNavTabs(siteSettings?.header?.navItems).all.length > 0 && (
             <div className="p-2.5 bg-white/85 backdrop-blur-md rounded-2xl border border-[#cbdaff]/75 shadow-[0_4px_20px_-4px_rgba(0,40,105,0.06)] flex items-center justify-between gap-2 flex-wrap">
               <span className="text-[11px] font-black uppercase tracking-wider text-[#002869] px-2 py-0.5 shrink-0">
                 Quick Links:
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
-                {[
-                  { label: 'Home', page: 'home' as PageView },
-                  { label: 'Services', page: 'services' as PageView },
-                  { label: 'Programmes', page: 'programmes' as PageView },
-                  { label: 'Leadership', page: 'leadership' as PageView },
-                  { label: 'About', page: 'about-us' as PageView },
-                  { label: 'Resources', page: 'resources' as PageView },
-                  { label: 'Contact', page: 'contact' as PageView }
-                ].map((item) => (
-                  <button
+                {visibleNavTabs(siteSettings?.header?.navItems).all.map((item) => (
+                  <a
                     key={item.page}
-                    onClick={() => handleNav(item.page)}
+                    href={getUrlForRoute(item.page)}
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        handleNav(item.page);
+                      }
+                    }}
                     className="text-[11px] font-bold text-[#434652] hover:text-[#002869] hover:bg-[#eef4ff] px-2.5 py-1 rounded-xl transition-all duration-150 cursor-pointer"
                   >
                     {item.label}
-                  </button>
+                  </a>
                 ))}
               </div>
             </div>
+            )}
 
             {/* Four Benefit Cards (2 x 2 Layout with Equal Dimensions & Grid Alignment) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-0.5 flex-1">
+            <div className="home-stagger grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-0.5 flex-1">
               
               {/* Benefit Card 1: PRACTITIONER LED */}
               <div className="p-3.5 sm:p-4 bg-white/85 backdrop-blur-md rounded-2xl border border-[#cbdaff]/75 shadow-[0_4px_20px_-4px_rgba(0,40,105,0.06)] hover:border-[#002869]/50 hover:shadow-[0_8px_25px_-5px_rgba(0,40,105,0.12)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-start gap-1.5 group cursor-default h-full">
@@ -521,7 +522,7 @@ Thank you!`;
             BLUE/GREEN WHATSAPP CTA SECTION
             (ONLY WhatsApp CTA in the entire section)
             ==================================================== */}
-        <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#002869] via-[#0a3578] to-[#00531d] text-white border border-[#cbdaff]/40 shadow-[0_8px_30px_rgba(0,40,105,0.15)] flex flex-col md:flex-row items-center justify-between gap-6">
+        <div data-home-reveal className="mb-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#002869] via-[#0a3578] to-[#00531d] text-white border border-[#cbdaff]/40 shadow-[0_8px_30px_rgba(0,40,105,0.15)] flex flex-col md:flex-row items-center justify-between gap-6">
           
           {/* Left Side: Growth / Career Progression circular illustration + Heading */}
           <div className="flex items-center gap-4 text-center md:text-left">
@@ -570,7 +571,7 @@ Thank you!`;
             Left Side: Follow Us (LinkedIn, Facebook, Instagram, YouTube, X)
             Right Side: Glass Panel with live counts from the CMS (mentors, webinars, programmes, plans)
             ==================================================== */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch mb-8">
+        <div className="home-stagger grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch mb-8">
           
           {/* Left Column: Follow Us Social Icons (col-span-4) */}
           <div className="lg:col-span-4 bg-white/85 backdrop-blur-md rounded-2xl border border-[#cbdaff]/75 px-5 py-3.5 sm:py-3 shadow-[0_4px_20px_-4px_rgba(0,40,105,0.06)] flex flex-wrap items-center justify-between sm:justify-start gap-3 sm:gap-4 h-full">
@@ -663,7 +664,7 @@ Thank you!`;
             Center: Official Domain Pill
             Right: Policy Links + Admin Button
             ==================================================== */}
-        <div className="pt-6 border-t border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#dae2ff]">
+        <div data-home-reveal className="pt-6 border-t border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#dae2ff]">
           
           {/* Copyright Notice - Aligned Left */}
           <div className="md:flex-1 text-center md:text-left">
@@ -691,15 +692,42 @@ Thank you!`;
 
           {/* Legal / Policy Links + Admin Button - Aligned Right */}
           <div className="md:flex-1 flex items-center justify-center md:justify-end gap-4 font-bold flex-wrap">
-            <button onClick={() => handleNav('privacy')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
+            <a
+              href="/privacy"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  handleNav('privacy');
+                }
+              }}
+              className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]"
+            >
               Privacy Policy
-            </button>
-            <button onClick={() => handleNav('terms')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
+            </a>
+            <a
+              href="/terms"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  handleNav('terms');
+                }
+              }}
+              className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]"
+            >
               Terms of Service
-            </button>
-            <button onClick={() => handleNav('refund')} className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]">
+            </a>
+            <a
+              href="/refund"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  handleNav('refund');
+                }
+              }}
+              className="hover:text-white transition-colors duration-150 cursor-pointer text-[#dae2ff]"
+            >
               Refund Policy
-            </button>
+            </a>
           </div>
         </div>
 

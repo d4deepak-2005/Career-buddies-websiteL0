@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { PageView } from '../../types';
 import { useSuccessStories } from '../../hooks/useCmsCatalog';
+import { usePublicLoading } from '../../hooks/usePublicCollection';
+import { PageSkeleton } from '../common/Skeleton';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
 
@@ -25,11 +27,14 @@ export const SuccessStoriesScreen: React.FC<SuccessStoriesScreenProps> = ({
   onOpenCounselling
 }) => {
   const SUCCESS_STORIES = useSuccessStories();
+  const storiesLoading = usePublicLoading('/api/testimonials');
   const [activeFilter, setActiveFilter] = useState<'all' | 'promotion' | 'transition' | 'hike'>('all');
 
   const filteredStories = activeFilter === 'all'
     ? SUCCESS_STORIES
     : SUCCESS_STORIES.filter(s => s.outcomeType === activeFilter);
+
+  if (storiesLoading && SUCCESS_STORIES.length === 0) return <PageSkeleton />;
 
   return (
     <div className="w-full min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-white">

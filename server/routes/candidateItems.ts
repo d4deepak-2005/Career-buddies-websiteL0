@@ -4,6 +4,7 @@ import { Candidate } from '../models/Candidate.ts';
 import { CandidateItem, ITEM_KINDS, ItemKind } from '../models/CandidateItem.ts';
 import { Payment } from '../models/Payment.ts';
 import { requireAdminAuth } from '../middleware/adminAuth.ts';
+import { actorFromReq, itemLabel, recordAdminAudit } from '../services/adminAudit.ts';
 import { requireCandidateAuth } from '../middleware/candidateAuth.ts';
 
 // ---------------------------------------------------------------------------
@@ -204,6 +205,12 @@ adminCandidateItemsRouter.post('/', async (req: Request, res: Response) => {
     const kind = kindOf(req.body?.kind);
     if (!kind) return void res.status(400).json({ success: false, error: 'Choose a record type.' });
     const created = await CandidateItem.create(await buildItem(kind, req.body));
+    recordAdminAudit(req, {
+      action: 'create',
+      entity: 'candidate-item',
+      entityId: String(created._id),
+      summary: `${actorFromReq(req).name} created ${kind} "${itemLabel(created, kind)}"`,
+    });
     res.status(201).json({ success: true, item: { ...created.toObject(), id: String(created._id), readBy: undefined } });
   } catch (error) {
     fail(res, error, 'create');
@@ -221,6 +228,12 @@ adminCandidateItemsRouter.put('/:id', async (req: Request, res: Response) => {
     const doc = await buildItem(existing.kind, body);
     existing.set(doc);
     await existing.save();
+    recordAdminAudit(req, {
+      action: 'update',
+      entity: 'candidate-item',
+      entityId: String(existing._id),
+      summary: `${actorFromReq(req).name} updated ${existing.kind} "${itemLabel(existing, existing.kind)}"`,
+    });
     res.json({ success: true, item: { ...existing.toObject(), id: String(existing._id), readBy: undefined } });
   } catch (error) {
     fail(res, error, 'update');
@@ -230,8 +243,15 @@ adminCandidateItemsRouter.put('/:id', async (req: Request, res: Response) => {
 adminCandidateItemsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     if (!isId(req.params.id)) return void res.status(404).json({ success: false, error: 'Not found.' });
-    const r = await CandidateItem.deleteOne({ _id: req.params.id });
-    if (!r.deletedCount) return void res.status(404).json({ success: false, error: 'Not found.' });
+    const existing = await CandidateItem.findById(req.params.id);
+    if (!existing) return void res.status(404).json({ success: false, error: 'Not found.' });
+    await existing.deleteOne();
+    recordAdminAudit(req, {
+      action: 'delete',
+      entity: 'candidate-item',
+      entityId: String(existing._id),
+      summary: `${actorFromReq(req).name} deleted ${existing.kind} "${itemLabel(existing, existing.kind)}"`,
+    });
     res.json({ success: true });
   } catch (error) {
     fail(res, error, 'delete');

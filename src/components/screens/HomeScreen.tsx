@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
-import { MOCK_FAQS } from '../../data/mockData';
-import { useServices, usePlans } from '../../hooks/useCmsCatalog';
+import React, { useMemo, useState } from 'react';
+import { useMentors, usePlans, useServices, useWebinarOffer, webinarPriceSuffix, withEntryPrice } from '../../hooks/useCmsCatalog';
+import { usePublicLoading } from '../../hooks/usePublicCollection';
+import { CardGridSkeleton } from '../common/Skeleton';
+import { numberWord } from '../../utils/countCopy';
 import { DEFAULT_SITE_CONFIG, JOURNEY_TIMELINE } from '../../config/siteConfig';
-import { Mentor, PageView, ServiceItem, PlanItem } from '../../types';
+import { DEFAULT_HOME_JOURNEY } from '../../config/homeJourney';
+import { DEFAULT_HOME_FAQ } from '../../config/homeFaq';
+import { DEFAULT_HOME_SERVICES } from '../../config/homeServices';
+import { DEFAULT_HOME_MASTERCLASSES, DEFAULT_HOME_CHECK_IN } from '../../config/homeMasterclasses';
+import { homeSectionHtml, isHomeSectionOn } from '../../config/homeSections';
+import { HomeHtmlBlock } from '../common/HomeHtmlBlock';
+import { Mentor, PageView, ServiceItem, PlanItem, WebinarItem } from '../../types';
 import { BrandTagline } from '../BrandTagline';
 import { FindYourNextStep } from '../common/FindYourNextStep';
 import { WhyTrustSection } from '../common/WhyTrustSection';
@@ -22,7 +30,6 @@ import {
   Compass,
   GraduationCap,
   Video,
-  Award,
   ChevronRight,
   PhoneCall,
   HeartHandshake,
@@ -31,12 +38,44 @@ import {
   ChevronDown,
   Layers,
   Zap,
-  Target,
-  ArrowUpRight
+  Target
 } from 'lucide-react';
 import { submitLead } from '../../utils/submitLead';
 import { buttonProps } from '../../utils/a11y';
-import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
+import { CheckoutEnrollment, WebinarCheckoutModal } from '../modals/WebinarCheckoutModal';
+import { PlanDeliverablesModal } from '../modals/PlanDeliverablesModal';
+import { useOwnedPurchases } from '../../hooks/useOwnedPurchases';
+import { Reveal, RevealItem, Stagger } from '../home/MotionReveal';
+
+const DEFAULT_HERO_BADGE = 'Bridging the gap between aspiration and achievement';
+const DEFAULT_HERO_TITLE = 'Accelerate Your Career with Structured Practitioner Guidance';
+const DEFAULT_HERO_SUBHEADING =
+  'Navigate career transitions, level up to Senior and Staff engineering, and master system design with verified leaders from top global technology ecosystems.';
+const DEFAULT_HERO_CARDS = [
+  { label: 'Staff & Principal Track', value: 'High-Impact Architecture & Leadership' },
+  { label: '1:1 Practitioner Mentorship', value: 'FAANG+ & Tier-1 Tech Ecosystem Leaders' },
+  { label: 'Diagnostic & Roadmap Formulation', value: 'Step-by-step career acceleration plan' },
+];
+
+function rupeesFrom(raw: string | number | undefined): number {
+  const n = typeof raw === 'number' ? raw : parseFloat(String(raw || '').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function planToEnrollment(plan: PlanItem): CheckoutEnrollment {
+  return {
+    itemType: 'plan',
+    itemId: String(plan.id),
+    title: plan.name,
+    subtitle: plan.tagline || plan.description,
+    priceINR: rupeesFrom(plan.priceINR),
+    extraDetails: {
+      priceINR: plan.priceINR,
+      period: plan.period || '',
+      deliverables: (plan.features || []).map((f) => f.title).filter(Boolean).join(', '),
+    },
+  };
+}
 
 interface HomeScreenProps {
   onSelectMentor: (mentor: Mentor) => void;
@@ -47,6 +86,7 @@ interface HomeScreenProps {
   onSelectService: (service: ServiceItem) => void;
   onSelectPlan: (plan: PlanItem) => void;
   setActivePage: (page: PageView) => void;
+  onOpenLiveWebinar?: (webinar?: WebinarItem | null) => void;
   onSelectLeader?: (slug: string) => void;
   siteSettings?: SiteSettingsData | null;
 }
@@ -60,13 +100,115 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onSelectService,
   onSelectPlan,
   setActivePage,
+  onOpenLiveWebinar,
   onSelectLeader,
   siteSettings
 }) => {
-  const entryPrice = useWebinarEntryPrice();
+  const savedTitle = siteSettings?.home?.heroTitle?.trim() || '';
+  const savedSubtitle = siteSettings?.home?.heroSubtitle?.trim() || '';
+  const savedDescription = siteSettings?.home?.heroDescription?.trim() || '';
+  const heroTitle = savedTitle || DEFAULT_HERO_TITLE;
+  const heroSubheading = savedDescription || savedSubtitle || DEFAULT_HERO_SUBHEADING;
+  const heroBadge =
+    savedSubtitle && savedSubtitle !== heroSubheading
+      ? savedSubtitle
+      : savedSubtitle && savedDescription
+        ? savedSubtitle
+        : DEFAULT_HERO_BADGE;
+  const heroCards = [0, 1, 2].map((index) => {
+    const row = siteSettings?.home?.stats?.[index];
+    return {
+      label: pickText(row?.label, DEFAULT_HERO_CARDS[index].label),
+      value: pickText(row?.value, DEFAULT_HERO_CARDS[index].value),
+      badge: pickText(row?.badge, index === 1 ? 'Active' : ''),
+    };
+  });
+  const { hasLive, priceINR: entryPrice, webinar: liveWebinar } = useWebinarOffer();
+  const journeyEyebrow = pickText(siteSettings?.home?.journeyEyebrow, DEFAULT_HOME_JOURNEY.eyebrow);
+  const journeyTitle = pickText(siteSettings?.home?.journeyTitle, DEFAULT_HOME_JOURNEY.title);
+  const journeyDescription = pickText(siteSettings?.home?.journeyDescription, DEFAULT_HOME_JOURNEY.description);
+  const journeyCtaEyebrow = pickText(siteSettings?.home?.journeyCtaEyebrow, DEFAULT_HOME_JOURNEY.ctaEyebrow);
+  const journeyCtaTitle = pickText(siteSettings?.home?.journeyCtaTitle, DEFAULT_HOME_JOURNEY.ctaTitle);
+  const journeyCtaDescription = pickText(siteSettings?.home?.journeyCtaDescription, DEFAULT_HOME_JOURNEY.ctaDescription);
+  const journeyMoreText = pickText(siteSettings?.home?.journeyMoreText, DEFAULT_HOME_JOURNEY.moreText);
+  const faqEyebrow = pickText(siteSettings?.home?.faqEyebrow, DEFAULT_HOME_FAQ.eyebrow);
+  const faqTitle = pickText(siteSettings?.home?.faqTitle, DEFAULT_HOME_FAQ.title);
+  const faqDescription = pickText(siteSettings?.home?.faqDescription, DEFAULT_HOME_FAQ.description);
+  const servicesEyebrow = pickText(siteSettings?.home?.servicesEyebrow, DEFAULT_HOME_SERVICES.eyebrow);
+  const servicesTitle = pickText(siteSettings?.home?.servicesTitle, DEFAULT_HOME_SERVICES.title);
+  const servicesDescription = pickText(siteSettings?.home?.servicesDescription, DEFAULT_HOME_SERVICES.description);
+  const masterclassesEyebrow = pickText(siteSettings?.home?.masterclassesEyebrow, DEFAULT_HOME_MASTERCLASSES.eyebrow);
+  const masterclassesTitle = pickText(siteSettings?.home?.masterclassesTitle, DEFAULT_HOME_MASTERCLASSES.title);
+  const masterclassesDescription = pickText(
+    siteSettings?.home?.masterclassesDescription,
+    DEFAULT_HOME_MASTERCLASSES.description
+  );
+  const masterclassesButton = pickText(
+    siteSettings?.home?.masterclassesButtonText,
+    DEFAULT_HOME_MASTERCLASSES.buttonText
+  );
+  const checkInEyebrow = pickText(siteSettings?.home?.checkInEyebrow, DEFAULT_HOME_CHECK_IN.eyebrow);
+  const checkInTitle = pickText(siteSettings?.home?.checkInTitle, DEFAULT_HOME_CHECK_IN.title);
+  const checkInDescription = pickText(siteSettings?.home?.checkInDescription, DEFAULT_HOME_CHECK_IN.description);
+  const checkInButton = pickText(siteSettings?.home?.checkInButtonText, DEFAULT_HOME_CHECK_IN.buttonText);
+  const savedFaqs = siteSettings?.home?.faqItems || [];
+  const faqItems = (savedFaqs.length > 0 ? savedFaqs : DEFAULT_HOME_FAQ.items)
+    .map((row) => ({
+      question: row.question?.trim() || '',
+      answer: row.answer?.trim() || '',
+    }))
+    .filter((row) => row.question);
+  const show = (id: Parameters<typeof isHomeSectionOn>[1]) => isHomeSectionOn(siteSettings?.home, id);
+  const htmlOf = (id: Parameters<typeof homeSectionHtml>[1]) => homeSectionHtml(siteSettings?.home, id);
+  const goToLiveWebinar = () => {
+    if (onOpenLiveWebinar) onOpenLiveWebinar(liveWebinar);
+    else setActivePage('webinars');
+  };
   const STRUCTURED_SERVICES = useServices();
   const CAREER_PLANS = usePlans();
+  const plansLoading = usePublicLoading('/api/plans');
+  const servicesLoading = usePublicLoading('/api/services');
+  const mentorsLoading = usePublicLoading('/api/mentors');
+  const planCount = CAREER_PLANS.length;
+  const savedStages = siteSettings?.home?.journeyStages || [];
+  const journeyStageCount = Math.max(DEFAULT_HOME_JOURNEY.stages.length, savedStages.length);
+  const journeyStages = Array.from({ length: journeyStageCount }, (_, index) => {
+    const fallback = DEFAULT_HOME_JOURNEY.stages[index] || { title: '', badge: '', desc: '' };
+    const row = savedStages[index];
+    let badge = pickText(row?.badge, fallback.badge);
+    if (index === 0 && !row?.badge?.trim()) {
+      badge = hasLive && entryPrice ? `₹${entryPrice} Entry` : fallback.badge;
+    }
+    let title = pickText(row?.title, fallback.title);
+    if (index === 3 && !row?.title?.trim()) {
+      title = planCount <= 1 ? fallback.title : `Choose 1 of ${planCount} Plans`;
+    }
+    return {
+      step: String(index + 1).padStart(2, '0'),
+      title,
+      badge,
+      desc: pickText(row?.desc, fallback.desc),
+      color: index % 2 === 0 ? 'green' : 'blue',
+    };
+  }).filter((stage) => stage.title);
+  const allMentors = useMentors();
   const previewServices = STRUCTURED_SERVICES.slice(0, 6);
+  const owned = useOwnedPurchases();
+  const [payPlan, setPayPlan] = useState<PlanItem | null>(null);
+  const [detailsPlan, setDetailsPlan] = useState<PlanItem | null>(null);
+  const startPlanEnroll = (plan: PlanItem) => {
+    setDetailsPlan(null);
+    if (plan.isCustomPricing || !plan.onlinePayment || rupeesFrom(plan.priceINR) <= 0) {
+      onSelectPlan(plan);
+      return;
+    }
+    setPayPlan(plan);
+  };
+  const previewMentors = useMemo(() => {
+    const featured = allMentors.filter((m) => m.featured);
+    const rest = allMentors.filter((m) => !m.featured);
+    return [...featured, ...rest].slice(0, 6);
+  }, [allMentors]);
 
   // Quick Hero Lead Capture Form state
   const [heroForm, setHeroForm] = useState({
@@ -113,6 +255,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     <div className="flex flex-col w-full bg-white">
       
       {/* 1. HERO SECTION (Left Content + Right Career Progression Visual Architecture) */}
+      {show('hero') && htmlOf('hero') && <HomeHtmlBlock html={htmlOf('hero')} />}
+      {show('hero') && !htmlOf('hero') && (
       <section className="relative overflow-hidden bg-[#002869] text-white pt-8 sm:pt-12 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-10">
         {/* Atmospheric Career-Growth & Progression Background Visual */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden select-none opacity-25">
@@ -147,25 +291,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <div className="relative z-10 max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Left Column: Clean, Left-Aligned Hero Content Hierarchy */}
-          <div className="lg:col-span-7 flex flex-col gap-5 sm:gap-6 text-left">
+          <Stagger className="lg:col-span-7 flex flex-col gap-5 sm:gap-6 text-left">
             
             {/* 1. Small Brand / Trust Badge */}
-            <div className="w-fit">
+            <RevealItem className="w-fit">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-1.5 shadow-xs hover:bg-white/15 transition-all">
                 <Sparkles className="w-3.5 h-3.5 text-[#79fd8d]" />
                 <span className="text-xs font-bold text-[#dae2ff] tracking-wide">
-                  {pickText(
-                    siteSettings?.home?.heroSubtitle,
-                    'Bridging the gap between aspiration and achievement'
-                  )}
+                  {heroBadge}
                 </span>
               </div>
-            </div>
+            </RevealItem>
 
             {/* 2. Main Hero Headline */}
+            <RevealItem>
             <h1 className="text-3xl sm:text-4xl md:text-4.5xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.16] font-['Plus_Jakarta_Sans',sans-serif]">
-              {siteSettings?.home?.heroTitle?.trim() ? (
-                siteSettings.home.heroTitle
+              {savedTitle ? (
+                heroTitle
               ) : (
                 <>
                   Accelerate Your Career with{' '}
@@ -175,16 +317,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 </>
               )}
             </h1>
+            </RevealItem>
 
             {/* 3. Supporting Description */}
+            <RevealItem>
             <p className="text-sm sm:text-base text-[#dae2ff]/90 leading-relaxed max-w-xl font-normal">
-              {pickText(
-                siteSettings?.home?.heroDescription,
-                'Navigate career transitions, level up to Senior and Staff engineering, and master system design with verified leaders from top global technology ecosystems.'
-              )}
+              {heroSubheading}
             </p>
+            </RevealItem>
 
             {/* 4 & 5. Primary and Secondary CTAs */}
+            <RevealItem>
             <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-3.5 pt-1">
               <button
                 id="hero-advisor-cta-btn"
@@ -195,14 +338,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <ArrowRight className="w-4 h-4 text-[#79fd8d]" />
               </button>
 
+              {hasLive && (
               <button
                 id="hero-webinar-cta-btn"
-                onClick={() => setActivePage('webinars')}
-                className="w-full sm:w-auto justify-center px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                onClick={goToLiveWebinar}
+                className="shine-btn w-full sm:w-auto justify-center px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
               >
                 <Calendar className="w-4 h-4 text-[#79fd8d]" />
-                <span>Join Live Webinar (₹{entryPrice})</span>
+                <span>Join Live Webinar{webinarPriceSuffix(entryPrice)}</span>
               </button>
+              )}
 
               <button
                 id="hero-explore-programmes-btn"
@@ -213,13 +358,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <span>Explore Programmes</span>
               </button>
             </div>
+            </RevealItem>
 
             {/* Qualitative Trust Badges */}
+            <RevealItem>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-3 border-t border-white/15 text-xs text-[#dae2ff]/90">
+              {hasLive && (
               <span className="flex items-center gap-1.5 font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-[#79fd8d] shrink-0" />
                 Live Practitioner Masterclasses
               </span>
+              )}
               <span className="flex items-center gap-1.5 font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-[#79fd8d] shrink-0" />
                 Dedicated Advisor Profile Alignment
@@ -229,14 +378,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 Personalized Industry Master Sessions
               </span>
             </div>
+            </RevealItem>
 
-          </div>
+          </Stagger>
 
           {/* Right Column: Seamless Integrated Career Progression & Mentorship Architecture Visual */}
-          <div className="lg:col-span-5 relative w-full flex items-center justify-center py-2 lg:py-0">
+          <Reveal delay={0.18} x={32} y={0} className="lg:col-span-5 relative w-full flex items-center justify-center py-2 lg:py-0">
             
             {/* Atmospheric Background Blending & Radial Highlights */}
-            <div className="relative w-full max-w-[480px] lg:max-w-none aspect-[5/4] sm:aspect-[4/3] lg:aspect-[5/4] flex items-center justify-center">
+            <div className="hero-career-visual relative w-full max-w-[480px] lg:max-w-none aspect-[5/4] sm:aspect-[4/3] lg:aspect-[5/4] flex items-center justify-center">
               
               {/* Soft Ambient Depth Blooms merging seamlessly into the Hero background */}
               <div className="absolute top-1/4 right-6 w-52 h-52 bg-[#79fd8d]/12 rounded-full blur-3xl pointer-events-none" />
@@ -296,39 +446,49 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   strokeLinecap="round"
                 />
                 <path 
+                  className="hero-path-flow"
                   d="M 75 350 C 150 330, 200 250, 270 200 C 340 145, 395 95, 450 50" 
                   stroke="#79fd8d" 
                   strokeWidth="1.5" 
                   strokeDasharray="5 7" 
-                  strokeOpacity="0.5"
+                  strokeOpacity="0.7"
                 />
+                <circle className="hero-travel-dot" r="3.5" fill="#79fd8d">
+                  <animateMotion dur="6.5s" repeatCount="indefinite" path="M 60 360 C 140 345, 190 270, 255 220 C 325 165, 380 110, 440 60" />
+                </circle>
+                <circle className="hero-travel-dot" r="2.5" fill="#dae2ff" fillOpacity="0.9">
+                  <animateMotion dur="6.5s" begin="2.1s" repeatCount="indefinite" path="M 60 360 C 140 345, 190 270, 255 220 C 325 165, 380 110, 440 60" />
+                </circle>
+                <circle className="hero-travel-dot" r="2" fill="#79fd8d" fillOpacity="0.8">
+                  <animateMotion dur="6.5s" begin="4.2s" repeatCount="indefinite" path="M 60 360 C 140 345, 190 270, 255 220 C 325 165, 380 110, 440 60" />
+                </circle>
 
                 {/* Layer 3: Career Stage Stepping Platforms (Integrated Depth Vectors) */}
                 {/* Stage 1: Diagnostic */}
                 <g transform="translate(60, 330)">
                   <ellipse cx="25" cy="18" rx="35" ry="12" fill="#001f52" fillOpacity="0.7" stroke="#dae2ff" strokeWidth="1" strokeOpacity="0.3" />
-                  <circle cx="25" cy="18" r="4.5" fill="#dae2ff" fillOpacity="0.8" />
+                  <circle className="hero-node-pulse" cx="25" cy="18" r="4.5" fill="#dae2ff" fillOpacity="0.8" />
                   <line x1="25" y1="18" x2="25" y2="-15" stroke="#dae2ff" strokeWidth="1" strokeDasharray="2 3" strokeOpacity="0.5" />
                 </g>
 
                 {/* Stage 2: Masterclass & Skill Expansion */}
                 <g transform="translate(160, 240)">
                   <ellipse cx="30" cy="20" rx="42" ry="14" fill="#002869" fillOpacity="0.8" stroke="#79fd8d" strokeWidth="1" strokeOpacity="0.4" />
-                  <circle cx="30" cy="20" r="5" fill="#79fd8d" fillOpacity="0.9" />
+                  <circle className="hero-node-pulse" style={{ animationDelay: '0.8s' }} cx="30" cy="20" r="5" fill="#79fd8d" fillOpacity="0.9" />
                   <line x1="30" y1="20" x2="30" y2="-20" stroke="#79fd8d" strokeWidth="1" strokeDasharray="2 3" strokeOpacity="0.6" />
                 </g>
 
                 {/* Stage 3: 1:1 Senior Engineering & Systems Architecture */}
                 <g transform="translate(285, 150)">
                   <ellipse cx="35" cy="22" rx="48" ry="16" fill="#003d8f" fillOpacity="0.7" stroke="#79fd8d" strokeWidth="1.2" strokeOpacity="0.6" />
-                  <circle cx="35" cy="22" r="6" fill="#79fd8d" />
+                  <circle className="hero-node-pulse" style={{ animationDelay: '1.6s' }} cx="35" cy="22" r="6" fill="#79fd8d" />
                   <line x1="35" y1="22" x2="35" y2="-25" stroke="#79fd8d" strokeWidth="1.2" strokeDasharray="2 3" strokeOpacity="0.8" />
                 </g>
 
                 {/* Stage 4: Staff & Principal Leadership Apex */}
                 <g transform="translate(405, 45)">
-                  <circle cx="35" cy="20" r="28" fill="#79fd8d" fillOpacity="0.12" filter="url(#heroApexGlow)" />
-                  <circle cx="35" cy="20" r="16" fill="#79fd8d" fillOpacity="0.25" />
+                  <circle className="hero-apex-breathe" cx="35" cy="20" r="28" fill="#79fd8d" fillOpacity="0.12" filter="url(#heroApexGlow)" />
+                  <circle className="hero-apex-breathe" style={{ animationDelay: '1s' }} cx="35" cy="20" r="16" fill="#79fd8d" fillOpacity="0.25" />
                   <ellipse cx="35" cy="20" rx="44" ry="16" fill="#001f52" fillOpacity="0.85" stroke="#79fd8d" strokeWidth="1.5" />
                   <circle cx="35" cy="20" r="7" fill="#79fd8d" />
                   <circle cx="35" cy="20" r="11" stroke="#79fd8d" strokeWidth="1" strokeOpacity="0.5" />
@@ -342,46 +502,50 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <div className="relative z-10 w-full h-full flex flex-col justify-between p-2 sm:p-4">
                 
                 {/* Top Floating Node: Staff & Principal Apex Goal */}
-                <div className="self-end mr-1 sm:mr-4">
-                  <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-white/[0.12] to-white/[0.04] backdrop-blur-md border border-white/20 shadow-xl">
+                <div className="hero-card-float-top self-end mr-1 sm:mr-4">
+                  <div className="hero-glass inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl">
                     <div className="w-6 h-6 rounded-lg bg-[#79fd8d]/20 border border-[#79fd8d]/40 flex items-center justify-center shrink-0">
                       <Sparkles className="w-3.5 h-3.5 text-[#79fd8d]" />
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-extrabold text-white tracking-wide">Staff & Principal Track</span>
+                        <span className="text-[11px] font-extrabold text-white tracking-wide">{heroCards[0].label}</span>
                         <span className="w-1.5 h-1.5 rounded-full bg-[#79fd8d] animate-pulse" />
                       </div>
-                      <span className="text-[11px] text-[#79fd8d] font-semibold">High-Impact Architecture & Leadership</span>
+                      <span className="text-[11px] text-[#79fd8d] font-semibold">{heroCards[0].value}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Mid-Tier Node: 1:1 Senior Mentor Alignment (Center) */}
-                <div className="self-center ml-2 sm:ml-6 my-auto">
-                  <div className="inline-flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-white/[0.09] to-white/[0.03] backdrop-blur-md border border-[#79fd8d]/30 shadow-lg">
+                <div className="hero-card-float-mid self-center ml-2 sm:ml-6 my-auto">
+                  <div className="hero-glass inline-flex items-center gap-3 px-3.5 py-2 rounded-2xl">
                     <div className="w-6 h-6 rounded-lg bg-[#006e29]/40 border border-[#79fd8d]/50 flex items-center justify-center shrink-0">
                       <Users className="w-3.5 h-3.5 text-[#79fd8d]" />
                     </div>
                     <div className="text-left">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-bold text-white">1:1 Practitioner Mentorship</span>
-                        <span className="text-[10px] font-bold text-[#002869] bg-[#79fd8d] px-1.5 py-0.2 rounded-full">Active</span>
+                        <span className="text-[11px] font-bold text-white">{heroCards[1].label}</span>
+                        {heroCards[1].badge && (
+                          <span className="text-[10px] font-bold text-[#002869] bg-[#79fd8d] px-1.5 py-0.2 rounded-full">
+                            {heroCards[1].badge}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[11px] text-[#dae2ff]/90">FAANG+ & Tier-1 Tech Ecosystem Leaders</p>
+                      <p className="text-[11px] text-[#dae2ff]/90">{heroCards[1].value}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Lower Foundation Node: Profile Diagnostic & Structured Path */}
-                <div className="self-start ml-1 sm:ml-3">
-                  <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-white/[0.07] backdrop-blur-sm border border-white/15 shadow-md">
+                <div className="hero-card-float self-start ml-1 sm:ml-3">
+                  <div className="hero-glass inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl">
                     <div className="w-5 h-5 rounded-md bg-white/10 flex items-center justify-center shrink-0">
                       <Target className="w-3 h-3 text-[#dae2ff]" />
                     </div>
                     <div className="text-left">
-                      <span className="text-[11px] font-bold text-white block">Diagnostic & Roadmap Formulation</span>
-                      <span className="text-[10px] text-[#dae2ff]/70">Step-by-step career acceleration plan</span>
+                      <span className="text-[11px] font-bold text-white block">{heroCards[2].label}</span>
+                      <span className="text-[10px] text-[#dae2ff]/70">{heroCards[2].value}</span>
                     </div>
                   </div>
                 </div>
@@ -389,18 +553,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
 
             </div>
-          </div>
+          </Reveal>
 
         </div>
       </section>
+      )}
 
       {/* 2. FIND YOUR NEXT STEP (Decision Grid) */}
+      {show('nextStep') && htmlOf('nextStep') && <HomeHtmlBlock html={htmlOf('nextStep')} />}
+      {show('nextStep') && !htmlOf('nextStep') && (
       <FindYourNextStep 
         onNavigate={setActivePage} 
-        onOpenCounselling={onOpenCounselling} 
+        onOpenCounselling={onOpenCounselling}
+        onOpenLiveWebinar={goToLiveWebinar}
+        home={siteSettings?.home}
       />
+      )}
 
       {/* 3. HOW CAREERBUDDIES WORKS (7-Step Real Customer Journey) */}
+      {show('journey') && htmlOf('journey') && <HomeHtmlBlock html={htmlOf('journey')} />}
+      {show('journey') && !htmlOf('journey') && (
       <section className="relative overflow-hidden w-full py-16 sm:py-20 px-4 sm:px-6 lg:px-10 bg-[#002869] text-white">
         {/* Subtle Ambient Brand Glows matching hero visual tone */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#79fd8d]/8 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
@@ -408,79 +580,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
         <div className="relative z-10 max-w-[1280px] mx-auto flex flex-col gap-10 sm:gap-12">
           
+          <Reveal>
           <SectionHeading
-            eyebrow="THE REAL 7-STAGE JOURNEY"
-            title="How CareerBuddies Accelerates Your Career"
-            description="A structured, transparent pathway from your first live mentor masterclass to dedicated profile overhaul and personalized master sessions."
+            eyebrow={journeyEyebrow}
+            title={journeyTitle}
+            description={journeyDescription}
             badgeIcon={Layers}
             badgeColor="blue"
             dark={true}
             align="center"
           />
+          </Reveal>
 
           {/* 7-Step Progression Grid with Unified Architectural Hierarchy */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 items-stretch">
-            {[
-              {
-                step: "01",
-                title: "Live Mentor Webinar",
-                badge: `₹${entryPrice} Entry`,
-                desc: "Start with an affordable 90-minute live masterclass led by senior mentors from top tech companies.",
-                icon: Calendar,
-                color: "green"
-              },
-              {
-                step: "02",
-                title: "Express Interest",
-                badge: "Next Step",
-                desc: "Genuinely interested professionals continue their journey and request a personalized strategy conversation.",
-                icon: ArrowUpRight,
-                color: "blue"
-              },
-              {
-                step: "03",
-                title: "Advisor Discussion",
-                badge: "Requirement Stage",
-                desc: "A dedicated Career Advisor analyzes your background, current challenges, and goals to recommend the right plan.",
-                icon: Users,
-                color: "blue"
-              },
-              {
-                step: "04",
-                title: "Choose 1 of 3 Plans",
-                badge: "Tailored Options",
-                desc: "Select the most suitable plan (Foundation Sprint, Transition Track, or Executive Mastery) for your career stage.",
-                icon: Layers,
-                color: "green"
-              },
-              {
-                step: "05",
-                title: "Programme Enrolment",
-                badge: "Onboarding",
-                desc: "Formally enrol in your chosen programme to unlock dedicated team resources and milestone tracking.",
-                icon: CheckCircle2,
-                color: "blue"
-              },
-              {
-                step: "06",
-                title: "Dedicated Profile Work",
-                badge: "Hands-on",
-                desc: "Our specialized team completely overhauls your ATS resume, LinkedIn profile, and portfolio assets.",
-                icon: Sparkles,
-                color: "green"
-              },
-              {
-                step: "07",
-                title: "Personalized Master Session",
-                badge: "Personalized Master Session",
-                desc: "In the following week, engage in an in-depth master session with a verified practitioner matched to your domain.",
-                icon: Award,
-                color: "blue"
-              }
-            ].map((item, idx) => (
+          <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 items-stretch">
+            {journeyStages.map((item, idx) => (
+              <RevealItem key={idx} hover className="h-full">
               <div 
-                key={idx}
-                className="bg-[#142d4f]/90 border border-white/10 rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative hover:border-[#79fd8d]/60 hover:bg-[#18365e] transition-all duration-200 shadow-md hover:shadow-xl group"
+                className="h-full bg-[#142d4f]/90 border border-white/10 rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative hover:border-[#79fd8d]/60 hover:bg-[#18365e] transition-all duration-200 shadow-md hover:shadow-xl group"
               >
                 <div>
                   {/* Step Header with Step Badge, Milestone Counter & Subtle Progression Cue */}
@@ -515,61 +632,74 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform shrink-0" />
                 </div>
               </div>
+              </RevealItem>
             ))}
 
-            {/* Stage 8 Summary / Journey Action Callout Card */}
-            <div className="bg-gradient-to-br from-[#003d8f] to-[#002256] text-white rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-lg border border-white/20 hover:border-[#79fd8d]/40 transition-all">
+            {hasLive && (
+            <RevealItem hover className="h-full">
+            <div className="h-full bg-gradient-to-br from-[#003d8f] to-[#002256] text-white rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-lg border border-white/20 hover:border-[#79fd8d]/40 transition-all">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-xs font-bold text-[#79fd8d] mb-3.5 border border-white/10">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>The Complete Journey</span>
+                  <span>{journeyCtaEyebrow}</span>
                 </div>
                 <h2 className="text-lg font-bold text-white mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
-                  Ready to Start at Step 1?
+                  {journeyCtaTitle}
                 </h2>
                 <p className="text-xs text-[#dae2ff] leading-relaxed">
-                  Join our next live mentor webinar to learn directly from leading industry practitioners.
+                  {journeyCtaDescription}
                 </p>
               </div>
 
               <button
-                onClick={() => setActivePage('webinars')}
-                className="mt-5 w-full py-2.5 rounded-xl bg-[#79fd8d] hover:bg-[#5cf272] text-[#002869] font-black text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                onClick={goToLiveWebinar}
+                className="shine-btn mt-5 w-full py-2.5 rounded-xl bg-[#79fd8d] hover:bg-[#5cf272] text-[#002869] font-black text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Join Live Webinar (₹{entryPrice})</span>
+                <span>Join Live Webinar{webinarPriceSuffix(entryPrice)}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-          </div>
+            </RevealItem>
+            )}
+          </Stagger>
 
+          <Reveal>
           <div className="flex justify-center pt-2 sm:pt-4">
             <button
               onClick={() => setActivePage('how-it-works')}
               className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs sm:text-sm font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
-              <span>View Detailed 7-Stage Methodology</span>
+              <span>{journeyMoreText}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+          </Reveal>
 
         </div>
       </section>
+      )}
 
       {/* 4. THREE STRUCTURED CAREER PLANS SHOWCASE */}
+      {show('plans') && htmlOf('plans') && <HomeHtmlBlock html={htmlOf('plans')} />}
+      {show('plans') && !htmlOf('plans') && (
       <section className="w-full py-16 sm:py-20 px-4 sm:px-6 lg:px-10 bg-[#f1f3ff] border-y border-[#cbdaff]">
         <div className="max-w-[1280px] mx-auto flex flex-col gap-10 sm:gap-12">
           
+          <Reveal>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
             <div className="max-w-2xl flex flex-col gap-2.5">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#dae2ff] text-[#001947] text-xs font-bold w-fit">
                 <Layers className="w-3.5 h-3.5 text-[#002869]" />
-                <span>Step 4: Three Tailored Plans</span>
+                <span>Step 4: {planCount === 0 ? 'Career Plans' : `${numberWord(planCount, true)} Tailored ${planCount === 1 ? 'Plan' : 'Plans'}`}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#061b3b] tracking-tight font-['Plus_Jakarta_Sans',sans-serif]">
                 Choose the Right CareerBuddies Plan for Your Stage
               </h2>
               <p className="text-sm text-[#434652] leading-relaxed">
-                After attending your ₹{entryPrice} webinar, your Career Advisor will match you with one of our three structured plans. Dedicated profile work begins immediately upon enrolment.
+                {hasLive && entryPrice
+                  ? `After attending your ₹${entryPrice} webinar, your Career Advisor will match you with `
+                  : 'Your Career Advisor will match you with '}
+                {planCount <= 1 ? 'a structured plan' : `one of our ${numberWord(planCount)} structured plans`}. Dedicated profile work begins immediately upon enrolment.
               </p>
             </div>
 
@@ -577,16 +707,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onClick={() => setActivePage('programmes')}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#002869] text-white hover:bg-[#0b3d91] text-xs font-bold transition-all shadow-2xs cursor-pointer w-fit shrink-0"
             >
-              <span>Compare All 3 Plans</span>
+              <span>{planCount <= 1 ? 'View Plans' : `Compare All ${planCount} Plans`}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
+          </Reveal>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-            {CAREER_PLANS.slice(0, 3).map((plan) => (
+          {plansLoading && CAREER_PLANS.length === 0 ? (
+            <CardGridSkeleton count={3} />
+          ) : CAREER_PLANS.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-[#e0e8ff] p-10 text-center">
+              <p className="text-sm font-bold text-[#061b3b]">Plans are being updated</p>
+              <p className="text-xs text-[#434652] mt-1">Please check back soon.</p>
+            </div>
+          ) : (
+          <Stagger className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+            {CAREER_PLANS.map((plan) => (
+              <RevealItem key={plan.id} hover className="h-full">
               <div
-                key={plan.id}
-                className={`bg-white rounded-3xl p-6 sm:p-7 flex flex-col justify-between border transition-all duration-200 hover:shadow-lg relative ${
+                className={`h-full bg-white rounded-3xl p-6 sm:p-7 flex flex-col justify-between border transition-all duration-200 hover:shadow-lg relative ${
                   plan.isRecommended ? 'border-[#002869] ring-2 ring-[#002869]/20' : 'border-[#cbdaff]'
                 }`}
               >
@@ -633,49 +772,77 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <span className="text-[#434652]">{feat.title}</span>
                       </div>
                     ))}
+                    {plan.features.length > 4 && (
+                      <button
+                        type="button"
+                        onClick={() => setDetailsPlan(plan)}
+                        className="mt-1 text-left text-xs font-bold text-[#002869] hover:underline cursor-pointer"
+                      >
+                        Show more ({plan.features.length - 4} more)
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                   <div>
                     <span className="text-2xl font-black text-[#002869] font-['Plus_Jakarta_Sans',sans-serif]">
-                      {plan.priceINR}
+                      {rupeesFrom(plan.priceINR) > 0 ? plan.priceINR : 'On request'}
                     </span>
                     <span className="text-[11px] text-[#666a76] block">
                       {plan.period}
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => onSelectPlan(plan)}
-                    className="px-4 py-2.5 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>View Plan Details</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                  {owned.has('plan', plan.id) ? (
+                    <span className="px-4 py-2.5 rounded-xl bg-[#e8f8ee] text-[#00531d] text-xs font-black">
+                      Already enrolled
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startPlanEnroll(plan)}
+                      className="px-4 py-2.5 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>
+                        {plan.isCustomPricing || !plan.onlinePayment || rupeesFrom(plan.priceINR) <= 0
+                          ? 'Contact advisor'
+                          : 'Enroll Now'}
+                      </span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
+              </RevealItem>
             ))}
-          </div>
+          </Stagger>
+          )}
 
         </div>
       </section>
+      )}
 
-      {/* 4. LIVE & UPCOMING WEBINARS SPOTLIGHT (Section 5 & 6) */}
+      {show('masterclasses') && htmlOf('masterclasses') && <HomeHtmlBlock html={htmlOf('masterclasses')} />}
+      {show('masterclasses') && !htmlOf('masterclasses') && hasLive && (
       <section className="w-full py-16 sm:py-20 px-4 sm:px-6 lg:px-10 bg-[#f9f9ff]">
         <div className="max-w-[1280px] mx-auto flex flex-col gap-10 sm:gap-12">
           
+          <Reveal>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
             <div className="max-w-2xl flex flex-col gap-2.5">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#79fd8d]/25 text-[#00531d] text-xs font-bold w-fit">
                 <GraduationCap className="w-3.5 h-3.5 text-[#006e29]" />
-                <span>Live Learning Masterclasses</span>
+                <span>{masterclassesEyebrow}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#061b3b] tracking-tight font-['Plus_Jakarta_Sans',sans-serif]">
-                Join High-Impact Weekend Masterclasses
+                {masterclassesTitle}
               </h2>
               <p className="text-sm text-[#434652] leading-relaxed">
-                Focused 90-minute live deep dives with staff practitioners covering system design, AI architectures, and product strategy. Accessible at ₹{entryPrice} per session.
+                {masterclassesDescription}
+                {entryPrice && !masterclassesDescription.includes('₹')
+                  ? ` Accessible at ₹${entryPrice} per session.`
+                  : ''}
               </p>
             </div>
 
@@ -683,30 +850,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onClick={() => setActivePage('webinars')}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#002869] text-white hover:bg-[#0b3d91] text-xs font-bold transition-all shadow-2xs cursor-pointer w-fit shrink-0"
             >
-              <span>View All Masterclasses</span>
+              <span>{masterclassesButton}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
+          </Reveal>
 
         </div>
       </section>
+      )}
 
       {/* 5. CAREER CHECK-IN TEASER (Section 9) */}
+      {show('checkIn') && htmlOf('checkIn') && <HomeHtmlBlock html={htmlOf('checkIn')} />}
+      {show('checkIn') && !htmlOf('checkIn') && (
       <section className="w-full py-14 sm:py-18 px-4 sm:px-6 lg:px-10 bg-[#f1f3ff]">
-        <div className="max-w-[1280px] mx-auto bg-[#002869] text-white rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-md">
+        <Reveal className="max-w-[1280px] mx-auto bg-[#002869] text-white rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-md">
           <div className="absolute top-0 right-0 w-80 h-80 bg-[#79fd8d]/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
           
           <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 sm:gap-8">
             <div className="max-w-2xl flex flex-col gap-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-bold text-[#79fd8d] w-fit">
                 <Compass className="w-3.5 h-3.5" />
-                <span>Career Clarity Discovery Tool</span>
+                <span>{checkInEyebrow}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold font-['Plus_Jakarta_Sans',sans-serif]">
-                Feeling unsure about your next career move?
+                {checkInTitle}
               </h2>
               <p className="text-xs sm:text-sm text-[#dae2ff] leading-relaxed">
-                Take our 2-minute interactive Career Check-in to evaluate where you stand, identify your core bottleneck, and receive a tailored recommendation for guidance.
+                {checkInDescription}
               </p>
             </div>
 
@@ -714,28 +885,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onClick={() => setActivePage('career-check-in')}
               className="px-6 py-3.5 rounded-xl bg-[#79fd8d] hover:bg-[#5cf272] text-[#002869] font-extrabold text-xs sm:text-sm transition-all shadow-md whitespace-nowrap cursor-pointer flex items-center gap-2 shrink-0"
             >
-              <span>Start 2-Min Career Check-in</span>
+              <span>{checkInButton}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
-        </div>
+        </Reveal>
       </section>
+      )}
 
       {/* 6. STRUCTURED SERVICES PREVIEW */}
+      {show('services') && htmlOf('services') && <HomeHtmlBlock html={htmlOf('services')} />}
+      {show('services') && !htmlOf('services') && (
       <section className="w-full py-16 sm:py-20 px-4 sm:px-6 lg:px-10 bg-white">
         <div className="max-w-[1280px] mx-auto flex flex-col gap-10 sm:gap-12">
           
+          <Reveal>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
             <div className="max-w-2xl flex flex-col gap-2.5">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#dae2ff] text-[#001947] text-xs font-bold w-fit">
                 <Briefcase className="w-3.5 h-3.5 text-[#002869]" />
-                <span>12 Tailored Growth Tracks</span>
+                <span>{servicesEyebrow}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#061b3b] tracking-tight font-['Plus_Jakarta_Sans',sans-serif]">
-                Structured Mentorship & Career Programs
+                {servicesTitle}
               </h2>
               <p className="text-sm text-[#434652] leading-relaxed">
-                Proven blueprints designed for software engineers, product managers, data scientists, and technical leaders navigating pivotal career moments.
+                {servicesDescription}
               </p>
             </div>
 
@@ -743,17 +918,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onClick={() => setActivePage('services')}
               className="inline-flex items-center gap-1.5 text-xs font-bold text-[#002869] hover:underline cursor-pointer shrink-0"
             >
-              <span>View All 12 Tracks</span>
+              <span>View All Tracks</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+          </Reveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {servicesLoading && previewServices.length === 0 ? (
+            <CardGridSkeleton count={3} />
+          ) : previewServices.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-[#e0e8ff] p-10 text-center">
+              <p className="text-sm font-bold text-[#061b3b]">Services are being updated</p>
+              <p className="text-xs text-[#434652] mt-1">Please check back soon.</p>
+            </div>
+          ) : (
+          <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {previewServices.map((service) => (
+              <RevealItem key={service.id} hover className="h-full">
               <div
-                key={service.id}
                 {...buttonProps(() => onSelectService(service))}
-                className="bg-[#f9f9ff] rounded-2xl p-6 border border-[#e0e8ff] hover:border-[#002869]/50 transition-all duration-200 hover:shadow-2xs flex flex-col justify-between group cursor-pointer"
+                className="h-full bg-[#f9f9ff] rounded-2xl p-6 border border-[#e0e8ff] hover:border-[#002869]/50 transition-all duration-200 hover:shadow-2xs flex flex-col justify-between group cursor-pointer"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
@@ -779,16 +963,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
+              </RevealItem>
             ))}
-          </div>
+          </Stagger>
+          )}
 
         </div>
       </section>
+      )}
 
       {/* 7. FEATURED VERIFIED MENTORS ("Learn Directly from Industry Leaders") */}
+      {show('mentors') && htmlOf('mentors') && <HomeHtmlBlock html={htmlOf('mentors')} />}
+      {show('mentors') && !htmlOf('mentors') && (
       <section className="relative w-full py-16 sm:py-20 px-4 sm:px-6 lg:px-10 bg-white">
         <div className="max-w-[1280px] mx-auto flex flex-col gap-10 sm:gap-12">
           
+          <Reveal>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
             <div className="max-w-2xl flex flex-col gap-2.5">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#dae2ff] text-[#001947] border border-[#cbdaff] text-xs font-bold w-fit">
@@ -811,11 +1001,122 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
+          </Reveal>
+
+          {mentorsLoading && previewMentors.length === 0 ? (
+            <CardGridSkeleton count={3} />
+          ) : previewMentors.length === 0 ? (
+            <div className="bg-[#f9f9ff] border border-[#e0e8ff] rounded-2xl p-10 text-center">
+              <Users className="w-10 h-10 text-[#666a76] mx-auto mb-3 opacity-50" />
+              <p className="text-sm font-bold text-[#061b3b]">Mentor profiles are being updated</p>
+              <p className="text-xs text-[#434652] mt-1">Please check back soon, or contact us and we will help you find the right guidance.</p>
+            </div>
+          ) : (
+            <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {previewMentors.map((mentor) => (
+                <RevealItem key={mentor.id} hover className="h-full">
+                <div
+                  className="h-full bg-white border border-[#e0e8ff] hover:border-[#002869]/50 rounded-2xl p-6 flex flex-col justify-between hover:shadow-md transition-all"
+                >
+                  <div>
+                    <div className="flex items-start gap-4 mb-4">
+                      {mentor.avatar ? (
+                        <img
+                          src={mentor.avatar}
+                          alt={mentor.name}
+                          className="w-16 h-16 rounded-xl object-cover border border-[#e0e8ff] shadow-xs shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl bg-[#dae2ff] text-[#002869] flex items-center justify-center text-lg font-black shrink-0 border border-[#e0e8ff]">
+                          {mentor.name.trim().charAt(0).toUpperCase() || 'M'}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="font-bold text-base text-[#061b3b] truncate">{mentor.name}</h3>
+                          {mentor.verified && (
+                            <span title="Verified Mentor">
+                              <ShieldCheck className="w-4 h-4 text-[#006e29] shrink-0" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-[#434652] truncate font-medium">{mentor.title}</p>
+                        {mentor.company && (
+                          <div className="inline-block mt-1 px-2.5 py-0.5 rounded-md bg-[#dae2ff] text-[#001947] text-[11px] font-bold">
+                            {mentor.company}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {mentor.bio && (
+                      <p className="text-xs text-[#434652] leading-relaxed line-clamp-2 mb-4">{mentor.bio}</p>
+                    )}
+
+                    {mentor.topics.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {mentor.topics.slice(0, 3).map((topic, i) => (
+                          <span
+                            key={i}
+                            className="text-[11px] bg-[#f9f9ff] border border-[#e0e8ff] text-[#061b3b] px-2 py-0.5 rounded-md"
+                          >
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {mentor.availableNext && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-[#006e29] bg-[#79fd8d]/20 px-2.5 py-1 rounded-md mb-4 font-semibold w-fit">
+                        <Calendar className="w-3 h-3" />
+                        <span>Next available: {mentor.availableNext}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-[#e0e8ff] flex items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1 text-xs font-bold text-[#061b3b]">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span>{mentor.rating}</span>
+                        <span className="text-[#666a76] font-normal">({mentor.reviewCount})</span>
+                      </div>
+                      {mentor.hourlyRate > 0 && (
+                        <span className="text-xs text-[#006e29] font-bold">
+                          ₹{mentor.hourlyRate.toLocaleString('en-IN')}<span className="text-[11px] text-[#666a76] font-normal">/session</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onSelectMentor(mentor)}
+                        className="px-3 py-1.5 text-xs font-semibold text-[#002869] hover:bg-[#dae2ff]/50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Bio & Reviews
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onBookMentor(mentor)}
+                        className="px-4 py-1.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-semibold rounded-lg shadow-xs active:scale-95 transition-all cursor-pointer"
+                      >
+                        Book Call
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                </RevealItem>
+              ))}
+            </Stagger>
+          )}
 
         </div>
       </section>
+      )}
 
       {/* 8. MEET OUR LEADERSHIP SECTION (The 3 Founders) */}
+      {show('leadership') && htmlOf('leadership') && <HomeHtmlBlock html={htmlOf('leadership')} />}
+      {show('leadership') && !htmlOf('leadership') && (
       <LeadershipSection
         onSelectLeader={onSelectLeader}
         setActivePage={setActivePage}
@@ -824,10 +1125,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
+      )}
 
       {/* 9. AUTHENTIC JOURNEY TEASER (2022-2026) */}
+      {show('story') && htmlOf('story') && <HomeHtmlBlock html={htmlOf('story')} />}
+      {show('story') && !htmlOf('story') && (
       <section className="w-full py-14 sm:py-18 px-4 sm:px-6 lg:px-10 bg-white">
-        <div className="max-w-[1280px] mx-auto bg-[#f9f9ff] rounded-3xl p-8 sm:p-12 border border-[#cbdaff] flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8">
+        <Reveal className="max-w-[1280px] mx-auto bg-[#f9f9ff] rounded-3xl p-8 sm:p-12 border border-[#cbdaff] flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8">
           <div className="max-w-2xl flex flex-col gap-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#dae2ff] text-[#001947] text-xs font-bold w-fit">
               <HeartHandshake className="w-3.5 h-3.5 text-[#006e29]" />
@@ -848,31 +1152,37 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <span>Read Our Journey (2022–2026)</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-        </div>
+        </Reveal>
       </section>
+      )}
 
       {/* 10. WHY TRUST CAREERBUDDIES */}
-      <WhyTrustSection />
+      {show('trust') && htmlOf('trust') && <HomeHtmlBlock html={htmlOf('trust')} />}
+      {show('trust') && !htmlOf('trust') && <WhyTrustSection />}
 
       {/* 11. FAQ SECTION */}
+      {show('faq') && htmlOf('faq') && <HomeHtmlBlock html={htmlOf('faq')} />}
+      {show('faq') && !htmlOf('faq') && (
       <section className="w-full py-16 sm:py-20 px-4 sm:px-6 lg:px-10 bg-[#f9f9ff]">
         <div className="max-w-[900px] mx-auto flex flex-col gap-10 sm:gap-12">
           
+          <Reveal>
           <SectionHeading
-            eyebrow="FREQUENTLY ASKED QUESTIONS"
-            title="Common Questions About CareerBuddies"
-            description="Everything you need to know about our mentorship model, pricing transparency, and diagnostic sessions."
+            eyebrow={faqEyebrow}
+            title={faqTitle}
+            description={faqDescription}
             badgeIcon={HelpCircle}
             badgeColor="blue"
             align="center"
           />
+          </Reveal>
 
-          <div className="flex flex-col gap-3.5 sm:gap-4">
-            {MOCK_FAQS.slice(0, 5).map((faq, idx) => {
+          <Stagger className="flex flex-col gap-3.5 sm:gap-4">
+            {faqItems.map((faq, idx) => {
               const isOpen = openFaqIndex === idx;
               return (
+                <RevealItem key={idx}>
                 <div
-                  key={idx}
                   className="bg-white border border-[#cbdaff] rounded-2xl overflow-hidden transition-all duration-200 shadow-2xs hover:border-[#002869]/40"
                 >
                   <button
@@ -891,16 +1201,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     </div>
                   )}
                 </div>
+                </RevealItem>
               );
             })}
-          </div>
+          </Stagger>
 
         </div>
       </section>
+      )}
 
       {/* 12. FINAL CALL TO ACTION */}
+      {show('cta') && htmlOf('cta') && <HomeHtmlBlock html={htmlOf('cta')} />}
+      {show('cta') && !htmlOf('cta') && (
       <section className="w-full py-16 sm:py-22 px-4 sm:px-6 lg:px-10 bg-white text-[#061b3b]">
-        <div className="max-w-4xl mx-auto text-center flex flex-col items-center gap-6 sm:gap-7">
+        <Reveal className="max-w-4xl mx-auto text-center flex flex-col items-center gap-6 sm:gap-7">
           <div className="w-14 h-14 rounded-2xl bg-[#002869]/10 text-[#006e29] flex items-center justify-center shadow-2xs">
             <Sparkles className="w-7 h-7" />
           </div>
@@ -910,17 +1224,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </h2>
 
           <p className="text-sm sm:text-base text-[#434652] max-w-xl leading-relaxed">
-            Begin with an accessible ₹{entryPrice} live mentor-led masterclass, connect with a dedicated Career Advisor, and accelerate with our proven 3-tier career plans.
+            {hasLive && entryPrice
+              ? `Begin with an accessible ₹${entryPrice} live mentor-led masterclass, connect with a dedicated Career Advisor, and accelerate with our proven career plans.`
+              : 'Connect with a dedicated Career Advisor and accelerate with our proven career plans.'}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 pt-2">
+            {hasLive && (
             <button
-              onClick={() => setActivePage('webinars')}
-              className="px-8 py-3.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-[#002869]/20 transition-all cursor-pointer flex items-center gap-2"
+              onClick={goToLiveWebinar}
+              className="shine-btn px-8 py-3.5 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-[#002869]/20 transition-all cursor-pointer flex items-center gap-2"
             >
-              <span>Join Live Mentor Webinar (₹{entryPrice})</span>
+              <span>Join Live Mentor Webinar{webinarPriceSuffix(entryPrice)}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
+            )}
 
             <button
               onClick={() => setActivePage('programmes')}
@@ -929,9 +1247,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               Explore 3 Career Plans
             </button>
           </div>
-        </div>
+        </Reveal>
       </section>
+      )}
 
+      <PlanDeliverablesModal
+        plan={detailsPlan}
+        alreadyEnrolled={detailsPlan ? owned.has('plan', detailsPlan.id) : false}
+        onClose={() => setDetailsPlan(null)}
+        onEnroll={startPlanEnroll}
+      />
+      <WebinarCheckoutModal
+        isOpen={!!payPlan}
+        onClose={() => setPayPlan(null)}
+        enrollment={payPlan ? planToEnrollment(payPlan) : null}
+      />
     </div>
   );
 };

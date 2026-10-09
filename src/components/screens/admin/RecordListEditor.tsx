@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { adminFetch } from '../../../utils/adminAuth';
 import { ImageUploadField } from './ImageUploadField';
+import { CardGridSkeleton } from '../../common/Skeleton';
 
 export interface FieldConfig {
   key: string;
@@ -36,11 +37,12 @@ interface RecordListEditorProps {
   filter?: Record<string, any>;
   // Field holding an image URL — shown as a thumbnail on each record card.
   imageField?: string;
+  // Callback when items are loaded or modified
+  onItemsChange?: (items: Record<string, any>[]) => void;
 }
 
-const inputClass =
-  'w-full px-3.5 py-2.5 bg-[#f9f9ff] border border-[#cbdaff] rounded-xl text-xs text-[#061b3b] focus:outline-none focus:border-[#002869]';
-const labelClass = 'block text-xs font-bold text-[#061b3b] mb-1';
+const inputClass = 'w-full px-3';
+const labelClass = 'block text-[12px] font-medium text-[var(--admin-text)] mb-1.5';
 
 function toTagsString(value: unknown): string {
   return Array.isArray(value) ? value.join(', ') : '';
@@ -62,8 +64,13 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
   subtitleField,
   filter,
   imageField,
+  onItemsChange,
 }) => {
   const [items, setItems] = useState<Record<string, any>[]>([]);
+
+  useEffect(() => {
+    onItemsChange?.(items);
+  }, [items, onItemsChange]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,7 +90,10 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
   };
 
   const matchesFilter = (item: Record<string, any>) =>
-    !filter || Object.entries(filter).every(([k, v]) => item[k] === v);
+    !filter ||
+    Object.entries(filter).every(([k, v]) =>
+      Array.isArray(v) ? v.includes(item[k]) : item[k] === v
+    );
 
   const fetchItems = async () => {
     setLoading(true);
@@ -107,7 +117,10 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
 
   const openAddForm = () => {
     setEditingId(null);
-    const record = { ...emptyRecord, ...filter };
+    const filterDefaults = filter
+      ? Object.fromEntries(Object.entries(filter).filter(([, v]) => !Array.isArray(v)))
+      : {};
+    const record = { ...emptyRecord, ...filterDefaults };
     setForm(record);
     seedJsonDrafts(record);
     setError('');
@@ -230,37 +243,33 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-3">
+        <div>
           {savedFlash && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#79fd8d]/30 text-[#00531d] text-xs font-bold">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Saved!</span>
+            <div className="inline-flex items-center gap-1.5 text-[12px] font-medium admin-tone-ok px-2.5 py-1 rounded-md">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Saved
             </div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={openAddForm}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-        >
+        <button type="button" onClick={openAddForm} className="admin-btn">
           <Plus className="w-3.5 h-3.5" />
-          Add New {labelSingular}
+          Add {labelSingular}
         </button>
       </div>
 
       {isFormOpen && (
         <form
           onSubmit={handleSubmit}
-          className="p-6 rounded-2xl bg-white border border-[#cbdaff] shadow-sm flex flex-col gap-4"
+          className="p-5 rounded-2xl bg-[var(--admin-soft)] border border-[var(--admin-border)] flex flex-col gap-4"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#061b3b]">
+            <h3 className="text-[14px] font-semibold text-[var(--admin-text)]">
               {editingId ? `Edit ${labelSingular}` : `New ${labelSingular}`}
             </h3>
             <button aria-label="Close"
               type="button"
               onClick={closeForm}
-              className="p-1.5 text-[#666a76] hover:text-[#061b3b] cursor-pointer"
+              className="w-8 h-8 rounded-full bg-[var(--admin-page)] text-[var(--admin-muted)] hover:text-[var(--admin-text)] flex items-center justify-center cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -309,7 +318,7 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
               if (field.type === 'checkbox') {
                 return (
                   <div key={field.key} className="flex items-end">
-                    <label className="flex items-center gap-2 text-xs font-bold text-[#061b3b] cursor-pointer">
+                    <label className="flex items-center gap-2 text-[13px] text-[var(--admin-text)] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={!!form[field.key]}
@@ -375,127 +384,109 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
           </div>
 
           {error && (
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-bold">
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-[12px] font-medium">
               <AlertCircle className="w-4 h-4" />
               {error}
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={closeForm}
-              className="px-4 py-2 text-xs font-semibold text-[#434652] hover:text-[#061b3b] cursor-pointer"
-            >
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--admin-border)]">
+            <button type="button" onClick={closeForm} className="admin-btn">
               Cancel
             </button>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 px-5 py-2 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer"
-            >
+            <button type="submit" className="admin-btn">
               <Save className="w-3.5 h-3.5" />
-              Save & Publish
+              Save
             </button>
           </div>
         </form>
       )}
 
       {loading ? (
-        <p className="text-xs text-[#666a76]">Loading...</p>
+        <CardGridSkeleton count={4} />
       ) : items.length === 0 ? (
-        <p className="text-xs text-[#666a76] p-4">
-          No {labelSingular.toLowerCase()} records yet. Click "Add New {labelSingular}" to create one.
+        <p className="text-[13px] text-[var(--admin-muted)] py-10 text-center">
+          No {labelSingular.toLowerCase()} records yet. Add one to get started.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-[var(--admin-border)] overflow-hidden">
           {items.map((item, index) => (
             <div
               key={item._id}
-              className={`p-4 rounded-2xl border ${
-                item.visible === false
-                  ? 'bg-gray-50 border-gray-200 opacity-70'
-                  : 'bg-white border-[#cbdaff]'
-              } flex flex-col gap-2`}
+              className={`px-4 py-3.5 flex items-center gap-3 border-b border-[var(--admin-border)] last:border-b-0 ${
+                item.visible === false ? 'opacity-60' : ''
+              }`}
             >
-              <div className="flex items-start justify-between gap-2">
-                {imageField && (
-                  <div className="w-12 h-12 shrink-0 rounded-lg bg-[#f1f3ff] border border-[#cbdaff] overflow-hidden">
-                    {item[imageField] && (
-                      <img src={item[imageField]} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm text-[#061b3b] truncate">
-                    {item[titleField]}
-                  </h3>
-                  {subtitleField && item[subtitleField] && (
-                    <p className="text-xs text-[#666a76] truncate">{item[subtitleField]}</p>
-                  )}
+              {imageField && (
+                <div className="w-10 h-10 shrink-0 rounded-lg bg-[var(--admin-soft)] overflow-hidden">
+                  {item[imageField] ? (
+                    <img src={item[imageField]} alt="" className="w-full h-full object-cover" />
+                  ) : null}
                 </div>
-                <span
-                  className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    item.visible === false
-                      ? 'bg-gray-200 text-gray-600'
-                      : 'bg-[#79fd8d]/30 text-[#00531d]'
-                  }`}
-                >
-                  {item.visible === false ? 'Hidden' : 'Visible'}
-                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[13px] font-medium text-[var(--admin-text)] truncate">
+                  {item[titleField] || `Untitled ${labelSingular}`}
+                </h3>
+                <p className="text-[12px] text-[var(--admin-muted)] truncate">
+                  {[
+                    subtitleField && item[subtitleField],
+                    typeof item.priceINR === 'number' && item.priceINR > 0 ? `₹${item.priceINR}` : null,
+                    typeof item.feeINR === 'number' && item.feeINR > 0 ? `₹${item.feeINR}` : null,
+                    item.status,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
               </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => move(index, -1)}
-                    disabled={index === 0}
-                    className="p-1.5 text-[#666a76] hover:text-[#061b3b] disabled:opacity-30 cursor-pointer"
-                    title="Move up"
-                  >
-                    <ArrowUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => move(index, 1)}
-                    disabled={index === items.length - 1}
-                    className="p-1.5 text-[#666a76] hover:text-[#061b3b] disabled:opacity-30 cursor-pointer"
-                    title="Move down"
-                  >
-                    <ArrowDown className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => toggleVisible(item)}
-                    className="p-1.5 text-[#666a76] hover:text-[#002869] cursor-pointer"
-                    title={item.visible === false ? 'Show' : 'Hide'}
-                  >
-                    {item.visible === false ? (
-                      <Eye className="w-3.5 h-3.5" />
-                    ) : (
-                      <EyeOff className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openEditForm(item)}
-                    className="p-1.5 text-[#666a76] hover:text-[#002869] cursor-pointer"
-                    title="Edit"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item)}
-                    className="p-1.5 text-red-500 hover:text-red-700 cursor-pointer"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+              <span className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-md ${
+                item.visible === false ? 'admin-tone-warn' : 'admin-tone-ok'
+              }`}>
+                {item.visible === false ? 'Hidden' : 'Visible'}
+              </span>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                  className="w-8 h-8 rounded-lg text-[var(--admin-muted)] hover:bg-[var(--admin-hover)] hover:text-[var(--admin-text)] disabled:opacity-30 cursor-pointer flex items-center justify-center"
+                  title="Move up"
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(index, 1)}
+                  disabled={index === items.length - 1}
+                  className="w-8 h-8 rounded-lg text-[var(--admin-muted)] hover:bg-[var(--admin-hover)] hover:text-[var(--admin-text)] disabled:opacity-30 cursor-pointer flex items-center justify-center"
+                  title="Move down"
+                >
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleVisible(item)}
+                  className="w-8 h-8 rounded-lg text-[var(--admin-muted)] hover:bg-[var(--admin-hover)] hover:text-[var(--admin-text)] cursor-pointer flex items-center justify-center"
+                  title={item.visible === false ? 'Show' : 'Hide'}
+                >
+                  {item.visible === false ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openEditForm(item)}
+                  className="w-8 h-8 rounded-lg text-[var(--admin-muted)] hover:bg-[var(--admin-hover)] hover:text-[var(--admin-text)] cursor-pointer flex items-center justify-center"
+                  title="Edit"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(item)}
+                  className="w-8 h-8 rounded-lg text-[var(--admin-muted)] hover:bg-[var(--admin-hover)] hover:text-red-600 cursor-pointer flex items-center justify-center"
+                  title="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           ))}

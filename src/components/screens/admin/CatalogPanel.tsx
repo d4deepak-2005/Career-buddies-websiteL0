@@ -12,7 +12,7 @@ export const PROGRAMME_FIELDS: FieldConfig[] = [
   { key: 'tagline', label: 'Tagline / Title', type: 'textarea' },
   { key: 'shortDescription', label: 'Short Description', type: 'textarea' },
   { key: 'description', label: 'Description', type: 'textarea' },
-  { key: 'imageUrl', label: 'Logo / Image URL or path' },
+  { key: 'imageUrl', label: 'Logo / Image', type: 'image' },
   { key: 'duration', label: 'Duration' },
   { key: 'eligibility', label: 'Eligibility' },
   { key: 'cohortStartDate', label: 'Cohort Start Date' },
@@ -21,7 +21,7 @@ export const PROGRAMME_FIELDS: FieldConfig[] = [
   { key: 'mentorName', label: 'Lead Mentor Name' },
   { key: 'mentorRole', label: 'Lead Mentor Role' },
   { key: 'mentorCompany', label: 'Lead Mentor Company' },
-  { key: 'mentorAvatar', label: 'Lead Mentor Photo URL or path' },
+  { key: 'mentorAvatar', label: 'Lead Mentor Photo', type: 'image' },
   { key: 'highlights', label: 'Highlights', type: 'tags' },
   {
     key: 'curriculum',
@@ -32,29 +32,30 @@ export const PROGRAMME_FIELDS: FieldConfig[] = [
   { key: 'ctaText', label: 'CTA Text' },
   { key: 'ctaLink', label: 'CTA Link' },
   { key: 'brochureUrl', label: 'Brochure URL' },
-  { key: 'dodoProductId', label: 'Dodo Payments Product ID (enables online payment)' },
+  { key: 'dodoProductId', label: 'Legacy product id (unused — Razorpay uses the CMS price)' },
   { key: 'featured', label: 'Featured', type: 'checkbox' },
 ];
 
 export const WEBINAR_FIELDS: FieldConfig[] = [
   { key: 'title', label: 'Title' },
+  { key: 'priceINR', label: 'Entry price (₹)', type: 'number', placeholder: 'e.g. 299' },
+  { key: 'originalPriceINR', label: 'Original price (₹, optional strikethrough)', type: 'number', placeholder: 'e.g. 499' },
   { key: 'category', label: 'Category (drives public filter)' },
   { key: 'tagline', label: 'Tagline', type: 'textarea' },
   { key: 'description', label: 'Description', type: 'textarea' },
   { key: 'speakerName', label: 'Speaker Name' },
   { key: 'speakerDesignation', label: 'Speaker Designation' },
   { key: 'speakerCompany', label: 'Speaker Company' },
-  { key: 'speakerPhotoUrl', label: 'Speaker Photo URL or path' },
+  { key: 'speakerPhotoUrl', label: 'Speaker Photo', type: 'image' },
   { key: 'speakerBio', label: 'Speaker Bio', type: 'textarea' },
   { key: 'whatYouWillLearn', label: 'What You Will Learn', type: 'tags' },
   { key: 'targetAudience', label: 'Target Audience', type: 'tags' },
   { key: 'date', label: 'Date' },
   { key: 'time', label: 'Time' },
   { key: 'duration', label: 'Duration' },
-  { key: 'priceINR', label: 'Price (INR)', type: 'number' },
   { key: 'registrationLink', label: 'Registration Link' },
-  { key: 'dodoProductId', label: 'Dodo Payments Product ID (blank = standard webinar pass)' },
-  { key: 'imageUrl', label: 'Image URL or path' },
+  { key: 'dodoProductId', label: 'Legacy product id (unused — Razorpay uses the CMS price)' },
+  { key: 'imageUrl', label: 'Cover image', type: 'image' },
   {
     key: 'status',
     label: 'Status',
@@ -66,7 +67,7 @@ export const WEBINAR_FIELDS: FieldConfig[] = [
 
 export const TESTIMONIAL_FIELDS: FieldConfig[] = [
   { key: 'name', label: 'Person Name' },
-  { key: 'photoUrl', label: 'Photo URL or path' },
+  { key: 'photoUrl', label: 'Photo', type: 'image' },
   { key: 'role', label: 'Designation (current role)' },
   { key: 'company', label: 'Company' },
   { key: 'previousRole', label: 'Previous Role' },
@@ -90,7 +91,7 @@ export const SERVICE_FIELDS: FieldConfig[] = [
   { key: 'shortDescription', label: 'Short Description', type: 'textarea' },
   { key: 'fullDescription', label: 'Full Description', type: 'textarea' },
   { key: 'iconName', label: 'Icon name (e.g. Compass, Rocket)' },
-  { key: 'iconUrl', label: 'Icon / Image URL or path (overrides icon name)' },
+  { key: 'iconUrl', label: 'Icon / Image (overrides icon name)', type: 'image' },
   { key: 'deliverables', label: 'Deliverables', type: 'tags' },
   { key: 'idealFor', label: 'Ideal For', type: 'tags' },
   { key: 'keyOutcome', label: 'Key Outcome' },
@@ -105,8 +106,7 @@ export const PLAN_FIELDS: FieldConfig[] = [
   { key: 'name', label: 'Plan Name' },
   { key: 'tagline', label: 'Tagline' },
   { key: 'badge', label: 'Badge' },
-  { key: 'priceINR', label: 'Price (INR text, e.g. ₹14,999)' },
-  { key: 'priceUSD', label: 'Price (USD text)' },
+  { key: 'priceINR', label: 'Price (₹ rupees, e.g. ₹14,999)' },
   { key: 'period', label: 'Period (e.g. per 3-month program)' },
   { key: 'description', label: 'Description', type: 'textarea' },
   { key: 'sessionsCount', label: 'Sessions (e.g. 6 Dedicated 1:1 Sessions)' },
@@ -120,7 +120,7 @@ export const PLAN_FIELDS: FieldConfig[] = [
   },
   { key: 'customPricingNote', label: 'Custom Pricing Note', type: 'textarea' },
   { key: 'ctaText', label: 'CTA Text' },
-  { key: 'dodoProductId', label: 'Dodo Payments Product ID (enables online payment)' },
+  { key: 'dodoProductId', label: 'Legacy product id (unused — Razorpay uses the CMS price)' },
   { key: 'isRecommended', label: 'Recommended / Most Popular', type: 'checkbox' },
   { key: 'isCustomPricing', label: 'Custom pricing (no fixed price)', type: 'checkbox' },
 ];
@@ -136,9 +136,9 @@ export const CatalogPanel: React.FC = () => {
       <div>
         <h2 className="text-lg font-bold text-[#061b3b]">Programmes, Stories, Services & Plans</h2>
         <p className="text-xs text-[#666a76]">
-          Manage the repeatable catalogue content. Hidden records disappear from
-          the public site; if a collection is empty the site keeps showing its
-          built-in content.
+          Manage the catalogue shown on the public site. Hidden or deleted
+          records disappear immediately. An empty list means that public
+          section stays empty until you add a Visible item.
         </p>
       </div>
 
@@ -167,6 +167,7 @@ export const CatalogPanel: React.FC = () => {
           emptyRecord={{ name: '', highlights: [], curriculum: [], feeINR: 0, featured: false }}
           titleField="name"
           subtitleField="category"
+          imageField="imageUrl"
         />
       )}
       {subTab === 'Testimonials' && (
@@ -177,6 +178,7 @@ export const CatalogPanel: React.FC = () => {
           emptyRecord={{ name: '', outcomeType: 'clarity', rating: 5 }}
           titleField="name"
           subtitleField="role"
+          imageField="photoUrl"
         />
       )}
       {subTab === 'Services' && (
@@ -187,6 +189,7 @@ export const CatalogPanel: React.FC = () => {
           emptyRecord={{ title: '', deliverables: [], featured: false }}
           titleField="title"
           subtitleField="category"
+          imageField="iconUrl"
         />
       )}
       {subTab === 'Plans' && (

@@ -4,7 +4,8 @@ import { Candidate } from '../models/Candidate.ts';
 import { Lead } from '../models/Lead.ts';
 import { Payment } from '../models/Payment.ts';
 import { Webinar } from '../models/Webinar.ts';
-import { passwordResetEmail, sendMail, socialOnlyEmail } from '../services/mailer.ts';
+import { passwordResetEmail, sendMail, sendMailSafe, socialOnlyEmail, welcomeEmail } from '../services/mailer.ts';
+import { notifyLead, notifyUser } from '../services/adminNotify.ts';
 import { getPublicBaseUrl } from '../config/baseUrl.ts';
 import { createRateLimiter } from '../middleware/rateLimit.ts';
 import {
@@ -99,6 +100,13 @@ router.post('/signup', signupLimiter.middleware, async (req: Request, res: Respo
       firstName,
       lastName: rest.join(' '),
     });
+    notifyUser(created);
+    const baseUrl = getPublicBaseUrl(req);
+    if (baseUrl) {
+      void sendMailSafe({ to: email, ...welcomeEmail(baseUrl, firstName || name) });
+    } else {
+      console.warn('[Mail] Welcome email skipped — set PUBLIC_BASE_URL.');
+    }
     await issueSession(res, created._id.toString(), 201);
   } catch (error: any) {
     if (error?.code === 11000) {
@@ -436,6 +444,7 @@ router.post('/enquiries', requireCandidateAuth, enquiryLimiter.middleware, async
     planInterest: category,
     source: 'Candidate Dashboard Enquiry',
   });
+  notifyLead(lead);
 
   res.status(201).json({
     success: true,

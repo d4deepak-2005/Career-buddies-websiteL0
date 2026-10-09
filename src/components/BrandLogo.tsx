@@ -1,5 +1,6 @@
 import React from 'react';
 import { buttonProps } from '../utils/a11y';
+import defaultLogo from '../assets/images/logo.png';
 
 interface BrandLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'header' | 'footer';
@@ -19,8 +20,11 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   onClick,
   src
 }) => {
-  // Official Single Source of Truth Brand Asset - 100% Unchanged Original Design
-  const LOGO_SRC = src && src.trim() ? src : '/logo.png';
+  // Official Single Source of Truth Brand Asset - src/assets/images/logo.png
+  // Treat the old /logo.png default as "not set" — always fall back to the
+  // bundled asset so Vite fingerprinting and cache-busting work correctly.
+  const isDefaultPlaceholder = !src || !src.trim() || src === '/logo.png';
+  const LOGO_SRC = isDefaultPlaceholder ? defaultLogo : src;
 
   // Responsive sizing presets with strictly locked aspect ratio (object-fit: contain)
   // Sized prominently so CareerBuddies name, staircase, and tagline directly below are broader and prominent
@@ -45,11 +49,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       <img
         src={LOGO_SRC}
         alt="CareerBuddies - Your Career | Our Guidance"
-        className={`${sizeClasses} object-contain object-left bg-transparent ${
-          variant === 'dark'
-            ? 'brightness-105'
-            : 'mix-blend-multiply'
-        } transition-transform duration-200`}
+        className={`${sizeClasses} object-contain object-left bg-transparent transition-transform duration-200`}
         loading="eager"
         decoding="async"
         referrerPolicy="no-referrer"

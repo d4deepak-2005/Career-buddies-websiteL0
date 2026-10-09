@@ -14,11 +14,11 @@ export interface PersonRecord {
   email: string;
   linkedIn: string;
   expertise: string[];
+  careerHighlights?: string[];
 }
 
 // Fetches the public `people` collection (Founders/Co-Founders/Leadership).
-// Returns an empty array on failure or while loading — callers fall back to
-// their existing static config in that case, so the public site never breaks.
+// Empty or unreachable CMS = empty public leadership sections.
 export function usePeople() {
   const cached = peekPublicJson('/api/people');
   const [people, setPeople] = useState<PersonRecord[]>(cached?.success && Array.isArray(cached.items) ? cached.items : []);

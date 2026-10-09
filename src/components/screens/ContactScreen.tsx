@@ -20,7 +20,7 @@ import { StandardCandidateForm, StandardCandidateFormData } from '../common/Stan
 import { SiteSettingsData, pickText } from '../../hooks/useSiteSettings';
 import { submitLead } from '../../utils/submitLead';
 import { getContactInfo } from '../../utils/contactInfo';
-import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
+import { useWebinarOffer, withEntryPrice } from '../../hooks/useCmsCatalog';
 
 interface ContactScreenProps {
   onLeadSubmitted?: () => void;
@@ -34,7 +34,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({
   siteSettings
 }) => {
   const contact = getContactInfo(siteSettings);
-  const entryPrice = useWebinarEntryPrice();
+  const { priceINR: entryPrice } = useWebinarOffer();
   const [openFaq, setOpenFaq] = useState<string | null>('faq1');
   const [faqCategory, setFaqCategory] = useState<string>('all');
   

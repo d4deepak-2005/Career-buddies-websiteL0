@@ -13,7 +13,10 @@ interface Entry {
 
 const cache = new Map<string, Entry>();
 
-export function fetchPublicJson(url: string): Promise<any> {
+export const PUBLIC_CACHE_CLEARED = 'cb-public-cache-cleared';
+
+export function fetchPublicJson(url: string, opts?: { fresh?: boolean }): Promise<any> {
+  if (opts?.fresh) cache.delete(url);
   const existing = cache.get(url);
   if (existing && Date.now() - existing.time < TTL_MS) return existing.promise;
 
@@ -43,4 +46,7 @@ export function peekPublicJson(url: string): any | undefined {
 // Called after an admin changes content so the public pages never show stale data.
 export function clearPublicCache() {
   cache.clear();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(PUBLIC_CACHE_CLEARED));
+  }
 }

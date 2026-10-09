@@ -4,6 +4,8 @@ import { Candidate } from '../models/Candidate.ts';
 import { hashPassword, readPayload, signPayload, verifyPassword } from '../middleware/candidateAuth.ts';
 import { buildSession } from './candidate.ts';
 import { getPublicBaseUrl } from '../config/baseUrl.ts';
+import { sendMailSafe, welcomeEmail } from '../services/mailer.ts';
+import { notifyUser } from '../services/adminNotify.ts';
 
 // Social sign-in (Google, LinkedIn, Microsoft, Facebook) via the OAuth 2.0
 // authorization-code flow, done entirely on the server:
@@ -334,6 +336,14 @@ export async function resolveSocialLogin(provider: string, profile: SocialProfil
     firstName: profile.firstName || profile.email.split('@')[0],
     lastName: profile.lastName || '',
   });
+  notifyUser(created);
+  const baseUrl = getPublicBaseUrl();
+  if (baseUrl) {
+    void sendMailSafe({
+      to: profile.email,
+      ...welcomeEmail(baseUrl, created.firstName || profile.email.split('@')[0]),
+    });
+  }
   return { candidateId: created._id.toString() };
 }
 

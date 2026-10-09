@@ -23,6 +23,7 @@ const personSchema = new mongoose.Schema(
     email: { type: String, default: '', trim: true },
     linkedIn: { type: String, default: '' },
     expertise: { type: [String], default: [] },
+    careerHighlights: { type: [String], default: [] },
     displayOrder: { type: Number, default: 0 },
     visible: { type: Boolean, default: true },
   },

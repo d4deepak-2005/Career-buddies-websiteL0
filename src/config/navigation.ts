@@ -44,7 +44,8 @@ export const PAGE_TITLES: Record<PageView, string> = {
   'terms': 'Terms & Conditions',
   'refund': 'Refund / Cancellation Policy',
   'leads-dashboard': 'Leads Management',
-  'dashboard': 'Candidate Dashboard'
+  'dashboard': 'Candidate Dashboard',
+  'mentor-portal': 'Mentor Portal'
 };
 
 export function getPreviousPage(currentPage: PageView): { id: PageView; label: string } | null {

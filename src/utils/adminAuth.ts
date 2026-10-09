@@ -1,6 +1,14 @@
 import { clearPublicCache } from './publicCache';
 const TOKEN_KEY = 'cb_admin_token';
 const EXPIRES_KEY = 'cb_admin_token_expires';
+const NAME_KEY = 'cb_admin_name';
+const SOURCE_KEY = 'cb_admin_source';
+const SIDEBAR_KEY = 'cb_admin_sidebar_collapsed';
+const THEME_KEY = 'cb_admin_theme';
+
+export type AdminTheme = 'light' | 'dark';
+
+export type AdminProfile = { name: string; source: 'owner' | 'team' };
 
 export function getAdminToken(): string | null {
   const token = localStorage.getItem(TOKEN_KEY);
@@ -13,14 +21,65 @@ export function getAdminToken(): string | null {
   return token;
 }
 
-export function setAdminToken(token: string, expiresAt: number): void {
+export function setAdminToken(token: string, expiresAt: number, profile?: Partial<AdminProfile>): void {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(EXPIRES_KEY, String(expiresAt));
+  if (profile?.name) localStorage.setItem(NAME_KEY, profile.name);
+  if (profile?.source) localStorage.setItem(SOURCE_KEY, profile.source);
+}
+
+export function getAdminProfile(): AdminProfile {
+  try {
+    const name = localStorage.getItem(NAME_KEY) || 'Owner';
+    const source = localStorage.getItem(SOURCE_KEY) === 'team' ? 'team' : 'owner';
+    return { name, source };
+  } catch {
+    return { name: 'Owner', source: 'owner' };
+  }
+}
+
+export function setAdminProfile(profile: AdminProfile): void {
+  localStorage.setItem(NAME_KEY, profile.name);
+  localStorage.setItem(SOURCE_KEY, profile.source);
+}
+
+export function getSidebarCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setSidebarCollapsed(collapsed: boolean): void {
+  try {
+    localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getAdminTheme(): AdminTheme {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+export function setAdminTheme(theme: AdminTheme): void {
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function clearAdminToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(EXPIRES_KEY);
+  localStorage.removeItem(NAME_KEY);
+  localStorage.removeItem(SOURCE_KEY);
 }
 
 export function isAdminAuthenticated(): boolean {

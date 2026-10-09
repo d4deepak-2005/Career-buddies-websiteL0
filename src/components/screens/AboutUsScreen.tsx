@@ -2,8 +2,8 @@ import React from 'react';
 import { 
   DEFAULT_SITE_CONFIG, 
   JOURNEY_TIMELINE, 
-  WHY_TRUST_POINTS 
 } from '../../config/siteConfig';
+import { resolveTrustContent } from '../../config/homeTrust';
 import { PageView } from '../../types';
 import { LeadershipSection } from '../common/LeadershipSection';
 import { SectionHeading } from '../common/SectionHeading';
@@ -37,6 +37,7 @@ export const AboutUsScreen: React.FC<AboutUsScreenProps> = ({
   onSelectLeader,
   siteSettings
 }) => {
+  const trust = resolveTrustContent(siteSettings?.home);
   return (
     <div className="w-full bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
       <div className="max-w-[1280px] mx-auto flex flex-col gap-12 sm:gap-16">
@@ -221,15 +222,15 @@ export const AboutUsScreen: React.FC<AboutUsScreenProps> = ({
         <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#cbdaff] flex flex-col gap-8">
           <div className="text-center max-w-2xl mx-auto flex flex-col gap-2">
             <h3 className="text-2xl sm:text-3xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
-              Why Trust CareerBuddies?
+              {trust.title}
             </h3>
             <p className="text-xs sm:text-sm text-[#666a76]">
-              We evaluate our work by the clarity, depth, and practical impact delivered to each mentee.
+              {trust.description}
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {WHY_TRUST_POINTS.map((pt, idx) => (
+            {trust.points.map((pt, idx) => (
               <div key={idx} className="p-5 rounded-2xl bg-[#f9f9ff] border border-[#e0e8ff] flex flex-col gap-2">
                 <span className="font-bold text-sm text-[#061b3b]">{pt.title}</span>
                 <p className="text-xs text-[#434652] leading-relaxed">{pt.description}</p>

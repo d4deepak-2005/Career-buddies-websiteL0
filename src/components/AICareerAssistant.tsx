@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ModalA11y } from './common/ModalA11y';
+import { candidateFetch, getCandidateToken } from '../utils/candidateAuth';
 
 function renderMarkdown(text: string) {
   const lines = text.replace(/\r\n/g, '\n').split('\n');
@@ -233,20 +234,19 @@ type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  // assistant only
-  status?: 'streaming' | 'done' | 'error';
+  status?: 'thinking' | 'streaming' | 'done' | 'error';
   errorKind?: 'timeout' | 'failed';
-  // shown instead of "Thinking…" while the server retries a stalled upstream request
   note?: string;
   recommendation?: Recommendation | null;
   showCta?: boolean;
   webinarsAvailable?: boolean;
+  vote?: 'up' | 'down';
 };
 
 interface AICareerAssistantProps {
-  // Existing website destinations (wired in App.tsx): the counselling request flow and the Webinars page.
   onConnectAdvisor?: (interest?: string) => void;
   onRegisterWebinar?: () => void;
+  onViewOffering?: (kind: 'plan' | 'programme' | 'service' | 'mentors' | 'resources', name?: string) => void;
 }
 
 const GREETING_ID = 'greeting';
@@ -256,10 +256,12 @@ const GREETING =
 const SAMPLE_QUESTIONS = [
   'Which CareerBuddies plan is right for me?',
   'I want to switch my career. How can CareerBuddies help?',
-  'How can CareerBuddies help me grow professionally?',
+  'Can you recommend a mentor in my field?',
 ];
 
 const SAMPLES_KEY = 'cb_ai_samples_dismissed';
+const THREAD_KEY = 'cb_ai_thread_v1';
+const THINKING_PHRASES = ['Just a moment…', 'Looking at what fits you…', 'Thinking…'];
 const ERROR_TEXT = {
   timeout: 'I’m taking longer than expected to process this. Please try again.',
   failed: 'Something went wrong. Please try again.',
@@ -268,6 +270,55 @@ const TYPE_LABEL: Record<Recommendation['type'], string> = { plan: 'Plan', progr
 
 let messageCounter = 0;
 const newId = () => `m${Date.now().toString(36)}${(messageCounter++).toString(36)}`;
+
+function loadThread(): ChatMessage[] | null {
+  try {
+    const raw = sessionStorage.getItem(THREAD_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    return parsed.filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string');
+  } catch {
+    return null;
+  }
+}
+
+function saveThread(messages: ChatMessage[]) {
+  try {
+    const keep = messages
+      .filter((m) => m.content.trim() && m.status !== 'thinking' && m.status !== 'streaming')
+      .slice(-30);
+    sessionStorage.setItem(THREAD_KEY, JSON.stringify(keep));
+  } catch {
+    /* ignore */
+  }
+}
+
+function ThinkingBubble({ note }: { note?: string }) {
+  const [phrase, setPhrase] = useState(note || THINKING_PHRASES[0]);
+  useEffect(() => {
+    const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const phrases = note && !THINKING_PHRASES.includes(note) ? [note, ...THINKING_PHRASES] : THINKING_PHRASES;
+    setPhrase(phrases[0]);
+    if (reduce) return;
+    let i = 0;
+    const timer = window.setInterval(() => {
+      i = (i + 1) % phrases.length;
+      setPhrase(phrases[i]);
+    }, 2200);
+    return () => window.clearInterval(timer);
+  }, [note]);
+  return (
+    <div className="flex items-center gap-3 text-slate-600" aria-live="polite">
+      <span className="flex items-end gap-1 h-4" aria-hidden="true">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#014d59] animate-bounce [animation-delay:-0.28s] motion-reduce:animate-none" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[#014d59] animate-bounce [animation-delay:-0.14s] motion-reduce:animate-none" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[#014d59] animate-bounce motion-reduce:animate-none" />
+      </span>
+      <span className="text-sm">{phrase}</span>
+    </div>
+  );
+}
 
 const IconMinimize = () => (
   <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
@@ -300,15 +351,20 @@ const MessageBubble = React.memo(function MessageBubble({
   onRetry,
   onAdvisor,
   onWebinar,
+  onView,
+  onVote,
 }: {
   message: ChatMessage;
   onRetry: (id: string) => void;
   onAdvisor: (interest?: string) => void;
   onWebinar: () => void;
+  onView: (kind: 'plan' | 'programme' | 'service', name?: string) => void;
+  onVote: (id: string, vote: 'up' | 'down') => void;
 }) {
   const isUser = message.role === 'user';
   const rec = message.recommendation;
   const showCta = !isUser && message.status === 'done' && message.showCta;
+  const waiting = !isUser && (message.status === 'thinking' || (message.status === 'streaming' && !message.content));
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -319,8 +375,8 @@ const MessageBubble = React.memo(function MessageBubble({
       >
         {isUser ? (
           message.content
-        ) : message.status === 'streaming' && !message.content ? (
-          <span className="animate-pulse text-slate-500">{message.note || 'Thinking…'}</span>
+        ) : waiting ? (
+          <ThinkingBubble note={message.note} />
         ) : (
           renderMarkdown(message.content)
         )}
@@ -369,7 +425,16 @@ const MessageBubble = React.memo(function MessageBubble({
         )}
 
         {showCta && (
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {rec && (
+              <button
+                type="button"
+                onClick={() => onView(rec.type, rec.name)}
+                className="min-h-[40px] rounded-xl border border-[#014d59] bg-white px-4 py-2 text-xs font-semibold text-[#014d59] transition hover:bg-[#014d59]/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#014d59]/50"
+              >
+                View this {TYPE_LABEL[rec.type].toLowerCase()}
+              </button>
+            )}
             {message.webinarsAvailable && (
               <button
                 type="button"
@@ -388,12 +453,34 @@ const MessageBubble = React.memo(function MessageBubble({
             </button>
           </div>
         )}
+
+        {!isUser && message.status === 'done' && message.content && (
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
+            <span className="mr-1">Helpful?</span>
+            <button
+              type="button"
+              aria-label="Yes, helpful"
+              onClick={() => onVote(message.id, 'up')}
+              className={`rounded-md px-1.5 py-0.5 hover:bg-slate-100 ${message.vote === 'up' ? 'text-[#006226] font-bold' : ''}`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              aria-label="No, not helpful"
+              onClick={() => onVote(message.id, 'down')}
+              className={`rounded-md px-1.5 py-0.5 hover:bg-slate-100 ${message.vote === 'down' ? 'text-[#8a1f1f] font-bold' : ''}`}
+            >
+              No
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 });
 
-export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICareerAssistantProps = {}) {
+export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar, onViewOffering }: AICareerAssistantProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [input, setInput] = useState('');
@@ -406,7 +493,12 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
       return false;
     }
   });
-  const [messages, setMessages] = useState<ChatMessage[]>([{ id: GREETING_ID, role: 'assistant', content: GREETING, status: 'done' }]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const saved = loadThread();
+    if (saved && saved.some((m) => m.role === 'user')) return saved;
+    return [{ id: GREETING_ID, role: 'assistant', content: GREETING, status: 'done' }];
+  });
+  const visitorRef = useRef<{ firstName?: string; role?: string; target?: string; experience?: string } | null>(null);
 
   // The launcher button is replaced by the panel while open; put keyboard focus back on it after closing.
   const wasOpen = useRef(false);
@@ -420,6 +512,31 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
   messagesRef.current = messages;
   const isOpenRef = useRef(isOpen);
   isOpenRef.current = isOpen;
+
+  useEffect(() => {
+    saveThread(messages);
+  }, [messages]);
+
+  useEffect(() => {
+    if (!getCandidateToken()) return;
+    let cancelled = false;
+    candidateFetch('/api/candidate/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.candidate) return;
+        const c = data.candidate;
+        visitorRef.current = {
+          firstName: c.firstName || '',
+          role: c.currentDesignation || '',
+          target: c.targetRole || '',
+          experience: c.totalExperience || '',
+        };
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const stickToBottom = useRef(true);
@@ -459,7 +576,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
 
       const flush = () => {
         rafId.current = null;
-        patchMessage(assistantId, { content: received });
+        patchMessage(assistantId, received ? { content: received, status: 'streaming', note: undefined } : { content: received });
       };
 
       const fail = (kind: 'timeout' | 'failed', message?: string) => {
@@ -479,7 +596,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
         const response = await fetch('/api/ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, history, stream: true }),
+          body: JSON.stringify({ message: text, history, stream: true, visitor: visitorRef.current }),
           signal: controller.signal,
         });
 
@@ -519,7 +636,12 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
             });
             if (!isOpenRef.current) setHasUnread(true);
           } else if (event === 'status') {
-            if (data?.retrying) patchMessage(assistantId, { note: 'Still working on it…' });
+            if (data?.thinking && !received) {
+              patchMessage(assistantId, { status: 'thinking', note: data.message || 'Just a moment…' });
+            }
+            if (data?.retrying && !received) {
+              patchMessage(assistantId, { note: 'Still working on it…' });
+            }
           } else if (event === 'error') {
             finished = true;
             fail(data?.code === 'timeout' ? 'timeout' : 'failed');
@@ -562,7 +684,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
 
   const historyFrom = (list: ChatMessage[]) =>
     list
-      .filter((m) => m.id !== GREETING_ID && m.content.trim() && m.status !== 'error' && m.status !== 'streaming')
+      .filter((m) => m.id !== GREETING_ID && m.content.trim() && m.status !== 'error' && m.status !== 'streaming' && m.status !== 'thinking')
       .slice(-24)
       .map((m) => ({ role: m.role, content: m.content }));
 
@@ -578,7 +700,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
       setMessages((prev) => [
         ...prev,
         { id: newId(), role: 'user', content: text },
-        { id: assistantId, role: 'assistant', content: '', status: 'streaming' },
+        { id: assistantId, role: 'assistant', content: '', status: 'thinking', note: 'Just a moment…' },
       ]);
       void runRequest(text, assistantId, history);
     },
@@ -598,7 +720,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
       const newAssistantId = newId();
       setIsLoading(true);
       stickToBottom.current = true;
-      setMessages([...before, userMessage, { id: newAssistantId, role: 'assistant', content: '', status: 'streaming' }]);
+      setMessages([...before, userMessage, { id: newAssistantId, role: 'assistant', content: '', status: 'thinking', note: 'Just a moment…' }]);
       void runRequest(userMessage.content, newAssistantId, history);
     },
     [isLoading, runRequest]
@@ -635,6 +757,24 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
     setIsOpen(false);
     onRegisterWebinar?.();
   }, [onRegisterWebinar]);
+  const goView = useCallback(
+    (kind: 'plan' | 'programme' | 'service', name?: string) => {
+      setIsOpen(false);
+      onViewOffering?.(kind, name);
+    },
+    [onViewOffering]
+  );
+  const voteReply = useCallback((id: string, vote: 'up' | 'down') => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, vote: m.vote === vote ? undefined : vote } : m)));
+  }, []);
+  const clearChat = () => {
+    setMessages([{ id: GREETING_ID, role: 'assistant', content: GREETING, status: 'done' }]);
+    try {
+      sessionStorage.removeItem(THREAD_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const panelSize = isMaximized
     ? 'bottom-0 right-0 h-[100dvh] w-screen rounded-none sm:bottom-6 sm:right-6 sm:h-[calc(100dvh-48px)] sm:w-[min(1000px,calc(100vw-48px))] sm:rounded-2xl'
@@ -671,7 +811,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
           <div className="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-[#002256] via-[#014d59] to-[#006226] px-4 py-3 text-white">
             <div className="min-w-0">
               <div className="truncate text-base font-bold leading-tight">CB AI Assistant</div>
-              <div className="truncate text-xs text-white/80">Your career consultant</div>
+              <div className="truncate text-xs text-white/80">{isLoading ? 'Thinking…' : 'Your career consultant'}</div>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
               <button type="button" onClick={closePanel} aria-label="Minimize CB AI Assistant" title="Minimize" className={headerButton}>
@@ -703,7 +843,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
           >
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
               {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} onRetry={retry} onAdvisor={goAdvisor} onWebinar={goWebinar} />
+                <MessageBubble key={message.id} message={message} onRetry={retry} onAdvisor={goAdvisor} onWebinar={goWebinar} onView={goView} onVote={voteReply} />
               ))}
 
               {showSamples && (
@@ -745,7 +885,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
                 <div className="flex items-center justify-between pb-2">
                   <button
                     type="button"
-                    onClick={() => setMessages([{ id: GREETING_ID, role: 'assistant', content: GREETING, status: 'done' }])}
+                    onClick={clearChat}
                     disabled={isLoading}
                     className="text-[11px] font-medium text-slate-500 hover:text-[#014d59] disabled:opacity-50"
                   >
@@ -773,7 +913,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar }: AICar
                   disabled={isLoading || !input.trim()}
                   className="min-h-[44px] rounded-xl bg-gradient-to-r from-[#002256] via-[#014d59] to-[#006226] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#014d59]/60 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isLoading ? '...' : 'Send'}
+                  {isLoading ? 'Wait' : 'Send'}
                 </button>
               </div>
               <div className="mt-2 text-center text-[11px] text-slate-500">AI-generated guidance. Verify important career decisions.</div>

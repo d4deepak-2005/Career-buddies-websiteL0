@@ -10,13 +10,14 @@ const PERSON_FIELDS: FieldConfig[] = [
     options: ['founder', 'co-founder', 'leadership'],
   },
   { key: 'title', label: 'Designation', type: 'text', placeholder: 'e.g. Founder, CareerBuddies' },
-  { key: 'photoUrl', label: 'Photo URL / path', type: 'text', placeholder: '/assets/team/nishant-sharma.jpg' },
+  { key: 'photoUrl', label: 'Photo', type: 'image' },
   { key: 'yearsOfExperience', label: 'Experience Badge', type: 'text', placeholder: 'e.g. 10+ Years of Professional Experience' },
-  { key: 'shortBio', label: 'Short Bio', type: 'textarea' },
-  { key: 'longBio', label: 'Long Bio', type: 'textarea' },
+  { key: 'shortBio', label: 'Short Bio (cards)', type: 'textarea' },
+  { key: 'longBio', label: 'Long Bio (profile)', type: 'textarea' },
   { key: 'email', label: 'Email', type: 'text' },
   { key: 'linkedIn', label: 'LinkedIn URL', type: 'text' },
   { key: 'expertise', label: 'Expertise', type: 'tags', placeholder: 'Career Development, Business Strategy' },
+  { key: 'careerHighlights', label: 'Career Highlights', type: 'tags', placeholder: 'Mentored 400+ professionals, Built diagnostic framework' },
 ];
 
 const PERSON_EMPTY = {
@@ -30,6 +31,7 @@ const PERSON_EMPTY = {
   email: '',
   linkedIn: '',
   expertise: [],
+  careerHighlights: [],
 };
 
 const MENTOR_FIELDS: FieldConfig[] = [
@@ -54,7 +56,7 @@ const MENTOR_FIELDS: FieldConfig[] = [
   { key: 'rating', label: 'Rating (0-5)', type: 'number' },
   { key: 'reviewCount', label: 'Number of Reviews', type: 'number' },
   { key: 'sessionsCompleted', label: 'Sessions Completed', type: 'number' },
-  { key: 'hourlyRate', label: 'Price per Session (USD)', type: 'number' },
+  { key: 'hourlyRate', label: 'Price per Session (INR)', type: 'number' },
   { key: 'availableNext', label: 'Next Available (text)', type: 'text', placeholder: 'Tomorrow, 2:00 PM' },
   {
     key: 'reviews',
@@ -104,8 +106,8 @@ export const PeopleMentorsPanel: React.FC = () => {
         <h2 className="text-lg font-bold text-[#061b3b]">People & Mentors</h2>
         <p className="text-xs text-[#666a76]">
           Manage Founder/Co-Founder profiles, additional Leadership entries,
-          and Mentors. Changes appear on the public website immediately —
-          hidden or empty sections keep showing the site's existing content.
+          and Mentors. Changes appear on Home and the Leadership tab immediately.
+          Hidden or empty people lists hide those public sections.
         </p>
       </div>
 
@@ -136,17 +138,18 @@ export const PeopleMentorsPanel: React.FC = () => {
               : f
           )}
           emptyRecord={{ ...PERSON_EMPTY, role: 'founder' }}
+          filter={{ role: ['founder', 'co-founder'] }}
           titleField="name"
           subtitleField="title"
+          imageField="photoUrl"
         />
       )}
 
       {subTab === 'Leadership' && (
         <>
           <p className="text-[11px] text-[#666a76] -mt-2">
-            Additional leadership profiles beyond Founder/Co-Founder (not
-            currently rendered on a dedicated public section — saved here
-            for future use).
+            Extra leadership profiles. They appear with Founders on Home and
+            the Leadership tab.
           </p>
           <RecordListEditor
             apiBase="/api/people"
@@ -156,6 +159,7 @@ export const PeopleMentorsPanel: React.FC = () => {
             filter={{ role: 'leadership' }}
             titleField="name"
             subtitleField="title"
+            imageField="photoUrl"
           />
         </>
       )}

@@ -26,13 +26,36 @@ function getTransporter() {
   return transporter;
 }
 
-export async function sendMail(opts: { to: string; subject: string; html: string; text: string }): Promise<boolean> {
+export async function sendMail(opts: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  replyTo?: string;
+}): Promise<boolean> {
   if (!isEmailConfigured()) {
     console.warn('[Mail] Email is not configured (SMTP_HOST / EMAIL_FROM); message not sent.');
     return false;
   }
-  await getTransporter().sendMail({ from: process.env.EMAIL_FROM, ...opts });
+  await getTransporter().sendMail({
+    from: process.env.EMAIL_FROM,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text,
+    replyTo: opts.replyTo || undefined,
+  });
   return true;
+}
+
+export async function sendMailSafe(opts: { to: string; subject: string; html: string; text: string }): Promise<boolean> {
+  try {
+    return await sendMail(opts);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn('[Mail] Send failed:', message);
+    return false;
+  }
 }
 
 const esc = (s: string) =>
@@ -73,4 +96,46 @@ export function socialOnlyEmail(baseUrl: string, providers: string[]) {
   );
   const text = `Your CareerBuddies account signs in with ${list}, not a password. Use the ${list} button on the login screen. Nothing was changed. If this wasn't you, ignore this email.\n`;
   return { subject: 'Sign in to CareerBuddies with your social account', html, text };
+}
+
+export function welcomeEmail(baseUrl: string, name: string) {
+  const greeting = name.trim() || 'there';
+  const dashboard = `${baseUrl}/#dashboard`;
+  const html = layout(
+    baseUrl,
+    'Welcome to CareerBuddies',
+    `<p style="line-height:1.6;margin:0 0 14px">Hi ${esc(greeting)},</p>
+<p style="line-height:1.6;margin:0 0 14px">Congratulations — your CareerBuddies account is ready. You can now book webinars, explore plans, and track everything from your Candidate Area.</p>
+<p style="margin:0 0 20px"><a href="${esc(dashboard)}" style="background:#006e29;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:10px;display:inline-block">Open Candidate Area</a></p>
+<p style="line-height:1.6;margin:0;font-size:13px;color:#434652">If you did not create this account, please ignore this email or contact CareerBuddies.</p>`
+  );
+  const text = `Welcome to CareerBuddies\n\nHi ${greeting},\n\nCongratulations — your CareerBuddies account is ready. Open your Candidate Area:\n${dashboard}\n`;
+  return { subject: 'Welcome to CareerBuddies', html, text };
+}
+
+export function paymentSuccessEmail(
+  baseUrl: string,
+  opts: { name: string; itemName: string; itemType: string; amountLabel: string; orderRef: string }
+) {
+  const greeting = opts.name.trim() || 'there';
+  const kind =
+    opts.itemType === 'webinar' ? 'webinar' : opts.itemType === 'plan' ? 'plan' : opts.itemType === 'programme' ? 'programme' : 'item';
+  const history = `${baseUrl}/#dashboard`;
+  const html = layout(
+    baseUrl,
+    'Payment successful',
+    `<p style="line-height:1.6;margin:0 0 14px">Hi ${esc(greeting)},</p>
+<p style="line-height:1.6;margin:0 0 14px">Congratulations — your payment was successful. You are registered for this ${esc(kind)}.</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 16px;background:#f9f9ff;border:1px solid #cbdaff;border-radius:12px">
+<tr><td style="padding:14px 16px;font-size:14px;line-height:1.6">
+<strong>${esc(opts.itemName || kind)}</strong><br>
+Amount (incl. 18% GST): <strong>${esc(opts.amountLabel)}</strong><br>
+Reference: <span style="font-family:monospace">${esc(opts.orderRef)}</span>
+</td></tr>
+</table>
+<p style="margin:0 0 20px"><a href="${esc(history)}" style="background:#006e29;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:10px;display:inline-block">View Payment History</a></p>
+<p style="line-height:1.6;margin:0;font-size:13px;color:#434652">Keep this email for your records. If you have a question, reply is not monitored — contact CareerBuddies from the website.</p>`
+  );
+  const text = `Payment successful\n\nHi ${greeting},\n\nCongratulations — your payment was successful for ${opts.itemName || kind}.\nAmount (incl. 18% GST): ${opts.amountLabel}\nReference: ${opts.orderRef}\n\nView Payment History: ${history}\n`;
+  return { subject: `Payment successful — ${opts.itemName || 'CareerBuddies'}`, html, text };
 }

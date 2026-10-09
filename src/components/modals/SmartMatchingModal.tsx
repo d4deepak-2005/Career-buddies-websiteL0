@@ -301,7 +301,7 @@ export const SmartMatchingModal: React.FC<SmartMatchingModalProps> = ({
                               ★ {mentor.rating}
                             </span>
                             <span>• {mentor.sessionsCompleted} sessions</span>
-                            <span className="text-[#006e29] font-bold">• ${mentor.hourlyRate}/session</span>
+                            <span className="text-[#006e29] font-bold">• ₹{mentor.hourlyRate.toLocaleString('en-IN')}/session</span>
                           </div>
                         </div>
                       </div>

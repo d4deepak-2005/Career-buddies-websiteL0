@@ -1,8 +1,10 @@
 import React from 'react';
-import { NEXT_STEP_OPTIONS } from '../../config/siteConfig';
-import { PageView } from '../../types';
+import { PageView, WebinarItem } from '../../types';
 import { buttonProps } from '../../utils/a11y';
-import { useWebinarEntryPrice, withEntryPrice } from '../../hooks/useCmsCatalog';
+import { useWebinarOffer, withEntryPrice } from '../../hooks/useCmsCatalog';
+import { resolveNextStepContent } from '../../config/homeNextStep';
+import { SiteSettingsData } from '../../hooks/useSiteSettings';
+import { Reveal, RevealItem, Stagger } from '../home/MotionReveal';
 import { 
   Compass, 
   RefreshCw, 
@@ -15,109 +17,108 @@ import {
 interface FindYourNextStepProps {
   onNavigate: (page: PageView) => void;
   onOpenCounselling?: () => void;
+  onOpenLiveWebinar?: (webinar?: WebinarItem | null) => void;
+  home?: SiteSettingsData['home'] | null;
 }
+
+const CARD_ICONS = [Compass, RefreshCw, TrendingUp, GraduationCap];
 
 export const FindYourNextStep: React.FC<FindYourNextStepProps> = ({
   onNavigate,
-  onOpenCounselling
+  onOpenCounselling,
+  onOpenLiveWebinar,
+  home,
 }) => {
-  const entryPrice = useWebinarEntryPrice();
-  const getIcon = (id: string) => {
-    switch (id) {
-      case 'clarity':
-        return <Compass className="w-5 h-5 text-[#002869]" />;
-      case 'change':
-        return <RefreshCw className="w-5 h-5 text-[#006e29]" />;
-      case 'grow':
-        return <TrendingUp className="w-5 h-5 text-[#002869]" />;
-      case 'learn':
-        return <GraduationCap className="w-5 h-5 text-[#006e29]" />;
-      default:
-        return <Sparkles className="w-5 h-5 text-[#002869]" />;
-    }
-  };
+  const { hasLive, priceINR: entryPrice, webinar: liveWebinar } = useWebinarOffer();
+  const content = resolveNextStepContent(home);
 
   const handleCardClick = (targetPage: string) => {
     if (targetPage === 'counselling' && onOpenCounselling) {
       onOpenCounselling();
+    } else if (targetPage === 'webinars' && onOpenLiveWebinar && liveWebinar) {
+      onOpenLiveWebinar(liveWebinar);
     } else {
       onNavigate(targetPage as PageView);
     }
   };
 
+  const cards = content.cards.filter((card) => hasLive || card.targetPage !== 'webinars');
+
   return (
     <section className="w-full py-16 sm:py-20 px-4 sm:px-6 lg:px-10 bg-[#f9f9ff] border-y border-[#e0e8ff]/70">
       <div className="max-w-[1280px] mx-auto flex flex-col gap-10 sm:gap-12">
         
-        {/* Section Header */}
+        <Reveal>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
           <div className="max-w-2xl flex flex-col gap-2.5">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#dae2ff] text-[#001947] text-xs font-bold w-fit">
               <Compass className="w-3.5 h-3.5 text-[#002869]" />
-              <span>Interactive Decision Path</span>
+              <span>{content.eyebrow}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#061b3b] tracking-tight font-['Plus_Jakarta_Sans',sans-serif]">
-              What do you need help with right now?
+              {content.title}
             </h2>
             <p className="text-sm sm:text-base text-[#434652] leading-relaxed">
-              Every career journey faces distinct inflection points. Select your primary goal below to immediately access the most relevant guidance, mentors, or learning programs.
+              {content.description}
             </p>
           </div>
 
           <button
-            onClick={() => onNavigate('career-check-in')}
+            onClick={() => handleCardClick(content.ctaPage)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-[#002869]/20 text-[#002869] hover:bg-[#dae2ff]/30 text-xs font-bold transition-all shadow-xs w-fit cursor-pointer shrink-0"
           >
-            <span>Unsure? Take 2-min Career Check-in</span>
+            <span>{content.ctaText}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+        </Reveal>
 
-        {/* 4 Decision Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {NEXT_STEP_OPTIONS.map((opt) => {
+        <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {cards.map((opt, index) => {
             const isGreen = opt.color === 'green';
+            const Icon = CARD_ICONS[index % CARD_ICONS.length] || Sparkles;
             return (
+              <RevealItem key={`${opt.title}-${index}`} hover className="h-full">
               <div
-                key={opt.id}
                 {...buttonProps(() => handleCardClick(opt.targetPage))}
-                className={`bg-white rounded-3xl p-6 border transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer flex flex-col justify-between group ${
+                className={`h-full bg-white rounded-3xl p-6 border transition-all duration-200 hover:shadow-md cursor-pointer flex flex-col justify-between group ${
                   isGreen 
                     ? 'border-[#a6f5b7]/60 hover:border-[#006e29]' 
                     : 'border-[#cbdaff]/70 hover:border-[#002869]'
                 }`}
               >
                 <div>
-                  {/* Top Badge & Icon */}
                   <div className="flex items-center justify-between gap-2 mb-4">
                     <div className={`p-2.5 rounded-xl ${
                       isGreen ? 'bg-[#79fd8d]/20 text-[#006e29]' : 'bg-[#dae2ff] text-[#002869]'
                     }`}>
-                      {getIcon(opt.id)}
+                      <Icon className="w-5 h-5" />
                     </div>
 
+                    {opt.badge && (
                     <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                       isGreen ? 'bg-[#79fd8d]/25 text-[#00531d]' : 'bg-[#dae2ff] text-[#001947]'
                     }`}>
-                      {opt.badge ? withEntryPrice(opt.badge, entryPrice) : opt.badge}
+                      {withEntryPrice(opt.badge, entryPrice)}
                     </span>
+                    )}
                   </div>
 
-                  {/* Title & Subtitle */}
                   <h3 className="text-lg font-bold text-[#061b3b] group-hover:text-[#002869] transition-colors mb-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
                     {opt.title}
                   </h3>
 
+                  {opt.subtitle && (
                   <p className="text-xs font-medium text-[#666a76] mb-3">
                     {opt.subtitle}
                   </p>
+                  )}
 
                   <p className="text-xs text-[#434652] leading-relaxed mb-4">
                     {withEntryPrice(opt.description, entryPrice)}
                   </p>
                 </div>
 
-                {/* Card Action Link */}
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                   <span className={`text-xs font-bold flex items-center gap-1.5 ${
                     isGreen ? 'text-[#006e29]' : 'text-[#002869]'
@@ -131,9 +132,10 @@ export const FindYourNextStep: React.FC<FindYourNextStepProps> = ({
                   </div>
                 </div>
               </div>
+              </RevealItem>
             );
           })}
-        </div>
+        </Stagger>
 
       </div>
     </section>

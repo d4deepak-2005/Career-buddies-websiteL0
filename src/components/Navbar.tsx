@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { PageView } from '../types';
 import { BrandLogo } from './BrandLogo';
 import { 
@@ -16,8 +17,35 @@ import {
   Calendar,
   MessageSquare
 } from 'lucide-react';
-import { DEFAULT_SITE_CONFIG } from '../config/siteConfig';
 import { SiteSettingsData } from '../hooks/useSiteSettings';
+import { navTabMeta, visibleNavTabs } from '../config/navTabs';
+import { getUrlForRoute } from '../utils/routes';
+
+const ease = [0.22, 1, 0.36, 1] as const;
+
+const navStagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.055, delayChildren: 0.16 } },
+};
+
+const navGroup = {
+  hidden: { opacity: 0, y: -10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.42, ease, staggerChildren: 0.05, delayChildren: 0.02 },
+  },
+};
+
+const navItem = {
+  hidden: { opacity: 0, y: -10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.38, ease } },
+};
+
+const mobileStagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.045, delayChildren: 0.04 } },
+};
 
 interface NavbarProps {
   activePage: PageView;
@@ -50,6 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
   const exploreRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
 
   // Close explore dropdown on click outside
   useEffect(() => {
@@ -86,25 +115,57 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isExploreActive = [
-    'webinars', 
-    'leadership', 
-    'success-stories', 
-    'about-us', 
-    'contact',
-    'mentors',
-    'resources',
-    'admin'
-  ].includes(activePage);
+  const { top: topTabs, more: moreTabs } = visibleNavTabs(siteSettings?.header?.navItems);
+  const isExploreActive = moreTabs.some((item) =>
+    item.page === activePage ||
+    (item.page === 'mentors' && activePage === 'features') ||
+    (item.page === 'leadership' && activePage === 'leader-profile')
+  );
+
+  const topTabClass = (page: PageView, extra = '') =>
+    `px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl items-center gap-1.5 ${extra} ${
+      activePage === page
+        ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
+        : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
+    }`;
+
+  const moreIcon = (page: PageView) => {
+    if (page === 'how-it-works') return <Sparkles className="w-3.5 h-3.5 text-[#006e29]" />;
+    if (page === 'webinars') return <Calendar className="w-3.5 h-3.5 text-[#006e29]" />;
+    if (page === 'mentors') return <Users className="w-3.5 h-3.5 text-[#006e29]" />;
+    if (page === 'leadership') return <Users className="w-3.5 h-3.5 text-[#002869]" />;
+    if (page === 'success-stories') return <Award className="w-3.5 h-3.5 text-[#006e29]" />;
+    if (page === 'resources') return <BookOpen className="w-3.5 h-3.5 text-[#002869]" />;
+    if (page === 'career-check-in') return <Compass className="w-3.5 h-3.5 text-[#002869]" />;
+    if (page === 'about-us') return <ShieldCheck className="w-3.5 h-3.5 text-[#002869]" />;
+    if (page === 'contact') return <MessageSquare className="w-3.5 h-3.5 text-[#002869]" />;
+    return <Clock className="w-3.5 h-3.5 text-[#002869]" />;
+  };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#cbdaff]/70 shadow-[0_2px_14px_rgba(0,40,105,0.04)] transition-all">
-      <div className="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-10 py-1 flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+    <motion.header
+      className="relative sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#cbdaff]/70 shadow-[0_2px_14px_rgba(0,40,105,0.04)]"
+      initial={reduceMotion ? false : { opacity: 0, y: -22 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease }}
+    >
+      <motion.div
+        className="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-10 py-1 flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6"
+        initial={reduceMotion ? false : 'hidden'}
+        animate="show"
+        variants={navStagger}
+      >
         
         {/* Left Side: Prominent, Wide Official CareerBuddies Logo Presentation Area */}
-        <div className="flex items-center shrink-0">
-          <div 
-            onClick={() => handleNav('home')}
+        <motion.div className="flex items-center shrink-0" variants={navItem}>
+          <a 
+            href="/"
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                e.preventDefault();
+                handleNav('home');
+              }
+            }}
             className="group relative inline-flex items-center pr-1.5 sm:pr-2 rounded-2xl transition-all duration-200 cursor-pointer select-none bg-gradient-to-r from-transparent via-[#f4f7ff]/40 to-transparent hover:via-[#dae2ff]/25 border border-transparent hover:border-[#cbdaff]/40 hover:shadow-2xs active:scale-[0.99]"
             title="CareerBuddies - Home"
           >
@@ -118,77 +179,41 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="cursor-pointer transition-transform duration-200 group-hover:scale-[1.01]"
               />
             </div>
-          </div>
-        </div>
+          </a>
+        </motion.div>
 
         {/* Center: Clean Core Navigation Items (Home | Services | Programmes | More ▼) */}
-        <nav aria-label="Main" className="hidden md:flex flex-1 justify-center items-center gap-0.5 lg:gap-1">
-          {/* 1. Home */}
-          <button
-            id="nav-home-btn"
-            onClick={() => handleNav('home')}
-            className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
-              activePage === 'home'
-                ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
-                : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
-            }`}
-          >
-            <span>Home</span>
-            {activePage === 'home' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#002869]" />
-            )}
-          </button>
+        <motion.nav
+          aria-label="Main"
+          className="hidden md:flex flex-1 justify-center items-center gap-0.5 lg:gap-1"
+          variants={navGroup}
+        >
+          {topTabs.map((item) => (
+            <motion.a
+              key={item.page}
+              id={`nav-${item.page}-btn`}
+              href={getUrlForRoute(item.page)}
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  handleNav(item.page);
+                }
+              }}
+              className={topTabClass(
+                item.page,
+                item.page === 'career-check-in' ? 'hidden lg:flex whitespace-nowrap' : 'flex'
+              )}
+              variants={navItem}
+            >
+              <span>{item.label}</span>
+              {activePage === item.page && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#002869]" />
+              )}
+            </motion.a>
+          ))}
 
-          {/* 2. Services */}
-          <button
-            id="nav-services-btn"
-            onClick={() => handleNav('services')}
-            className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
-              activePage === 'services'
-                ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
-                : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
-            }`}
-          >
-            <span>Services</span>
-            {activePage === 'services' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#002869]" />
-            )}
-          </button>
-
-          {/* 3. Programmes */}
-          <button
-            id="nav-programmes-btn"
-            onClick={() => handleNav('programmes')}
-            className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl flex items-center gap-1.5 ${
-              activePage === 'programmes'
-                ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
-                : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
-            }`}
-          >
-            <span>Programmes</span>
-            {activePage === 'programmes' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#002869]" />
-            )}
-          </button>
-
-          {/* 3b. Career Check-in (existing 'career-check-in' page) */}
-          <button
-            id="nav-career-checkin-btn"
-            onClick={() => handleNav('career-check-in')}
-            className={`px-3 lg:px-3.5 xl:px-4 py-1.5 text-[13px] lg:text-[14px] xl:text-[15px] font-bold tracking-tight transition-all cursor-pointer rounded-xl hidden lg:flex items-center gap-1.5 whitespace-nowrap ${
-              activePage === 'career-check-in'
-                ? 'text-[#002869] bg-[#dae2ff]/80 border border-[#cbdaff]/70 shadow-2xs font-extrabold'
-                : 'text-[#434652] hover:text-[#002869] hover:bg-[#f1f4fe] border border-transparent'
-            }`}
-          >
-            <span>Career Check-in</span>
-            {activePage === 'career-check-in' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#002869]" />
-            )}
-          </button>
-
-          {/* 4. More Dropdown (How CareerBuddies Works, Webinars, Stories, Leadership, etc.) */}
-          <div className="relative" ref={exploreRef}>
+          {moreTabs.length > 0 && (
+          <motion.div className="relative" ref={exploreRef} variants={navItem}>
             <button
               id="nav-more-dropdown-btn"
               onClick={() => setExploreOpen(!exploreOpen)}
@@ -207,136 +232,74 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {exploreOpen && (
               <div id="nav-more-menu" className="absolute top-full left-0 mt-2 w-80 bg-white rounded-2xl border border-[#cbdaff] shadow-xl shadow-[#002869]/8 p-2.5 z-50 animate-in fade-in slide-in-from-top-2">
-                {/* How CareerBuddies Works featured link */}
-                <button
-                  id="more-how-it-works-btn"
-                  onClick={() => handleNav('how-it-works')}
-                  className="w-full text-left p-3 rounded-xl bg-[#f1f3ff] hover:bg-[#dae2ff] border border-[#cbdaff] transition-all flex items-center justify-between mb-1.5 cursor-pointer shadow-2xs group"
-                >
-                  <div>
-                    <div className="text-xs font-black text-[#002869] flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#006e29]" />
-                      <span>How CareerBuddies Works</span>
-                    </div>
-                    <p className="text-[11px] text-[#434652] mt-0.5 font-medium">5-Step Candidate Journey</p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-md bg-[#002869] text-white text-[11px] font-black shadow-xs">5 Steps</span>
-                </button>
-
-                <button
-                  id="more-webinars-btn"
-                  onClick={() => handleNav('webinars')}
-                  className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors flex items-center justify-between cursor-pointer"
-                >
-                  <div>
-                    <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#006e29]" />
-                      <span className="uppercase">Live Webinars</span>
-                    </div>
-                    <p className="text-[11px] text-[#434652] mt-0.5">Join mentor-led career webinars</p>
-                  </div>
-                </button>
-
-                <button
-                  id="more-leadership-btn"
-                  onClick={() => handleNav('leadership')}
-                  className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors cursor-pointer"
-                >
-                  <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-[#002869]" />
-                    <span>Leadership</span>
-                  </div>
-                  <p className="text-[11px] text-[#434652] mt-0.5">Meet Founder & Co-Founders</p>
-                </button>
-
-                <button
-                  id="more-success-stories-btn"
-                  onClick={() => handleNav('success-stories')}
-                  className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors cursor-pointer"
-                >
-                  <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
-                    <Award className="w-3.5 h-3.5 text-[#006e29]" />
-                    <span>Success Stories</span>
-                  </div>
-                  <p className="text-[11px] text-[#434652] mt-0.5">Verified career transformations</p>
-                </button>
-
-                <button
-                  id="more-resources-btn"
-                  onClick={() => handleNav('resources')}
-                  className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors cursor-pointer"
-                >
-                  <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
-                    <BookOpen className="w-3.5 h-3.5 text-[#002869]" />
-                    <span>Resources</span>
-                  </div>
-                  <p className="text-[11px] text-[#434652] mt-0.5">Career playbooks & guides</p>
-                </button>
-
-                <button
-                  id="more-career-check-in-btn"
-                  onClick={() => handleNav('career-check-in')}
-                  className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors flex items-center justify-between cursor-pointer"
-                >
-                  <div>
-                    <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
-                      <Compass className="w-3.5 h-3.5 text-[#002869]" />
-                      <span>Career Check-in</span>
-                    </div>
-                    <p className="text-[11px] text-[#434652] mt-0.5">Self-assessment diagnostic</p>
-                  </div>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#dae2ff] text-[#001947]">Free</span>
-                </button>
-
-                <button
-                  id="more-about-btn"
-                  onClick={() => handleNav('about-us')}
-                  className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors cursor-pointer"
-                >
-                  <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#002869]" />
-                    <span>About</span>
-                  </div>
-                  <p className="text-[11px] text-[#434652] mt-0.5">Our mission & story since 2022</p>
-                </button>
-
-                <button
-                  id="more-contact-btn"
-                  onClick={() => handleNav('contact')}
-                  className="w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors cursor-pointer"
-                >
-                  <div className="text-xs font-bold text-[#061b3b] flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-[#002869]" />
-                    <span>Contact Support</span>
-                  </div>
-                  <p className="text-[11px] text-[#434652] mt-0.5">Bengaluru Office & WhatsApp</p>
-                </button>
-
+                {moreTabs.map((item) => {
+                  const meta = navTabMeta(item.page);
+                  const featured = item.page === 'how-it-works';
+                  return (
+                    <a
+                      key={item.page}
+                      id={`more-${item.page}-btn`}
+                      href={getUrlForRoute(item.page)}
+                      onClick={(e) => {
+                        if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                          e.preventDefault();
+                          handleNav(item.page);
+                        }
+                      }}
+                      className={
+                        featured
+                          ? 'w-full text-left p-3 rounded-xl bg-[#f1f3ff] hover:bg-[#dae2ff] border border-[#cbdaff] transition-all flex items-center justify-between mb-1.5 cursor-pointer shadow-2xs group'
+                          : 'w-full text-left p-2.5 rounded-xl hover:bg-[#f1f3ff] transition-colors flex items-center justify-between cursor-pointer'
+                      }
+                    >
+                      <div>
+                        <div className={`text-xs flex items-center gap-1.5 ${featured ? 'font-black text-[#002869]' : 'font-bold text-[#061b3b]'}`}>
+                          {moreIcon(item.page)}
+                          <span className={item.page === 'webinars' ? 'uppercase' : undefined}>{item.label}</span>
+                        </div>
+                        {meta?.description && (
+                          <p className={`text-[11px] text-[#434652] mt-0.5 ${featured ? 'font-medium' : ''}`}>{meta.description}</p>
+                        )}
+                      </div>
+                      {meta?.badge && (
+                        <span className={featured
+                          ? 'px-2 py-0.5 rounded-md bg-[#002869] text-white text-[11px] font-black shadow-xs'
+                          : 'px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#dae2ff] text-[#001947]'
+                        }>
+                          {meta.badge}
+                        </span>
+                      )}
+                    </a>
+                  );
+                })}
               </div>
             )}
-          </div>
-        </nav>
+          </motion.div>
+          )}
+        </motion.nav>
 
         {/* Right Action Controls: [Login / Sign Up] + [Dashboard/Profile] */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-auto">
+        <motion.div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-auto" variants={navGroup}>
           
           {/* Combined Login / Sign Up Button */}
-          <button
+          <motion.button
             id="nav-auth-btn"
             onClick={candidateName ? onLogout : onOpenLogin}
             className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#002869] hover:bg-[#0b3d91] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md active:scale-95 transition-all cursor-pointer whitespace-nowrap"
             title={candidateName ? `Signed in as ${candidateName} — click to log out` : 'Sign in or create a CareerBuddies account'}
+            variants={navItem}
           >
             <span>{candidateName ? 'Logout' : 'Login / Sign Up'}</span>
-          </button>
+          </motion.button>
 
           {/* User Account / Bookings Dashboard Button */}
-          <button
+          <motion.button
             id="nav-profile-btn"
             onClick={onOpenUserDashboard}
             className="relative w-9 h-9 rounded-xl bg-[#dae2ff]/90 hover:bg-[#cbdaff] text-[#002869] flex items-center justify-center transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0 border border-[#cbdaff]"
             title="My Career Dashboard & Bookings"
             aria-label="My Career Dashboard & Bookings"
+            variants={navItem}
           >
             <User className="w-4 h-4 text-[#002869]" />
             {bookedCount > 0 && (
@@ -344,142 +307,101 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {bookedCount}
               </span>
             )}
-          </button>
+          </motion.button>
 
           {/* Mobile Menu Toggle Button */}
-          <button
+          <motion.button
             id="nav-mobile-toggle-btn"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 rounded-xl text-[#061b3b] hover:bg-[#e8edff] transition-colors cursor-pointer min-w-[40px] min-h-[40px] flex items-center justify-center"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls="nav-mobile-menu"
+            variants={navItem}
           >
             {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
-          </button>
-        </div>
-      </div>
+          </motion.button>
+        </motion.div>
+      </motion.div>
+      {!reduceMotion && (
+        <motion.div
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] origin-left bg-gradient-to-r from-[#002869] via-[#79fd8d] to-[#002869]"
+          initial={{ scaleX: 0, opacity: 1 }}
+          animate={{ scaleX: [0, 1, 1], opacity: [1, 1, 0] }}
+          transition={{ duration: 1.15, delay: 0.1, ease, times: [0, 0.55, 1] }}
+        />
+      )}
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div id="nav-mobile-menu" className="md:hidden border-t border-[#cbdaff] bg-white px-6 py-5 shadow-2xl animate-in slide-in-from-top-2 max-h-[85vh] overflow-y-auto">
-          <div className="flex flex-col gap-2">
-            
-            <button
-              onClick={() => handleNav('home')}
-              className={`text-left px-4 py-3 rounded-xl text-sm font-black flex items-center justify-between ${
-                activePage === 'home' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-              }`}
-            >
-              <span>Home</span>
-            </button>
+        <motion.div
+          id="nav-mobile-menu"
+          className="md:hidden border-t border-[#cbdaff] bg-white px-6 py-5 shadow-2xl max-h-[85vh] overflow-y-auto"
+          initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease }}
+        >
+          <motion.div
+            className="flex flex-col gap-2"
+            initial={reduceMotion ? false : 'hidden'}
+            animate="show"
+            variants={mobileStagger}
+          >
+            {topTabs.map((item) => (
+              <motion.a
+                key={item.page}
+                href={getUrlForRoute(item.page)}
+                onClick={(e) => {
+                  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                    e.preventDefault();
+                    handleNav(item.page);
+                  }
+                }}
+                variants={navItem}
+                className={`text-left px-4 py-3 rounded-xl text-sm font-black flex items-center justify-between ${
+                  activePage === item.page ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
+                }`}
+              >
+                <span>{item.label}</span>
+              </motion.a>
+            ))}
 
-            <button
-              onClick={() => handleNav('how-it-works')}
-              className={`text-left px-4 py-3 rounded-xl text-sm font-black flex items-center justify-between ${
-                activePage === 'how-it-works' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-              }`}
-            >
-              <span>How It Works</span>
-              <span className="text-xs opacity-70">5-Step Journey</span>
-            </button>
-
-            <button
-              onClick={() => handleNav('services')}
-              className={`text-left px-4 py-3 rounded-xl text-sm font-black flex items-center justify-between ${
-                activePage === 'services' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-              }`}
-            >
-              <span>Services</span>
-              <span className="text-xs opacity-70">Guidance & Tracks</span>
-            </button>
-
-            <button
-              onClick={() => handleNav('programmes')}
-              className={`text-left px-4 py-3 rounded-xl text-sm font-black flex items-center justify-between ${
-                activePage === 'programmes' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-              }`}
-            >
-              <span>Programmes</span>
-              <span className="text-xs opacity-70">Cohorts & Tracks</span>
-            </button>
-
-            <div className="py-2 border-t border-gray-100 my-1 flex flex-col gap-1">
+            {moreTabs.length > 0 && (
+            <motion.div className="py-2 border-t border-gray-100 my-1 flex flex-col gap-1" variants={navItem}>
               <div className="text-[11px] font-black uppercase text-[#002869] tracking-wider px-4 mb-1">
                 More Features
               </div>
-              
-              <button
-                onClick={() => handleNav('webinars')}
-                className={`text-left px-4 py-2.5 rounded-xl text-xs font-black flex items-center justify-between ${
-                  activePage === 'webinars' ? 'bg-[#006e29] text-white' : 'text-[#061b3b] hover:bg-[#f1f3ff]'
-                }`}
-              >
-                <div>
-                  <span className="uppercase">Live Webinars</span>
-                  <p className="text-[11px] font-normal opacity-80">Join mentor-led career webinars</p>
-                </div>
-                <Calendar className="w-3.5 h-3.5 text-[#006e29]" />
-              </button>
-
-              <button
-                onClick={() => handleNav('career-check-in')}
-                className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between ${
-                  activePage === 'career-check-in' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-                }`}
-              >
-                <span>Career Check-in</span>
-                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#dae2ff] text-[#001947]">Free</span>
-              </button>
-
-              <button
-                onClick={() => handleNav('leadership')}
-                className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold ${
-                  activePage === 'leadership' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-                }`}
-              >
-                Leadership
-              </button>
-
-              <button
-                onClick={() => handleNav('success-stories')}
-                className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold ${
-                  activePage === 'success-stories' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-                }`}
-              >
-                Success Stories
-              </button>
-
-              <button
-                onClick={() => handleNav('resources')}
-                className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold ${
-                  activePage === 'resources' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-                }`}
-              >
-                Resources
-              </button>
-
-              <button
-                onClick={() => handleNav('about-us')}
-                className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold ${
-                  activePage === 'about-us' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-                }`}
-              >
-                About
-              </button>
-
-              <button
-                onClick={() => handleNav('contact')}
-                className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold ${
-                  activePage === 'contact' ? 'bg-[#002869] text-white' : 'text-[#434652] hover:bg-[#f1f3ff]'
-                }`}
-              >
-                Contact Support Desk
-              </button>
-            </div>
+              {moreTabs.map((item) => {
+                const meta = navTabMeta(item.page);
+                return (
+                  <a
+                    key={item.page}
+                    href={getUrlForRoute(item.page)}
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        handleNav(item.page);
+                      }
+                    }}
+                    className={`text-left px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between ${
+                      activePage === item.page
+                        ? item.page === 'webinars' ? 'bg-[#006e29] text-white' : 'bg-[#002869] text-white'
+                        : 'text-[#434652] hover:bg-[#f1f3ff]'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    {meta?.badge && activePage !== item.page && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#dae2ff] text-[#001947]">{meta.badge}</span>
+                    )}
+                  </a>
+                );
+              })}
+            </motion.div>
+            )}
 
             {/* Mobile Auth & User Dashboard Buttons */}
-            <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
+            <motion.div className="pt-3 border-t border-gray-100 flex flex-col gap-2" variants={navItem}>
               <button
                 id="mobile-nav-auth-btn"
                 onClick={() => {
@@ -504,11 +426,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Compass className="w-4 h-4 text-[#002869]" />
                 <span>My Career Dashboard & Progress</span>
               </button>
-            </div>
-          </div>
-        </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
       )}
-    </header>
+    </motion.header>
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ShieldCheck, LogOut } from 'lucide-react';
-import { isAdminAuthenticated, setAdminToken, clearAdminToken } from '../../utils/adminAuth';
+import { ShieldCheck } from 'lucide-react';
+import { isAdminAuthenticated, setAdminToken } from '../../utils/adminAuth';
 
 interface AdminAuthGateProps {
   children: React.ReactNode;
@@ -26,7 +26,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ children }) => {
       const data = await res.json();
 
       if (data.success && data.token) {
-        setAdminToken(data.token, data.expiresAt);
+        setAdminToken(data.token, data.expiresAt, { name: data.name, source: data.source });
         setAuthenticated(true);
       } else {
         setError(data.error || 'Incorrect password.');
@@ -36,12 +36,6 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ children }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleLogout = () => {
-    clearAdminToken();
-    setAuthenticated(false);
-    setPassword('');
   };
 
   if (!authenticated) {
@@ -95,18 +89,5 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ children }) => {
     );
   }
 
-  return (
-    <div>
-      <div className="w-full bg-white border-b border-[#e0e8ff] px-4 sm:px-6 lg:px-10 py-2 flex items-center justify-end">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-[#666a76] hover:text-[#061b3b] cursor-pointer"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          Log out
-        </button>
-      </div>
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 };

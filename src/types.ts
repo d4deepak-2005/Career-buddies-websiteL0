@@ -20,7 +20,8 @@ export type PageView =
   | 'privacy'
   | 'terms'
   | 'refund'
-  | 'leads-dashboard';
+  | 'leads-dashboard'
+  | 'mentor-portal'; // Mentor Portal (#mentor): mentor sign-in + mentor dashboard
 
 export type Category = 
   | 'All'

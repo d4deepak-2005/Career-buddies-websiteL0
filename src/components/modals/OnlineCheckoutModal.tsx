@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
 import { startCheckout, getCheckoutQuote, CheckoutQuote, CheckoutRequest } from '../../utils/checkout';
+import { formatINR } from '../../utils/gst';
 import { ModalA11y } from '../common/ModalA11y';
 
 interface OnlineCheckoutModalProps {
@@ -9,16 +10,18 @@ interface OnlineCheckoutModalProps {
   itemType: CheckoutRequest['itemType'];
   itemId?: string;
   itemName: string;
+  extraDetails?: Record<string, unknown>;
 }
 
 // Compact "who is paying" form used by Plans / Programmes. Payment itself
-// happens on Dodo Payments' hosted checkout page.
+// happens in Razorpay Checkout. The amount comes from the server (CMS).
 export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
   isOpen,
   onClose,
   itemType,
   itemId,
   itemName,
+  extraDetails,
 }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -55,9 +58,14 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
   const money = quote
     ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: quote.currency }).format(quote.amount)
     : '';
+  const alreadyPaid = Boolean(quote?.alreadyPaid);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (alreadyPaid && quote?.orderRef) {
+      window.location.href = `/?order=${encodeURIComponent(quote.orderRef)}`;
+      return;
+    }
     setError('');
     setBusy(true);
     const result = await startCheckout({
@@ -65,6 +73,7 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
       itemId,
       itemName,
       customer: { name: name.trim(), email: email.trim(), mobile: mobile.trim() },
+      details: { source: 'enroll-now', itemName, ...extraDetails },
     });
     if (!result.ok) {
       setError(result.error || 'Unable to start payment.');
@@ -84,19 +93,33 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-base font-black text-[#061b3b]">Pay online</h3>
+            <h3 className="text-base font-black text-[#061b3b]">{alreadyPaid ? 'Already purchased' : 'Enroll now'}</h3>
             <p className="text-xs text-[#666a76] mt-0.5">{itemName}</p>
             {quoteState === 'loading' && <p className="text-xs text-[#666a76] mt-1">Loading price…</p>}
-            {quote && <p className="text-sm font-black text-[#061b3b] mt-1">{money} <span className="text-[11px] font-bold text-[#666a76]">({quote.currency})</span></p>}
+            {alreadyPaid && <p className="text-xs font-bold text-[#006e29] mt-1">You have already paid for this. No further charge is needed.</p>}
+            {quote && !alreadyPaid && (
+              <div className="mt-2 text-xs text-[#434652] space-y-0.5">
+                <p className="flex justify-between gap-4"><span>Base price</span><span className="font-bold text-[#061b3b]">{formatINR(quote.baseAmount ?? quote.amount)}</span></p>
+                <p className="flex justify-between gap-4"><span>GST ({quote.gstPercent ?? 18}%)</span><span className="font-bold text-[#061b3b]">{formatINR(quote.gstAmount ?? 0)}</span></p>
+                <p className="flex justify-between gap-4 text-sm font-black text-[#061b3b] pt-0.5">
+                  <span>Total (incl. GST)</span>
+                  <span>{money}</span>
+                </p>
+              </div>
+            )}
           </div>
           <button type="button" onClick={onClose} className="p-1 text-[#666a76] hover:text-[#061b3b] cursor-pointer" aria-label="Close">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <input aria-label="Full name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className={inputClass} />
-        <input aria-label="Email address" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={inputClass} />
-        <input aria-label="Mobile number (optional)" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Mobile (optional)" className={inputClass} />
+        {!alreadyPaid && (
+          <>
+            <input aria-label="Full name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className={inputClass} />
+            <input aria-label="Email address" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={inputClass} />
+            <input aria-label="Mobile number (optional)" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Mobile (optional)" className={inputClass} />
+          </>
+        )}
 
         {error && <div className="px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-bold">{error}</div>}
 
@@ -106,12 +129,17 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
           className="px-5 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           <ShieldCheck className="w-4 h-4 text-[#79fd8d]" />
-          <span>{busy ? 'Redirecting to secure checkout...' : 'Continue to secure payment'}</span>
+          <span>
+            {alreadyPaid ? 'View payment status' : busy ? 'Opening secure checkout...' : 'Continue to secure payment'}
+          </span>
         </button>
+        {!alreadyPaid && quote && (
         <p className="text-[11px] text-[#666a76] text-center">
-          You will be redirected to Dodo Payments' secure page to pay. Your payment is confirmed only after Dodo notifies us.
-          {quote?.testMode && <span className="block font-bold text-amber-700 mt-1">Test mode: no real money is charged.</span>}
+          You will pay {money} in Razorpay&apos;s secure checkout, including 18% GST. Card and UPI details never stay on CareerBuddies.
+          If you already paid for this while logged in, you will not be charged again.
+          {quote.testMode && <span className="block font-bold text-amber-700 mt-1">Test mode: no real money is charged.</span>}
         </p>
+        )}
       </form>
     </div>
   );

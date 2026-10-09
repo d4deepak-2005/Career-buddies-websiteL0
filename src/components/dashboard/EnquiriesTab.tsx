@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { candidateFetch } from '../../utils/candidateAuth';
 import { CheckCircle2, Send } from 'lucide-react';
 import { EmptyState, EnquiryRecord, formatDate } from './dashboardShared';
+import { TableSkeleton } from '../common/Skeleton';
 
 interface EnquiriesTabProps {
   enquiries: EnquiryRecord[];
@@ -133,10 +134,14 @@ export const EnquiriesTab: React.FC<EnquiriesTabProps> = ({ enquiries, loading: 
       {/* Enquiries Log */}
       <div className="flex flex-col gap-3.5">
         {enquiries.length === 0 && (
+          dataLoading ? (
+            <TableSkeleton rows={3} />
+          ) : (
           <EmptyState
-            title={dataLoading ? 'Loading your enquiries…' : dataError ? 'Could not load your enquiries' : 'No enquiries yet'}
-            hint={dataLoading || dataError ? undefined : 'Enquiries you submit will appear here.'}
+            title={dataError ? 'Could not load your enquiries' : 'No enquiries yet'}
+            hint={dataError ? undefined : 'Enquiries you submit will appear here.'}
           />
+          )
         )}
         {enquiries.map((enq) => (
           <div key={enq.id} className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#cbdaff] flex flex-col gap-2">

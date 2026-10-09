@@ -15,37 +15,91 @@ import {
   ShieldCheck,
   Zap
 } from 'lucide-react';
-import { PageView, ProgrammeItem } from '../../types';
+import { PageView, PlanItem, ProgrammeItem } from '../../types';
+
+function rupeesFrom(raw: string | number | undefined): number {
+  const n = typeof raw === 'number' ? raw : parseFloat(String(raw || '').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function planCanPay(plan: PlanItem): boolean {
+  return !plan.isCustomPricing && !!plan.onlinePayment && rupeesFrom(plan.priceINR) > 0;
+}
+
+function programmeCanPay(feeINR: number | undefined, onlinePayment?: boolean): boolean {
+  return !!onlinePayment && Number(feeINR) > 0;
+}
+
+function planToEnrollment(plan: PlanItem): CheckoutEnrollment {
+  return {
+    itemType: 'plan',
+    itemId: String(plan.id),
+    title: plan.name,
+    subtitle: plan.tagline || plan.description,
+    priceINR: rupeesFrom(plan.priceINR),
+    extraDetails: {
+      priceINR: plan.priceINR,
+      period: plan.period || '',
+      deliverables: (plan.features || []).map((f) => f.title).filter(Boolean).join(', '),
+    },
+  };
+}
+
+function programmeToEnrollment(programme: ProgrammeItem): CheckoutEnrollment {
+  return {
+    itemType: 'programme',
+    itemId: programme.id,
+    title: programme.name,
+    subtitle: programme.tagline || programme.description,
+    priceINR: rupeesFrom(programme.feeINR),
+    extraDetails: {
+      feeINR: programme.feeINR,
+      duration: programme.duration || '',
+    },
+  };
+}
 import { useProgrammes, usePlans } from '../../hooks/useCmsCatalog';
-import { OnlineCheckoutModal } from '../modals/OnlineCheckoutModal';
+import { CheckoutEnrollment, WebinarCheckoutModal } from '../modals/WebinarCheckoutModal';
+import { PlanDeliverablesModal } from '../modals/PlanDeliverablesModal';
 import { PageHeaderControls } from '../common/PageHeaderControls';
 import { PageBottomNav } from '../common/PageBottomNav';
-import { useWebinarEntryPrice } from '../../hooks/useCmsCatalog';
+import { useWebinarOffer } from '../../hooks/useCmsCatalog';
+import { numberWord, plansHeading } from '../../utils/countCopy';
+import { useOwnedPurchases } from '../../hooks/useOwnedPurchases';
+import { usePublicLoading } from '../../hooks/usePublicCollection';
+import { PageSkeleton } from '../common/Skeleton';
 
 interface ProgrammesScreenProps {
   onNavigate: (page: PageView) => void;
-  onOpenCounselling: () => void;
+  onOpenCounselling: (interest?: string) => void;
 }
 
 export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
   onNavigate,
   onOpenCounselling
 }) => {
-  const entryPrice = useWebinarEntryPrice();
+  const { hasLive, priceINR: entryPrice } = useWebinarOffer();
   const PROGRAMMES_CATALOGUE = useProgrammes();
   const CAREER_PLANS = usePlans();
+  const programmesLoading = usePublicLoading('/api/programmes');
+  const plansLoading = usePublicLoading('/api/plans');
+  const planCount = CAREER_PLANS.length;
   const [payProgramme, setPayProgramme] = useState<ProgrammeItem | null>(null);
+  const [payPlan, setPayPlan] = useState<PlanItem | null>(null);
+  const [detailsPlan, setDetailsPlan] = useState<PlanItem | null>(null);
+  const startPlanEnroll = (plan: PlanItem) => {
+    setDetailsPlan(null);
+    if (!planCanPay(plan)) {
+      onOpenCounselling(`${plan.name} — pricing details`);
+      return;
+    }
+    setPayPlan(plan);
+  };
+  const owned = useOwnedPurchases();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [expandedCurriculumId, setExpandedCurriculumId] = useState<string | null>(null);
 
-  const categories = [
-    'All',
-    'Leadership Development',
-    'Skill Development Tracks',
-    'Career Transition Programmes',
-    'Career Guidance Programmes',
-    'Structured Growth Tracks'
-  ];
+  const categories = ['All', ...Array.from(new Set(PROGRAMMES_CATALOGUE.map((p) => p.category).filter(Boolean)))];
 
   const filteredProgrammes = selectedCategory === 'All'
     ? PROGRAMMES_CATALOGUE
@@ -54,6 +108,10 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
   const toggleCurriculum = (id: string) => {
     setExpandedCurriculumId(expandedCurriculumId === id ? null : id);
   };
+
+  if ((programmesLoading && PROGRAMMES_CATALOGUE.length === 0) || (plansLoading && CAREER_PLANS.length === 0 && PROGRAMMES_CATALOGUE.length === 0)) {
+    return <PageSkeleton />;
+  }
 
   return (
     <div className="w-full min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-white">
@@ -76,7 +134,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
             Choose Your Career Plan
           </h1>
           <p className="text-sm sm:text-base text-[#434652] mt-3 leading-relaxed">
-            Following your ₹{entryPrice} live mentor webinar and advisor requirement review, choose from our three structured plans. Dedicated profile overhaul begins immediately upon enrolment.
+            {hasLive && entryPrice ? `Following your ₹${entryPrice} live mentor webinar and advisor requirement review, ` : 'Following your advisor requirement review, '}{planCount === 0 ? 'your Career Advisor will match you with a structured plan.' : planCount === 1 ? 'choose our structured plan. Dedicated profile overhaul begins immediately upon enrolment.' : `choose from our ${numberWord(planCount)} structured plans. Dedicated profile overhaul begins immediately upon enrolment.`}
           </p>
         </div>
 
@@ -85,7 +143,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-[#061b3b] font-['Plus_Jakarta_Sans',sans-serif]">
-                The Three Career Plans
+                {plansHeading(planCount)}
               </h2>
               <p className="text-xs sm:text-sm text-[#434652]">
                 Tailored for every career pivot, promotion sprint, and leadership transition.
@@ -101,7 +159,12 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {CAREER_PLANS.slice(0, 3).map((plan) => (
+            {CAREER_PLANS.length === 0 ? (
+              <div className="lg:col-span-3 bg-white rounded-3xl border border-[#e0e8ff] p-10 text-center">
+                <p className="text-sm font-bold text-[#061b3b]">Plans are being updated</p>
+                <p className="text-xs text-[#434652] mt-1">Please check back soon, or contact us for a tailored plan.</p>
+              </div>
+            ) : CAREER_PLANS.map((plan) => (
               <div
                 key={plan.id}
                 className={`bg-[#f9f9ff] rounded-3xl p-6 sm:p-7 flex flex-col justify-between border transition-all duration-200 hover:shadow-lg relative ${
@@ -145,32 +208,48 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <span className="text-[11px] font-bold uppercase text-[#666a76] tracking-wider">
                       Key Deliverables:
                     </span>
-                    {plan.features.map((feat, fIdx) => (
+                    {plan.features.slice(0, 4).map((feat, fIdx) => (
                       <div key={fIdx} className="flex items-start gap-2 text-xs">
                         <CheckCircle2 className="w-4 h-4 text-[#006e29] shrink-0 mt-0.5" />
                         <span className="text-[#434652]">{feat.title}</span>
                       </div>
                     ))}
+                    {plan.features.length > 4 && (
+                      <button
+                        type="button"
+                        onClick={() => setDetailsPlan(plan)}
+                        className="mt-1 text-left text-xs font-bold text-[#002869] hover:underline cursor-pointer"
+                      >
+                        Show more ({plan.features.length - 4} more)
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-[#cbdaff] flex items-center justify-between">
                   <div>
                     <span className="text-2xl font-black text-[#002869] font-['Plus_Jakarta_Sans',sans-serif]">
-                      {plan.priceINR}
+                      {rupeesFrom(plan.priceINR) > 0 ? plan.priceINR : 'On request'}
                     </span>
                     <span className="text-[11px] text-[#666a76] block">
                       {plan.period}
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => onNavigate('webinars')}
-                    className="px-4 py-2.5 rounded-xl bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>Start with ₹{entryPrice} Webinar</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                  {owned.has('plan', plan.id) ? (
+                    <span className="px-4 py-2.5 rounded-xl bg-[#e8f8ee] text-[#00531d] text-xs font-black">
+                      Already enrolled
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startPlanEnroll(plan)}
+                      className="px-4 py-2.5 rounded-xl bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>{planCanPay(plan) ? 'Enroll Now' : 'Contact advisor'}</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -205,6 +284,18 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
         </div>
 
         {/* Programmes Grid */}
+        {filteredProgrammes.length === 0 ? (
+          <div className="bg-[#f9f9ff] rounded-3xl border border-[#e0e8ff] p-12 text-center mb-12">
+            <p className="text-sm font-bold text-[#061b3b]">
+              {PROGRAMMES_CATALOGUE.length === 0 ? 'Programmes are being updated' : 'No programmes in this category'}
+            </p>
+            <p className="text-xs text-[#434652] mt-1">
+              {PROGRAMMES_CATALOGUE.length === 0
+                ? 'Please check back soon, or contact us and we will help you choose a track.'
+                : 'Try All categories to see every programme.'}
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {filteredProgrammes.map((programme) => {
             const isCurriculumOpen = expandedCurriculumId === programme.id;
@@ -321,29 +412,39 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                     <div className="text-[11px] text-[#434652] uppercase font-bold">Programme Investment</div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-black text-[#061b3b]">
-                        ₹{programme.feeINR.toLocaleString()}
+                        {Number(programme.feeINR) > 0
+                          ? `₹${programme.feeINR.toLocaleString('en-IN')}`
+                          : 'On request'}
                       </span>
-                      {programme.originalFeeINR && (
+                      {Number(programme.feeINR) > 0 && programme.originalFeeINR ? (
                         <span className="text-xs text-[#666a76] line-through">
-                          ₹{programme.originalFeeINR.toLocaleString()}
+                          ₹{programme.originalFeeINR.toLocaleString('en-IN')}
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
-                  <button
-                    onClick={onOpenCounselling}
-                    className="px-6 py-3 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <span>Apply for Programme</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />
-                  </button>
-                  {programme.onlinePayment && (
+                  {owned.has('programme', programme.id) ? (
+                    <p className="px-6 py-3 bg-[#e8f8ee] text-[#00531d] text-xs font-black rounded-xl">
+                      Already enrolled
+                    </p>
+                  ) : programmeCanPay(programme.feeINR, programme.onlinePayment) ? (
                     <button
+                      type="button"
                       onClick={() => setPayProgramme(programme)}
-                      className="px-6 py-3 bg-white border border-[#006e29] text-[#006e29] hover:bg-[#f0faf3] text-xs font-black rounded-xl transition-all cursor-pointer"
+                      className="px-6 py-3 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                     >
-                      Pay online securely
+                      <span>Enroll Now</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onOpenCounselling(`${programme.name} — pricing details`)}
+                      className="px-6 py-3 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>Contact advisor</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />
                     </button>
                   )}
                 </div>
@@ -351,6 +452,7 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
             );
           })}
         </div>
+        )}
 
         {/* Bottom Page Navigation (Previous / Next) */}
         <PageBottomNav
@@ -359,12 +461,21 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
         />
 
       </div>
-      <OnlineCheckoutModal
+      <PlanDeliverablesModal
+        plan={detailsPlan}
+        alreadyEnrolled={detailsPlan ? owned.has('plan', detailsPlan.id) : false}
+        onClose={() => setDetailsPlan(null)}
+        onEnroll={startPlanEnroll}
+      />
+      <WebinarCheckoutModal
         isOpen={!!payProgramme}
         onClose={() => setPayProgramme(null)}
-        itemType="programme"
-        itemId={payProgramme?.id}
-        itemName={payProgramme?.name || ''}
+        enrollment={payProgramme ? programmeToEnrollment(payProgramme) : null}
+      />
+      <WebinarCheckoutModal
+        isOpen={!!payPlan}
+        onClose={() => setPayPlan(null)}
+        enrollment={payPlan ? planToEnrollment(payPlan) : null}
       />
     </div>
   );

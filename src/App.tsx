@@ -1,5 +1,7 @@
 import React, { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSiteSettings } from './hooks/useSiteSettings';
+import { trackPublicPageView } from './utils/pageAnalytics';
+import { isNavPageEnabled } from './config/navTabs';
 import { 
   PageView, 
   Mentor, 
@@ -12,12 +14,15 @@ import {
 } from './types';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { HomeRevealRoot } from './components/home/HomeRevealRoot';
 import { AICareerAssistant } from './components/AICareerAssistant';
+import { parseLocation, getUrlForRoute, RouteState } from './utils/routes';
 const AdminAuthGate = lazyNamed(() => import('./components/common/AdminAuthGate'), 'AdminAuthGate');
 import { PaymentStatusBanner } from './components/common/PaymentStatusBanner';
 
 // Screens
 import { HomeScreen } from './components/screens/HomeScreen';
+import { MaintenanceScreen } from './components/screens/MaintenanceScreen';
 const ServicesScreen = lazyNamed(() => import('./components/screens/ServicesScreen'), 'ServicesScreen');
 const ProgrammesScreen = lazyNamed(() => import('./components/screens/ProgrammesScreen'), 'ProgrammesScreen');
 const LeadershipScreen = lazyNamed(() => import('./components/screens/LeadershipScreen'), 'LeadershipScreen');
@@ -38,6 +43,7 @@ const WebinarsScreen = lazyNamed(() => import('./components/screens/WebinarsScre
 const AdminScreen = lazyNamed(() => import('./components/screens/AdminScreen'), 'AdminScreen');
 const LeaderProfileScreen = lazyNamed(() => import('./components/screens/LeaderProfileScreen'), 'LeaderProfileScreen');
 const CandidateDashboardScreen = lazyNamed(() => import('./components/dashboard/CandidateDashboardScreen'), 'CandidateDashboardScreen');
+const MentorPortal = lazyNamed(() => import('./components/mentor/MentorPortal'), 'MentorPortal');
 
 // Modals
 const SmartMatchingModal = lazyNamed(() => import('./components/modals/SmartMatchingModal'), 'SmartMatchingModal');
@@ -81,15 +87,30 @@ export default function App() {
     }
   }, [siteSettings]);
 
-  // Navigation Page State
-  // A few pages can be opened directly / survive a refresh through the URL hash
-  // (legal pages, and the admin workspace, which stays behind its own login).
-  const HASH_PAGES: Record<string, PageView> = { '#privacy': 'privacy', '#terms': 'terms', '#refund': 'refund', '#admin': 'admin' };
-  const pageUrl = (page: PageView) => {
-    const hash = Object.keys(HASH_PAGES).find((h) => HASH_PAGES[h] === page) || '';
-    return window.location.pathname + window.location.search + hash;
-  };
-  const [activePage, setActivePage] = useState<PageView>(() => HASH_PAGES[window.location.hash] || 'home');
+  useEffect(() => {
+    const id = siteSettings?.seo?.analyticsId?.trim() || '';
+    if (!/^G-[A-Z0-9]+$/i.test(id) || document.getElementById('cb-ga')) return;
+    if (
+      window.location.pathname.startsWith('/admin') ||
+      window.location.pathname.startsWith('/mentor') ||
+      window.location.hash.startsWith('#admin') ||
+      window.location.hash.startsWith('#mentor')
+    ) return;
+    const script = document.createElement('script');
+    script.id = 'cb-ga';
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${id}`;
+    document.head.appendChild(script);
+    const boot = document.createElement('script');
+    boot.id = 'cb-ga-boot';
+    boot.text = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${id}');`;
+    document.head.appendChild(boot);
+  }, [siteSettings?.seo?.analyticsId]);
+
+  // Navigation Route State (Website Pages)
+  const [initialRoute] = useState<RouteState>(() => parseLocation());
+  const [activePage, setActivePage] = useState<PageView>(initialRoute.page);
+  const [selectedLeaderSlug, setSelectedLeaderSlug] = useState<string>(() => initialRoute.leaderSlug || 'nishant-sharma');
 
   // Modals State
   const [isSmartMatchingOpen, setIsSmartMatchingOpen] = useState(false);
@@ -118,8 +139,6 @@ export default function App() {
   // Lead counter for navbar feedback
   const [leadCounter, setLeadCounter] = useState(0);
 
-  // Selected Leader Profile for individual view
-  const [selectedLeaderSlug, setSelectedLeaderSlug] = useState<string>('nishant-sharma');
   const [previousNavPage, setPreviousNavPage] = useState<PageView>('about-us');
 
   // ---- Centralised page navigation: scroll position + browser history ----
@@ -153,16 +172,26 @@ export default function App() {
 
     const onPopState = (event: PopStateEvent) => {
       const state = event.state;
-      if (!state || !state.cbPage || !state.cbId) return;
+      const parsed = parseLocation();
+      const targetPage = (state?.cbPage as PageView) || parsed.page;
+      const targetLeader = state?.cbLeader || parsed.leaderSlug || 'nishant-sharma';
+
       // Scroll is in manual mode, so it still reflects the page we are leaving.
       scrollByEntry.current.set(currentEntryId.current, window.scrollY);
-      currentEntryId.current = state.cbId;
-      restoreScrollTo.current = scrollByEntry.current.get(state.cbId) ?? 0;
-      if (state.cbLeader) setSelectedLeaderSlug(state.cbLeader);
-      setActivePage(state.cbPage);
+      if (state?.cbId) {
+        currentEntryId.current = state.cbId;
+        restoreScrollTo.current = scrollByEntry.current.get(state.cbId) ?? 0;
+      } else {
+        currentEntryId.current = newEntryId();
+        restoreScrollTo.current = 0;
+      }
+
+      if (targetLeader) setSelectedLeaderSlug(targetLeader);
+      setActivePage(targetPage);
+
       // Same page/leader as now (only the scroll differs): restore directly.
       requestAnimationFrame(() => {
-        const key = `${state.cbPage}|${state.cbPage === 'leader-profile' ? state.cbLeader || '' : ''}`;
+        const key = `${targetPage}|${targetPage === 'leader-profile' ? targetLeader : ''}`;
         if (restoreScrollTo.current !== null && prevNavKey.current === key) {
           instantScroll(restoreScrollTo.current);
           restoreScrollTo.current = null;
@@ -178,11 +207,15 @@ export default function App() {
 
   // Browser Back/Forward changes the page but dialogs are not history entries: close the read-only
   // detail dialogs so one can never stay open on top of a different page.
+  // Join Live Webinar stores the target here so the page-change wipe cannot drop it.
+  const pendingLiveWebinar = useRef<WebinarItem | null>(null);
   useEffect(() => {
     setSelectedArticle(null);
     setSelectedService(null);
-    setSelectedWebinarForDetail(null);
     setBioMentor(null);
+    const pending = pendingLiveWebinar.current;
+    pendingLiveWebinar.current = null;
+    setSelectedWebinarForDetail(pending);
   }, [activePage]);
 
   // Page-specific title / description / robots for the current page.
@@ -200,25 +233,40 @@ export default function App() {
     }
   };
 
-  // Typing/pasting a #privacy, #terms, #refund or #admin address into an already-open tab.
+  // Typing/pasting an address or hash into an already-open tab.
   useEffect(() => {
     const onHashChange = () => {
-      const page = HASH_PAGES[window.location.hash];
-      if (page) setActivePage(page);
+      const parsed = parseLocation();
+      if (parsed.page) {
+        if (parsed.leaderSlug) setSelectedLeaderSlug(parsed.leaderSlug);
+        setActivePage(parsed.page);
+      }
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   useLayoutEffect(() => {
+    const routeUrl = getUrlForRoute(activePage, {
+      leaderSlug: selectedLeaderSlug,
+      preserveSearch: true,
+    });
+
+    // Keep social sign-in return fragment (#social= / #link=) so the effect below can still read it.
+    const socialFragment = /^#(social|link)=/.test(window.location.hash) ? window.location.hash : '';
+
     if (prevNavKey.current === null) {
       // First render: describe the current history entry.
       currentEntryId.current = newEntryId();
       window.history.replaceState(
-        { ...(window.history.state || {}), cbPage: activePage, cbLeader: selectedLeaderSlug, cbId: currentEntryId.current },
+        {
+          ...(window.history.state || {}),
+          cbPage: activePage,
+          cbLeader: selectedLeaderSlug,
+          cbId: currentEntryId.current,
+        },
         '',
-        // Keep a social sign-in return fragment (#social= / #link=) so the effect below can still read it.
-        pageUrl(activePage) + (/^#(social|link)=/.test(window.location.hash) ? window.location.hash : '')
+        routeUrl + socialFragment
       );
     } else if (prevNavKey.current !== navKey) {
       if (restoreScrollTo.current !== null) {
@@ -230,15 +278,19 @@ export default function App() {
         scrollByEntry.current.set(currentEntryId.current, scrollAtClick.current);
         currentEntryId.current = newEntryId();
         window.history.pushState(
-          { cbPage: activePage, cbLeader: selectedLeaderSlug, cbId: currentEntryId.current },
+          {
+            cbPage: activePage,
+            cbLeader: selectedLeaderSlug,
+            cbId: currentEntryId.current,
+          },
           '',
-          pageUrl(activePage)
+          routeUrl
         );
         instantScroll(0);
       }
     }
     prevNavKey.current = navKey;
-  }, [navKey]);
+  }, [navKey, activePage, selectedLeaderSlug]);
 
   // Logged-in candidate (null = logged out). Restored from the stored session
   // token on load; the server decides who the token belongs to.
@@ -295,7 +347,7 @@ export default function App() {
           if (!res.ok || !body.success) throw new Error(body.error || 'Sign-in failed. Please try again.');
           setCandidateToken(body.token, body.expiresAt);
           setCandidate(body.candidate);
-          setActivePage('dashboard');
+          setActivePage(homePageFor(body.candidate));
           window.scrollTo({ top: 0 });
           if (body.notice === 'linked_password_cleared') {
             window.alert('Your social account is now linked to your existing CareerBuddies account. For security, your previous password was cleared - please keep signing in with this provider.');
@@ -348,6 +400,24 @@ export default function App() {
     }
   }, []);
 
+  // Where an account lands after signing in: mentors go to the Mentor Portal, everyone
+  // else (candidates) to the Candidate Area exactly as before.
+  const homePageFor = (profile?: CandidateProfile | null): PageView =>
+    profile?.accountType === 'mentor' ? 'mentor-portal' : 'dashboard';
+
+  // Mentor Portal sign-out: same server logout as candidates, but stays on the mentor sign-in.
+  const handleMentorLogout = async () => {
+    try {
+      await candidateFetch('/api/candidate/logout', { method: 'POST' });
+    } catch {
+      // token is cleared locally regardless
+    }
+    clearCandidateToken();
+    setCandidate(null);
+    setActivePage('mentor-portal');
+    window.scrollTo({ top: 0 });
+  };
+
   const handleAuthenticate = async (
     mode: 'login' | 'signup',
     data: { name: string; email: string; password: string; accountType: 'mentee' | 'mentor' }
@@ -364,7 +434,7 @@ export default function App() {
       }
       setCandidateToken(body.token, body.expiresAt);
       setCandidate(body.candidate);
-      setActivePage('dashboard');
+      setActivePage(homePageFor(body.candidate));
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return null;
     } catch {
@@ -449,6 +519,34 @@ export default function App() {
     setLeadCounter(prev => prev + 1);
   };
 
+  const staffPage = activePage === 'admin' || activePage === 'leads-dashboard';
+  // Pages with their own full-screen shell (no public navbar, footer, assistant or banners).
+  const mentorPage = activePage === 'mentor-portal';
+  const ownShell = staffPage || mentorPage;
+
+  useEffect(() => {
+    if (!ownShell) trackPublicPageView(activePage);
+  }, [activePage, ownShell]);
+
+  useEffect(() => {
+    if (staffPage || activePage === 'home' || activePage === 'webinars') return;
+    if (!isNavPageEnabled(activePage, siteSettings?.header?.navItems)) {
+      setActivePage('home');
+    }
+  }, [activePage, siteSettings, staffPage]);
+
+  const handleOpenLiveWebinar = (webinar?: WebinarItem | null) => {
+    if (webinar) {
+      setSelectedWebinarForDetail(webinar);
+      return;
+    }
+    setActivePage('webinars');
+  };
+
+  if (siteSettings?.maintenance?.enabled && !staffPage) {
+    return <MaintenanceScreen siteSettings={siteSettings} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#f9f9ff] text-[#061b3b] flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
       
@@ -456,7 +554,7 @@ export default function App() {
         Skip to main content
       </a>
 
-      {/* Top Header */}
+      {!ownShell && (
       <Navbar
         activePage={activePage}
         setActivePage={setActivePage}
@@ -468,7 +566,7 @@ export default function App() {
             handleOpenLogin();
             return;
           }
-          setActivePage('dashboard');
+          setActivePage(homePageFor(candidate));
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         candidateName={candidate?.firstName}
@@ -476,6 +574,7 @@ export default function App() {
         onOpenCounselling={(planTitle) => handleOpenCounsellingWithPlan(planTitle)}
         bookedCount={bookedSessions.length}
       />
+      )}
 
       {/* Main Content Area */}
       <main id="main-content" tabIndex={-1} className="flex-1 w-full focus:outline-none">
@@ -493,6 +592,7 @@ export default function App() {
             onSelectService={handleSelectService}
             onSelectPlan={handleSelectPlan}
             setActivePage={setActivePage}
+            onOpenLiveWebinar={handleOpenLiveWebinar}
             onSelectLeader={handleSelectLeader}
             siteSettings={siteSettings}
           />
@@ -502,7 +602,7 @@ export default function App() {
         {activePage === 'programmes' && (
           <ProgrammesScreen
             onNavigate={setActivePage}
-            onOpenCounselling={() => handleOpenCounsellingWithPlan('Specialised Programme Cohort')}
+            onOpenCounselling={(interest) => handleOpenCounsellingWithPlan(interest || 'Specialised Programme Cohort')}
           />
         )}
 
@@ -536,6 +636,7 @@ export default function App() {
         {/* 6. CAREER CHECK-IN SCREEN */}
         {activePage === 'career-check-in' && (
           <CareerCheckInScreen
+            candidate={candidate}
             onNavigate={setActivePage}
             onOpenCounselling={(planName) => handleOpenCounsellingWithPlan(planName)}
           />
@@ -560,6 +661,7 @@ export default function App() {
             onOpenCounselling={() => handleOpenCounsellingWithPlan()}
             onBecomeMentor={() => setIsBecomeMentorOpen(true)}
             setActivePage={setActivePage}
+            onOpenLiveWebinar={handleOpenLiveWebinar}
           />
         )}
 
@@ -634,6 +736,32 @@ export default function App() {
           </AdminAuthGate>
         )}
 
+        {/* MENTOR PORTAL (#mentor): mentor sign-in + Mentor Portal dashboard */}
+        {activePage === 'mentor-portal' && (
+          <MentorPortal
+            account={candidate}
+            authChecked={authChecked}
+            onSignedIn={(session) => {
+              setCandidateToken(session.token, session.expiresAt);
+              setCandidate(session.candidate);
+              window.scrollTo({ top: 0 });
+            }}
+            onSignOut={handleMentorLogout}
+            onExitToSite={() => {
+              setActivePage('home');
+              window.scrollTo({ top: 0 });
+            }}
+            onOpenCandidateLogin={() => {
+              setActivePage('home');
+              handleOpenLogin();
+            }}
+            onOpenCandidateArea={() => {
+              setActivePage('dashboard');
+              window.scrollTo({ top: 0 });
+            }}
+          />
+        )}
+
         {/* 16. LEADS DASHBOARD */}
         {activePage === 'leads-dashboard' && (
           <AdminAuthGate>
@@ -679,7 +807,11 @@ export default function App() {
                 </button>
               </>
             ) : (
-              <p className="text-sm text-[#434652]">Loading your account…</p>
+              <div className="w-full max-w-md flex flex-col items-center gap-3">
+                <div className="animate-pulse h-6 w-40 rounded-xl bg-[#dae2ff]" />
+                <div className="animate-pulse h-4 w-64 rounded-xl bg-[#dae2ff]" />
+                <div className="animate-pulse h-10 w-full rounded-xl bg-[#dae2ff]" />
+              </div>
             )}
           </div>
         )}
@@ -688,17 +820,20 @@ export default function App() {
         </LazyBoundary>
       </main>
 
-      {/* Footer */}
-      <Footer
-        setActivePage={setActivePage}
-        siteSettings={siteSettings}
-        onOpenContact={() => {
-          setActivePage('contact');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onOpenSignup={handleOpenSignup}
-        onOpenCounselling={() => handleOpenCounsellingWithPlan()}
-      />
+      {!ownShell && (
+      <HomeRevealRoot className="home-page-reveal w-full">
+        <Footer
+          setActivePage={setActivePage}
+          siteSettings={siteSettings}
+          onOpenContact={() => {
+            setActivePage('contact');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenSignup={handleOpenSignup}
+          onOpenCounselling={() => handleOpenCounsellingWithPlan()}
+        />
+      </HomeRevealRoot>
+      )}
 
       <LazyBoundary compact>
       <Suspense fallback={<ModalFallback />}>
@@ -722,6 +857,15 @@ export default function App() {
         onClose={() => setSelectedWebinarForDetail(null)}
         webinar={selectedWebinarForDetail}
         onRegister={handleRegisterWebinar}
+        onViewAllWebinars={
+          activePage === 'webinars'
+            ? undefined
+            : () => {
+                setSelectedWebinarForDetail(null);
+                setActivePage('webinars');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+        }
       />
       </WhenOpen>
 
@@ -830,7 +974,7 @@ export default function App() {
             setLinkCode(null);
             setCandidateToken(body.token, body.expiresAt);
             setCandidate(body.candidate);
-            setActivePage('dashboard');
+            setActivePage(homePageFor(body.candidate));
             window.scrollTo({ top: 0 });
           }}
         />
@@ -858,14 +1002,22 @@ export default function App() {
       </Suspense>
       </LazyBoundary>
 
-<PaymentStatusBanner />
+{!ownShell && <PaymentStatusBanner />}
+{!ownShell && (
 <AICareerAssistant
   onConnectAdvisor={(interest) => handleOpenCounsellingWithPlan(interest)}
   onRegisterWebinar={() => {
     setActivePage('webinars');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }}
+  onViewOffering={(kind) => {
+    const page =
+      kind === 'plan' ? 'plans' : kind === 'programme' ? 'programmes' : kind === 'service' ? 'services' : kind === 'mentors' ? 'mentors' : 'resources';
+    setActivePage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }}
 />
+)}
 
     </div>
   );

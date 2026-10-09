@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { RESOURCE_CATEGORIES, RESOURCE_ARTICLES } from '../../data/resources';
 import { ResourceArticle, PageView } from '../../types';
+import { useResources } from '../../hooks/useCmsCatalog';
+import { pickText, useSiteSettings } from '../../hooks/useSiteSettings';
+import { usePublicLoading } from '../../hooks/usePublicCollection';
+import { PageSkeleton } from '../common/Skeleton';
 import { 
   BookOpen, 
   Search, 
@@ -29,20 +32,45 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const articles = useResources();
+  const { settings } = useSiteSettings();
+  const loading = usePublicLoading('/api/resources');
+
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    const list: { id: string; title: string }[] = [];
+    for (const article of articles) {
+      const id = article.categoryId || article.categoryName;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      list.push({ id, title: article.categoryName || id });
+    }
+    return list;
+  }, [articles]);
 
   const filteredArticles = useMemo(() => {
-    return RESOURCE_ARTICLES.filter(article => {
-      const matchCat = selectedCategory === 'all' || article.categoryId === selectedCategory || article.category === selectedCategory;
+    return articles.filter((article) => {
+      const matchCat =
+        selectedCategory === 'all' ||
+        article.categoryId === selectedCategory ||
+        article.categoryName === selectedCategory;
       const q = searchQuery.toLowerCase().trim();
-      const matchQuery = !q ||
+      const matchQuery =
+        !q ||
         article.title.toLowerCase().includes(q) ||
         article.summary.toLowerCase().includes(q) ||
         article.categoryName.toLowerCase().includes(q) ||
         article.author.toLowerCase().includes(q) ||
-        article.tags.some(t => t.toLowerCase().includes(q));
+        article.tags.some((t) => t.toLowerCase().includes(q));
       return matchCat && matchQuery;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [articles, selectedCategory, searchQuery]);
+
+  const heading = pickText(settings?.resources?.heading, 'Career Playbooks & Guides');
+  const subtitle = pickText(
+    settings?.resources?.subtitle,
+    'Battle-tested frameworks for interviews, promotion rubrics, compensation negotiation, and career transitions.'
+  );
 
   return (
     <div className="w-full min-h-screen bg-[#f9f9ff] py-10 px-4 sm:px-6 lg:px-10">
@@ -84,11 +112,11 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight font-['Plus_Jakarta_Sans',sans-serif] leading-tight">
-              Career Playbooks & Guides
+              {heading}
             </h1>
 
             <p className="text-sm sm:text-base text-[#d7e2ff] leading-relaxed font-medium">
-              Battle-tested frameworks for System Design interviews, Staff+ promotion rubrics, executive compensation negotiation, and tech stack transitions.
+              {subtitle}
             </p>
           </div>
         </div>
@@ -124,7 +152,7 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
             >
               All Topics
             </button>
-            {RESOURCE_CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
@@ -139,6 +167,16 @@ export const ResourcesScreen: React.FC<ResourcesScreenProps> = ({
             ))}
           </div>
         </div>
+
+        {loading && articles.length === 0 ? (
+          <PageSkeleton />
+        ) : !loading && articles.length === 0 ? (
+          <p className="text-center text-sm text-[#666a76] py-10">
+            Playbooks will appear here once they are added in Site Settings → Resources.
+          </p>
+        ) : !loading && filteredArticles.length === 0 ? (
+          <p className="text-center text-sm text-[#666a76] py-10">No playbooks match your search.</p>
+        ) : null}
 
         {/* Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

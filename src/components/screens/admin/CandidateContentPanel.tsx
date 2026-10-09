@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adminFetch } from '../../../utils/adminAuth';
+import { TableSkeleton } from '../../common/Skeleton';
 
 // Admin > Candidate Content: notifications, learning materials, master sessions and invoices that
 // appear inside a candidate's own Candidate Area. Everything shown to a candidate is typed in here -
@@ -305,7 +306,7 @@ export const CandidateContentPanel: React.FC = () => {
 
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#cbdaff]">
         {loading ? (
-          <p className="text-xs text-[#666a76]">Loading…</p>
+          <TableSkeleton rows={4} />
         ) : items.length === 0 ? (
           <p className="text-xs text-[#666a76]">No {meta.label.toLowerCase()} added yet.</p>
         ) : (

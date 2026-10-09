@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import sharp from 'sharp';
 import { MediaAsset } from '../models/MediaAsset.ts';
 import { requireAdminAuth } from '../middleware/adminAuth.ts';
+import { actorFromReq, recordAdminAudit } from '../services/adminAudit.ts';
 
 // Image upload / serving for the CMS.
 //   POST   /api/media        admin-only, raw image body (Content-Type: image/*)
@@ -62,6 +63,13 @@ router.post(
         originalName: decodeURIComponent(String(req.headers['x-file-name'] || '')).slice(0, 200),
       });
 
+      recordAdminAudit(req, {
+        action: 'create',
+        entity: 'media',
+        entityId: asset._id.toString(),
+        summary: `${actorFromReq(req).name} uploaded an image`,
+        details: { name: asset.originalName || '', width: info.width, height: info.height },
+      });
       res.status(201).json({
         success: true,
         id: asset._id.toString(),
@@ -110,6 +118,12 @@ router.delete('/:id', requireAdminAuth, async (req: Request, res: Response) => {
     return;
   }
   await MediaAsset.findByIdAndDelete(req.params.id);
+  recordAdminAudit(req, {
+    action: 'delete',
+    entity: 'media',
+    entityId: req.params.id,
+    summary: `${actorFromReq(req).name} deleted an image`,
+  });
   res.json({ success: true });
 });
 

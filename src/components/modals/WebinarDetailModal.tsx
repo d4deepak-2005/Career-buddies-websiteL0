@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { HandshakeIcon } from '../common/HandshakeIcon';
 import { ModalA11y } from '../common/ModalA11y';
+import { useOwnedPurchases } from '../../hooks/useOwnedPurchases';
+import { formatINR, withGstRupees } from '../../utils/gst';
 
 interface WebinarDetailModalProps {
   isOpen: boolean;
@@ -25,6 +27,7 @@ interface WebinarDetailModalProps {
   webinar: WebinarItem | null;
   onRegister: (webinar: WebinarItem) => void;
   onBackToHome?: () => void;
+  onViewAllWebinars?: () => void;
 }
 
 export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
@@ -32,11 +35,15 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
   onClose,
   webinar,
   onRegister,
-  onBackToHome
+  onBackToHome,
+  onViewAllWebinars
 }) => {
+  const owned = useOwnedPurchases();
   if (!isOpen || !webinar) return null;
 
   const price = webinar.priceINR || DEFAULT_SITE_CONFIG.webinarDefaultPriceINR;
+  const priced = withGstRupees(price);
+  const alreadyOwned = owned.has('webinar', webinar.id);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#061b3b]/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
@@ -95,7 +102,7 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
                 <span>{webinar.time} ({webinar.duration})</span>
               </div>
               <div className="flex items-center gap-1.5 bg-[#79fd8d]/25 text-[#79fd8d] px-3 py-1.5 rounded-xl font-bold border border-[#79fd8d]/30">
-                <span>Pass: ₹{price}</span>
+                <span>Pass: {formatINR(priced.total)} incl. GST</span>
               </div>
             </div>
           </div>
@@ -162,7 +169,7 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
           <div className="p-4 rounded-2xl bg-[#f1f3ff] border border-[#cbdaff] flex flex-col gap-2">
             <span className="text-xs font-black uppercase tracking-wider text-[#002869] flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-[#006e29]" />
-              <span>Standard Pass Includes (₹{price}):</span>
+              <span>Standard Pass Includes ({formatINR(priced.total)} incl. GST):</span>
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#061b3b]">
               <span className="flex items-center gap-1.5">
@@ -189,13 +196,22 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
         {/* Modal Bottom Actions with Back & Next navigation */}
         <div className="p-5 bg-[#f1f3ff] border-t border-[#cbdaff] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <button
-            onClick={onClose}
+            type="button"
+            onClick={() => {
+              if (onViewAllWebinars) onViewAllWebinars();
+              else onClose();
+            }}
             className="text-xs font-bold text-[#434652] hover:text-[#061b3b] cursor-pointer flex items-center gap-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>← Back to Masterclasses</span>
+            <span>{onViewAllWebinars ? 'View all webinars' : '← Back to Masterclasses'}</span>
           </button>
 
+          {alreadyOwned ? (
+            <span className="w-full sm:w-auto px-6 py-3 bg-[#e8f8ee] text-[#00531d] font-black text-xs sm:text-sm rounded-xl text-center">
+              Already registered
+            </span>
+          ) : (
           <button
             onClick={() => {
               onClose();
@@ -203,9 +219,10 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
             }}
             className="w-full sm:w-auto px-6 py-3 bg-[#002869] hover:bg-[#0b3d91] text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
           >
-            <span>Register for ₹{price}</span>
+            <span>Register for {formatINR(priced.total)} (incl. GST)</span>
             <ArrowRight className="w-4 h-4 text-[#79fd8d]" />
           </button>
+          )}
         </div>
 
       </div>

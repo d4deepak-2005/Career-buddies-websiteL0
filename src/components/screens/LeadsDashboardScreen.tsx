@@ -4,7 +4,6 @@ import {
   Users, 
   Search, 
   Filter, 
-  Download, 
   Phone, 
   Mail, 
   MessageSquare, 
@@ -18,6 +17,8 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
+import { downloadExcel, inDateRange, stampFileDate } from '../../utils/excelExport';
+import { DateRange, ExportExcelDialog } from './admin/ExportExcelDialog';
 import { adminFetch } from '../../utils/adminAuth';
 import { ModalA11y } from '../common/ModalA11y';
 
@@ -34,6 +35,7 @@ export const LeadsDashboardScreen: React.FC<LeadsDashboardScreenProps> = ({ setA
   const [notesText, setNotesText] = useState('');
   const [updating, setUpdating] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -108,40 +110,56 @@ export const LeadsDashboardScreen: React.FC<LeadsDashboardScreenProps> = ({ setA
     return matchStatus && matchQuery;
   });
 
-  const exportToCSV = () => {
-    const headers = ['ID', 'Date (IST)', 'First Name', 'Last Name', 'Mobile', 'Email', 'Current Role', 'Experience', 'Industry', 'Plan Interest', 'Requirement', 'Status', 'WhatsApp Notified', 'Notes'];
-    const rows = filteredLeads.map(l => {
-      const notesFormatted = Array.isArray(l.notes) 
-        ? l.notes.map(n => n.text).join('; ') 
-        : typeof l.notes === 'string' 
-        ? l.notes 
-        : '';
-      return [
-        l.id,
-        l.timestampIST || l.createdAt,
-        `"${l.firstName}"`,
-        `"${l.lastName}"`,
-        `"${l.mobile}"`,
-        `"${l.email}"`,
-        `"${l.currentRole}"`,
-        `"${l.experience}"`,
-        `"${l.industry}"`,
-        `"${l.planInterest || ''}"`,
-        `"${(l.requirement || '').replace(/"/g, '""')}"`,
-        l.status,
-        l.whatsAppNotified ? 'Yes' : 'No',
-        `"${notesFormatted.replace(/"/g, '""')}"`
-      ];
-    });
+  const leadsForExport = (range: DateRange) =>
+    filteredLeads.filter((l) => inDateRange(l.createdAt, range.from, range.to));
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `CareerBuddies_Leads_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const exportToExcel = (range: DateRange) => {
+    const rows = leadsForExport(range);
+    if (rows.length === 0) return;
+    downloadExcel(
+      `careerbuddies-leads-${stampFileDate()}`,
+      'Leads',
+      [
+        'ID',
+        'Date (IST)',
+        'First Name',
+        'Last Name',
+        'Mobile',
+        'Email',
+        'Current Role',
+        'Experience',
+        'Industry',
+        'Plan Interest',
+        'Requirement',
+        'Status',
+        'WhatsApp Notified',
+        'Notes',
+      ],
+      rows.map((l) => {
+        const notesFormatted = Array.isArray(l.notes)
+          ? l.notes.map((n) => n.text).join('; ')
+          : typeof l.notes === 'string'
+            ? l.notes
+            : '';
+        return [
+          l.id,
+          l.timestampIST || l.createdAt,
+          l.firstName,
+          l.lastName,
+          l.mobile,
+          l.email,
+          l.currentRole,
+          l.experience,
+          l.industry,
+          l.planInterest || '',
+          l.requirement || '',
+          l.status,
+          l.whatsAppNotified ? 'Yes' : 'No',
+          notesFormatted,
+        ];
+      })
+    );
+    setExportOpen(false);
   };
 
   return (
@@ -201,11 +219,12 @@ export const LeadsDashboardScreen: React.FC<LeadsDashboardScreenProps> = ({ setA
             </button>
 
             <button
-              onClick={exportToCSV}
-              className="px-4 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+              onClick={() => setExportOpen(true)}
+              disabled={filteredLeads.length === 0}
+              className="px-4 py-2.5 bg-[#006e29] hover:bg-[#00531d] text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <Download className="w-4 h-4" />
-              <span>Export CSV</span>
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Export Excel</span>
             </button>
           </div>
         </div>
@@ -478,6 +497,15 @@ export const LeadsDashboardScreen: React.FC<LeadsDashboardScreenProps> = ({ setA
         )}
 
       </div>
+
+      <ExportExcelDialog
+        isOpen={exportOpen}
+        title="Export leads"
+        description="Only lead rows from this desk. Choose a date range, then download an Excel file."
+        matchCount={(range) => leadsForExport(range).length}
+        onClose={() => setExportOpen(false)}
+        onExport={exportToExcel}
+      />
     </div>
   );
 };

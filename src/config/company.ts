@@ -4,8 +4,8 @@ import { WEBINAR_ENTRY_PRICE_INR } from './webinars';
 export const COMPANY_CONFIG: SiteConfig = {
   companyName: "CareerBuddies",
   brandTagline: "YOUR CAREER | OUR GUIDANCE",
-  logoUrl: "/logo.png",
-  heroImageUrl: "/logo.png",
+  logoUrl: "",
+  heroImageUrl: "",
   webinarDefaultPriceINR: WEBINAR_ENTRY_PRICE_INR,
   officeAddress: "Samhita Spicewood West Block, 6th Main, GM Palya, CV Raman Nagar, Bengaluru, Karnataka - 560075",
   supportEmail: "support@careerbuddies.in",
