@@ -24,6 +24,12 @@ const candidateItemSchema = new mongoose.Schema(
     advisorName: { type: String, default: '', maxlength: 200 },
     advisorRole: { type: String, default: '', maxlength: 200 },
     sessionStatus: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' },
+    // The mentor account (a Candidate with accountType "mentor") running this session. Null for
+    // sessions that have no mentor assigned yet. Drives what the Mentor Portal shows that mentor.
+    mentorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate', default: null, index: true },
+    // Written by the mentor after the session, through the Mentor Portal.
+    mentorNotes: { type: String, default: '', maxlength: 4000 },
+    notesSubmitted: { type: Boolean, default: false },
 
     // invoice
     invoiceNo: { type: String, default: '', maxlength: 60 },

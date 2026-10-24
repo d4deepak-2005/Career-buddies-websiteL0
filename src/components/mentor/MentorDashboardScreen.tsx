@@ -24,7 +24,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import type { CandidateProfile } from '../../utils/candidateAuth';
+import { candidateFetch, type CandidateProfile } from '../../utils/candidateAuth';
 import type { MentorAvailabilitySlot, MentorSession } from '../../config/mentorPortalSampleData';
 import { useMentorPortalData } from '../../hooks/useMentorPortalData';
 import { MentorSessionsTable, type SessionAction } from './MentorSessionsTable';
@@ -79,7 +79,7 @@ interface MentorDashboardScreenProps {
 }
 
 export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ account, onSignOut, onExitToSite }) => {
-  const { data, setData, loading, error, refresh } = useMentorPortalData();
+  const { data, setData, loading, error, refresh } = useMentorPortalData(!!account);
   const [view, setView] = useState<MentorView>('dashboard');
   const [theme, setTheme] = useState<MentorTheme>(readTheme);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -181,15 +181,40 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
     setDialog({ kind: action, sessionId: session.id });
   };
 
-  const saveNotes = (sessionId: string) => {
+  const [notesError, setNotesError] = useState('');
+  const [notesSaving, setNotesSaving] = useState(false);
+
+  const saveNotes = async (sessionId: string) => {
     const text = notesDraft.trim();
     if (!text) return;
-    setData((prev) =>
-      prev
-        ? { ...prev, sessions: prev.sessions.map((s) => (s.id === sessionId ? { ...s, notes: text, notesSubmitted: true } : s)) }
-        : prev
-    );
-    setDialog(null);
+    const markSaved = () =>
+      setData((prev) =>
+        prev
+          ? { ...prev, sessions: prev.sessions.map((s) => (s.id === sessionId ? { ...s, notes: text, notesSubmitted: true } : s)) }
+          : prev
+      );
+    // Preview mode has no account, so the notes stay in this tab only.
+    if (!account) {
+      markSaved();
+      setDialog(null);
+      return;
+    }
+    setNotesSaving(true);
+    setNotesError('');
+    try {
+      const res = await candidateFetch(`/api/mentor/sessions/${sessionId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ notes: text }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) throw new Error(body.error || 'Could not save your notes. Please try again.');
+      markSaved();
+      setDialog(null);
+    } catch (err: any) {
+      setNotesError(err?.message || 'Could not save your notes. Please try again.');
+    } finally {
+      setNotesSaving(false);
+    }
   };
 
   const goView = (next: MentorView) => {
@@ -276,7 +301,7 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
               <button type="button" className="admin-btn" onClick={() => setDialog(null)}>
                 Cancel
               </button>
-              <button type="button" className="admin-btn-primary" disabled={!notesDraft.trim()} onClick={() => saveNotes(s.id)}>
+              <button type="button" className="admin-btn-primary" disabled={!notesDraft.trim() || notesSaving} onClick={() => saveNotes(s.id)}>
                 <NotebookPen className="w-3.5 h-3.5" /> Submit notes
               </button>
             </>
@@ -296,6 +321,7 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
           {isSample && (
             <p className="mt-2 text-[12px] text-[var(--admin-muted)]">Sample data: notes are kept in this browser tab only.</p>
           )}
+          {notesError && <p className="mt-2 text-[12px] text-red-600">{notesError}</p>}
         </MentorDialog>
       );
     }

@@ -16,9 +16,10 @@ const KINDS: { id: Kind; label: string; single: string; allowAll: boolean }[] = 
 ];
 
 interface CandidateOption { id: string; name: string; email: string }
+interface MentorOption { id: string; name: string; email: string }
 interface ItemRow {
   id: string; kind: Kind; candidateId: string | null; title: string; description?: string; url?: string; category?: string;
-  startsAt?: string; durationMinutes?: number; advisorName?: string; advisorRole?: string; sessionStatus?: string;
+  startsAt?: string; durationMinutes?: number; advisorName?: string; advisorRole?: string; sessionStatus?: string; mentorId?: string | null;
   invoiceNo?: string; amount?: number; currency?: string; issuedAt?: string; paymentOrderRef?: string; visible?: boolean; readCount?: number;
 }
 
@@ -36,7 +37,7 @@ const toLocalInput = (iso?: string) => {
 const emptyForm = (kind: Kind) => ({
   audience: KINDS.find((k) => k.id === kind)!.allowAll ? 'all' : 'one',
   candidateId: '', title: '', description: '', url: '', category: '',
-  startsAt: '', durationMinutes: '', advisorName: '', advisorRole: '', sessionStatus: 'scheduled',
+  startsAt: '', durationMinutes: '', advisorName: '', advisorRole: '', sessionStatus: 'scheduled', mentorId: '',
   invoiceNo: '', amount: '', currency: 'INR', issuedAt: '', paymentOrderRef: '', visible: true,
 });
 
@@ -44,6 +45,7 @@ export const CandidateContentPanel: React.FC = () => {
   const [kind, setKind] = useState<Kind>('notification');
   const [items, setItems] = useState<ItemRow[]>([]);
   const [candidates, setCandidates] = useState<CandidateOption[]>([]);
+  const [mentors, setMentors] = useState<MentorOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [form, setForm] = useState<ReturnType<typeof emptyForm> | null>(null);
@@ -63,13 +65,15 @@ export const CandidateContentPanel: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const [listRes, candRes] = await Promise.all([
+      const [listRes, candRes, mentorRes] = await Promise.all([
         adminFetch(`/api/admin/candidate-items?kind=${kind}`),
         adminFetch('/api/admin/candidate-items/candidates'),
+        adminFetch('/api/admin/mentor-accounts'),
       ]);
-      if (!listRes.ok || !candRes.ok) throw new Error('Request failed');
+      if (!listRes.ok || !candRes.ok || !mentorRes.ok) throw new Error('Request failed');
       setItems((await listRes.json()).items || []);
       setCandidates((await candRes.json()).items || []);
+      setMentors((await mentorRes.json()).items || []);
     } catch {
       setError('Could not load records. Please try again.');
     } finally {
@@ -93,7 +97,7 @@ export const CandidateContentPanel: React.FC = () => {
       candidateId: row.candidateId || '',
       title: row.title || '', description: row.description || '', url: row.url || '', category: row.category || '',
       startsAt: toLocalInput(row.startsAt), durationMinutes: row.durationMinutes != null ? String(row.durationMinutes) : '',
-      advisorName: row.advisorName || '', advisorRole: row.advisorRole || '', sessionStatus: row.sessionStatus || 'scheduled',
+      advisorName: row.advisorName || '', advisorRole: row.advisorRole || '', sessionStatus: row.sessionStatus || 'scheduled', mentorId: row.mentorId || '',
       invoiceNo: row.invoiceNo || '', amount: row.amount != null ? String(row.amount) : '', currency: row.currency || 'INR',
       issuedAt: toLocalInput(row.issuedAt).slice(0, 10), paymentOrderRef: row.paymentOrderRef || '', visible: row.visible !== false,
     });
@@ -231,6 +235,15 @@ export const CandidateContentPanel: React.FC = () => {
                 <div>
                   <label className={labelCls} htmlFor="cc-dur">Duration (minutes, optional)</label>
                   <input id="cc-dur" type="number" min={0} max={1440} className={inputCls} value={form.durationMinutes} onChange={(e) => set({ durationMinutes: e.target.value })} />
+                </div>
+                <div>
+                  <label className={labelCls} htmlFor="cc-mentor">Mentor (shows in their Mentor Portal)</label>
+                  <select id="cc-mentor" className={inputCls} value={form.mentorId} onChange={(e) => set({ mentorId: e.target.value })}>
+                    <option value="">No mentor assigned</option>
+                    {mentors.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name ? `${m.name} (${m.email})` : m.email}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className={labelCls} htmlFor="cc-adv">Advisor / mentor name (optional)</label>

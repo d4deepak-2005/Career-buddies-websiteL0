@@ -139,6 +139,14 @@ async function buildItem(kind: ItemKind, body: any) {
     doc.startsAt = cleanDate(body.startsAt, 'Session date and time', true);
     doc.advisorName = str(body.advisorName, 200);
     doc.advisorRole = str(body.advisorRole, 200);
+    // The mentor who runs it: must be a mentor account. Empty clears the assignment.
+    if (body.mentorId === '' || body.mentorId == null) {
+      doc.mentorId = null;
+    } else {
+      if (!isId(body.mentorId)) throw new ValidationError('Choose a valid mentor.');
+      if (!(await Candidate.exists({ _id: body.mentorId, accountType: 'mentor' }))) throw new ValidationError('That mentor account does not exist.');
+      doc.mentorId = new mongoose.Types.ObjectId(body.mentorId);
+    }
     const dur = body.durationMinutes === '' || body.durationMinutes == null ? undefined : Number(body.durationMinutes);
     if (dur !== undefined && (!Number.isFinite(dur) || dur < 0 || dur > 1440)) throw new ValidationError('Duration must be between 0 and 1440 minutes.');
     doc.durationMinutes = dur;

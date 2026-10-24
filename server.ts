@@ -29,6 +29,7 @@ import mediaRouter from './server/routes/media.ts';
 import candidateRouter from './server/routes/candidate.ts';
 import { aiChatHandler } from './server/ai/assistant.ts';
 import { candidateItemsRouter, adminCandidateItemsRouter } from './server/routes/candidateItems.ts';
+import { mentorPortalRouter } from './server/routes/mentorPortal.ts';
 import { listAdminCandidates, getAdminCandidate } from './server/routes/adminCandidates.ts';
 import { listAdminNotifications, streamAdminNotifications } from './server/routes/adminNotifications.ts';
 import {
@@ -1016,6 +1017,7 @@ app.use('/api/media', mediaRouter);
 // general candidate router; the admin side lives under /api/admin and is admin-only.
 app.use('/api/candidate/items', candidateItemsRouter);
 app.use('/api/admin/candidate-items', adminCandidateItemsRouter);
+app.use('/api/mentor', mentorPortalRouter);
 // Admin payment granting (mark-as-paid / manual grants for out-of-band payments). Admin-only.
 app.use('/api/admin/payments', adminPaymentsRouter);
 app.get('/api/admin/candidates', requireAdminAuth, listAdminCandidates);
