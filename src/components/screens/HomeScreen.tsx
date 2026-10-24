@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useMentors, usePlans, useServices, useWebinarOffer, webinarPriceSuffix, withEntryPrice } from '../../hooks/useCmsCatalog';
 import { usePublicLoading } from '../../hooks/usePublicCollection';
 import { CardGridSkeleton } from '../common/Skeleton';
@@ -17,6 +17,7 @@ import { WhyTrustSection } from '../common/WhyTrustSection';
 import { LeadershipSection } from '../common/LeadershipSection';
 import { SectionHeading } from '../common/SectionHeading';
 import { SiteSettingsData, pickText } from '../../hooks/useSiteSettings';
+import { PendingCheckout } from '../../utils/checkoutIntent';
 import { 
   ShieldCheck, 
   TrendingUp, 
@@ -89,6 +90,12 @@ interface HomeScreenProps {
   onOpenLiveWebinar?: (webinar?: WebinarItem | null) => void;
   onSelectLeader?: (slug: string) => void;
   siteSettings?: SiteSettingsData | null;
+  // Returns true when signed in (caller opens checkout); otherwise shows the
+  // auth popup and the checkout reopens automatically after login.
+  onRequireAuth?: (intent: PendingCheckout) => boolean;
+  // Checkout waiting for a just-completed sign-in (social redirect flow).
+  restoredCheckout?: PendingCheckout | null;
+  onRestoredCheckoutHandled?: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -102,7 +109,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   setActivePage,
   onOpenLiveWebinar,
   onSelectLeader,
-  siteSettings
+  siteSettings,
+  onRequireAuth,
+  restoredCheckout,
+  onRestoredCheckoutHandled
 }) => {
   const savedTitle = siteSettings?.home?.heroTitle?.trim() || '';
   const savedSubtitle = siteSettings?.home?.heroSubtitle?.trim() || '';
@@ -202,8 +212,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       onSelectPlan(plan);
       return;
     }
+    if (onRequireAuth && !onRequireAuth({ type: 'plan', item: plan })) return;
     setPayPlan(plan);
   };
+
+  // Reopen a checkout that was waiting for a sign-in to finish (social redirect
+  // flow hands the item back through App).
+  useEffect(() => {
+    if (restoredCheckout?.type === 'plan') {
+      setPayPlan(restoredCheckout.item);
+      onRestoredCheckoutHandled?.();
+    }
+  }, [restoredCheckout, onRestoredCheckoutHandled]);
   const previewMentors = useMemo(() => {
     const featured = allMentors.filter((m) => m.featured);
     const rest = allMentors.filter((m) => !m.featured);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { WebinarItem, WebinarRegistration } from '../../types';
 import { CheckoutRequest, startCheckout } from '../../utils/checkout';
+import { CandidateProfile, candidateFetch, getCandidateToken } from '../../utils/candidateAuth';
 import { formatINR, withGstRupees } from '../../utils/gst';
 import { DEFAULT_SITE_CONFIG } from '../../config/siteConfig';
 import { 
@@ -95,6 +96,33 @@ export const WebinarCheckoutModal: React.FC<WebinarCheckoutModalProps> = ({
     setPaymentError('');
     setIsProcessing(false);
     setFieldErrors({});
+  }, [isOpen, item?.itemId]);
+
+  // Prefill from the signed-in profile. Only fields the user hasn't typed into
+  // are filled, so this never overwrites input.
+  useEffect(() => {
+    if (!isOpen || !getCandidateToken()) return;
+    let live = true;
+    candidateFetch('/api/candidate/me')
+      .then(async (res) => {
+        if (!live || !res.ok) return;
+        const body = await res.json().catch(() => null);
+        const profile = body?.candidate as CandidateProfile | undefined;
+        if (!profile) return;
+        setFirstName((v) => v || profile.firstName || '');
+        setLastName((v) => v || profile.lastName || '');
+        setEmail((v) => v || profile.email || '');
+        setMobile((v) => v || profile.mobile || '');
+        setCurrentDesignation((v) => v || profile.currentDesignation || '');
+        setTotalExperience((v) => v || profile.totalExperience || '');
+        setLinkedinUrl((v) => v || profile.linkedinUrl || '');
+        setAlternateEmail((v) => v || profile.alternateEmail || '');
+        setAlternateNumber((v) => v || profile.alternateNumber || '');
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
   }, [isOpen, item?.itemId]);
 
   const price = item?.priceINR || 0;

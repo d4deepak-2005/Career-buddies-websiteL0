@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
 import { startCheckout, getCheckoutQuote, CheckoutQuote, CheckoutRequest } from '../../utils/checkout';
+import { CandidateProfile, candidateFetch, getCandidateToken } from '../../utils/candidateAuth';
 import { formatINR } from '../../utils/gst';
 import { ModalA11y } from '../common/ModalA11y';
 
@@ -52,6 +53,27 @@ export const OnlineCheckoutModal: React.FC<OnlineCheckoutModalProps> = ({
       live = false;
     };
   }, [isOpen, itemType, itemId]);
+
+  // Prefill from the signed-in profile. Only fields the user hasn't typed into
+  // are filled, so this never overwrites input.
+  useEffect(() => {
+    if (!isOpen || !getCandidateToken()) return;
+    let live = true;
+    candidateFetch('/api/candidate/me')
+      .then(async (res) => {
+        if (!live || !res.ok) return;
+        const body = await res.json().catch(() => null);
+        const profile = body?.candidate as CandidateProfile | undefined;
+        if (!profile) return;
+        setName((v) => v || `${profile.firstName || ''} ${profile.lastName || ''}`.trim());
+        setEmail((v) => v || profile.email || '');
+        setMobile((v) => v || profile.mobile || '');
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

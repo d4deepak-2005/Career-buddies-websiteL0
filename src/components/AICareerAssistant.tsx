@@ -369,9 +369,8 @@ const MessageBubble = React.memo(function MessageBubble({
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[92%] break-words rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[88%] ${
-          isUser ? 'rounded-br-md bg-[#0b2b5c] text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-700'
-        }`}
+        className={`max-w-[92%] break-words rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[88%] ${isUser ? 'rounded-br-md bg-[#0b2b5c] text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-700'
+          }`}
       >
         {isUser ? (
           message.content
@@ -532,7 +531,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar, onViewO
           experience: c.totalExperience || '',
         };
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -648,7 +647,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar, onViewO
           }
         };
 
-        for (;;) {
+        for (; ;) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
@@ -782,7 +781,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar, onViewO
 
   return (
     <>
-      {!isOpen && (
+      {/* {!isOpen && (
         <button
           type="button"
           id="ai-assistant-launcher"
@@ -799,7 +798,7 @@ export function AICareerAssistant({ onConnectAdvisor, onRegisterWebinar, onViewO
             />
           )}
         </button>
-      )}
+      )} */}
 
       {isOpen && (
         <div

@@ -16,6 +16,11 @@ export interface LeadInput {
   alternateEmail?: string;
   linkedinUrl?: string;
   notes: string;
+  mentorId?: string;
+  mentorName?: string;
+  bookingDate?: string;
+  bookingSlot?: string;
+  bookingTopic?: string;
 }
 
 // (A plain shape rather than a discriminated union: the project doesn't enable strict null checks.)
@@ -95,6 +100,12 @@ export function validateLead(body: any): LeadValidation {
   const planInterest = read(b.planInterest, 200, errors, 'planInterest') || serviceInterested || 'General Counselling';
   const source = read(b.source, 100, errors, 'source') || 'Website Intake';
 
+  const mentorId = read(b.mentorId, 100, errors, 'mentorId');
+  const mentorName = read(b.mentorName, 200, errors, 'mentorName');
+  const bookingDate = read(b.bookingDate, 100, errors, 'bookingDate');
+  const bookingSlot = read(b.bookingSlot, 100, errors, 'bookingSlot');
+  const bookingTopic = read(b.bookingTopic, 200, errors, 'bookingTopic');
+
   // Cheap spam guard: real enquiries rarely contain several links.
   const links = (`${requirement} ${notes}`.match(/https?:\/\//gi) || []).length;
   if (links > 3 && !errors.requirement) errors.requirement = 'Please remove links from your message.';
@@ -119,6 +130,11 @@ export function validateLead(body: any): LeadValidation {
       alternateEmail: altEmail || undefined,
       linkedinUrl: linkedin || undefined,
       notes,
+      mentorId: mentorId || undefined,
+      mentorName: mentorName || undefined,
+      bookingDate: bookingDate || undefined,
+      bookingSlot: bookingSlot || undefined,
+      bookingTopic: bookingTopic || undefined,
     },
   };
 }

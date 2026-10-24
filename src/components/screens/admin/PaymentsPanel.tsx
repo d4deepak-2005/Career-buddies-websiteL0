@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CreditCard, Download, Mail, Phone, RefreshCw, Search, X } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, CreditCard, Download, Mail, Phone, RefreshCw, Search, X } from 'lucide-react';
 import { adminFetch } from '../../../utils/adminAuth';
 import { TableSkeleton } from '../../common/Skeleton';
 import { ModalA11y } from '../../common/ModalA11y';
@@ -222,6 +222,147 @@ const PaymentDetailModal: React.FC<{ payment: AdminPaymentRecord; onClose: () =>
   );
 };
 
+// ---- Status change dialog: click a payment's status badge to mark it as paid ------------
+// For money that arrived outside the online flow (UPI / bank transfer / cash). Writes
+// details.manualPayment on the row and an admin audit log entry.
+
+const PAY_METHODS = [
+  { id: 'upi', label: 'UPI' },
+  { id: 'bank_transfer', label: 'Bank transfer' },
+  { id: 'cash', label: 'Cash' },
+  { id: 'other', label: 'Other' },
+];
+
+const StatusChangeModal: React.FC<{
+  payment: AdminPaymentRecord;
+  onClose: () => void;
+  onMarked: () => void;
+}> = ({ payment, onClose, onMarked }) => {
+  const paid = payment.status === 'succeeded';
+  const manual = (payment.details as any)?.manualPayment as
+    | { by?: string; method?: string; note?: string; at?: string }
+    | undefined;
+  const [amount, setAmount] = useState(() => {
+    const minor = payment.expectedAmount ?? payment.amount;
+    return typeof minor === 'number' ? String(minor / 100) : '';
+  });
+  const [method, setMethod] = useState('upi');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      const res = await adminFetch(`/api/admin/payments/${payment.orderRef}/mark-paid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, method, note }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) throw new Error(body.error || 'Could not mark as paid.');
+      onMarked();
+    } catch (err: any) {
+      setError(err.message || 'Could not mark as paid.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <button type="button" className="absolute inset-0 bg-black/50 backdrop-blur-md" aria-label="Close status dialog" onClick={onClose} />
+      <ModalA11y label="Change payment status" onClose={onClose} />
+      <div className="relative w-full sm:max-w-[440px] max-h-[92vh] bg-[var(--admin-sidebar)] border border-[var(--admin-border)] sm:rounded-[28px] rounded-t-[28px] shadow-[0_28px_80px_rgba(0,0,0,0.28)] overflow-hidden flex flex-col">
+        <div className="relative px-6 pt-6 pb-6 bg-[var(--admin-soft)]">
+          <div className="flex items-start justify-between gap-3">
+            <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold ${statusTone(payment.status)}`}>
+              {STATUS_LABEL[payment.status] || payment.status}
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-[var(--admin-page)] border border-[var(--admin-border)] text-[var(--admin-muted)] hover:text-[var(--admin-text)] flex items-center justify-center cursor-pointer"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="mt-5 text-[12px] uppercase tracking-[0.16em] text-[var(--admin-muted)]">{paid ? 'Paid' : 'Amount'}</p>
+          <p className="mt-1 text-[30px] leading-none font-semibold tracking-tight text-[var(--admin-text)]">
+            {formatMoney(minorToMajor(undefined, paid, payment), (paid && payment.currency) || payment.expectedCurrency || payment.currency || 'INR')}
+          </p>
+          <p className="mt-2 text-[14px] text-[var(--admin-text)] truncate">{payment.itemName || 'Untitled item'}</p>
+          <p className="text-[12px] text-[var(--admin-muted)] truncate">
+            {[payment.customerName, payment.customerEmail].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+
+        <div className="overflow-y-auto px-6 py-5 flex flex-col gap-4">
+          {paid ? (
+            <div className="rounded-2xl border border-[var(--admin-border)] p-4">
+              <p className="text-[13px] text-[var(--admin-text)]">
+                This payment is already <strong>Paid</strong>.
+              </p>
+              {manual && (
+                <p className="mt-2 text-[12px] text-[var(--admin-muted)]">
+                  Marked manually{manual.by ? ` by ${manual.by}` : ''}
+                  {manual.method ? ` (${PAY_METHODS.find((m) => m.id === manual.method)?.label || manual.method})` : ''}
+                  {manual.at ? ` on ${formatWhen(manual.at)}` : ''}.
+                  {manual.note ? ` Note: ${manual.note}` : ''}
+                </p>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={submit} className="flex flex-col gap-4">
+              <p className="text-[12px] text-[var(--admin-muted)]">
+                Use this when the candidate paid outside the website (UPI, bank transfer, cash). Marking it paid puts the
+                item on their dashboard.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] uppercase tracking-[0.14em] text-[var(--admin-muted)] block mb-1" htmlFor="st-amount">Amount paid (₹)</label>
+                  <input
+                    id="st-amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] uppercase tracking-[0.14em] text-[var(--admin-muted)] block mb-1" htmlFor="st-method">How they paid</label>
+                  <select id="st-method" value={method} onChange={(e) => setMethod(e.target.value)}>
+                    {PAY_METHODS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.14em] text-[var(--admin-muted)] block mb-1" htmlFor="st-note">Note (optional — UPI id, transaction ref…)</label>
+                <input id="st-note" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+              </div>
+              {error && <p role="alert" className="text-[12px] font-semibold text-red-800 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
+              <div className="flex gap-2">
+                <button type="submit" disabled={saving} className="admin-btn admin-btn-primary">
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  {saving ? 'Marking…' : 'Mark as paid'}
+                </button>
+                <button type="button" onClick={onClose} className="admin-btn">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const PaymentsPanel: React.FC = () => {
   const [items, setItems] = useState<AdminPaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,6 +371,7 @@ export const PaymentsPanel: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [exportOpen, setExportOpen] = useState(false);
   const [openPayment, setOpenPayment] = useState<AdminPaymentRecord | null>(null);
+  const [statusPayment, setStatusPayment] = useState<AdminPaymentRecord | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -455,9 +597,16 @@ export const PaymentsPanel: React.FC = () => {
                     {p.gstRate ? <span className="block text-[11px] text-[var(--admin-muted)]">incl. GST</span> : null}
                   </td>
                   <td>
-                    <span className={`inline-flex max-w-full truncate px-2 py-0.5 rounded-md text-[11px] font-medium ${statusTone(p.status)}`}>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setStatusPayment(p); }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      className={`inline-flex max-w-full truncate px-2 py-0.5 rounded-md text-[11px] font-medium cursor-pointer ${statusTone(p.status)}`}
+                      aria-label={`Change status for order ${p.orderRef} (currently ${STATUS_LABEL[p.status] || p.status})`}
+                      title="Change status"
+                    >
                       {STATUS_LABEL[p.status] || p.status}
-                    </span>
+                    </button>
                   </td>
                   <td className="font-mono text-[11px] text-[var(--admin-muted)] truncate" title={p.candidateId || ''}>
                     {p.candidateId ? String(p.candidateId) : '—'}
@@ -485,6 +634,14 @@ export const PaymentsPanel: React.FC = () => {
       />
 
       {openPayment && <PaymentDetailModal payment={openPayment} onClose={() => setOpenPayment(null)} />}
+
+      {statusPayment && (
+        <StatusChangeModal
+          payment={statusPayment}
+          onClose={() => setStatusPayment(null)}
+          onMarked={() => { setStatusPayment(null); load(); }}
+        />
+      )}
     </div>
   );
 };

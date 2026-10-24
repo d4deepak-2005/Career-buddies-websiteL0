@@ -6,6 +6,9 @@ const webinarSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     tagline: { type: String, default: '' },
+    // Short promo strip shown on the webinar card + detail modal
+    // (e.g. "Limited seats available"). Blank = no banner.
+    bannerText: { type: String, default: '', trim: true },
     description: { type: String, default: '' },
     category: { type: String, default: '' },
     speakerName: { type: String, default: '', trim: true },
@@ -32,6 +35,8 @@ const webinarSchema = new mongoose.Schema(
     dodoProductId: { type: String, default: '' },
     displayOrder: { type: Number, default: 0 },
     visible: { type: Boolean, default: true },
+    // Link to a Mentor document — populated when a mentor is selected in admin
+    mentorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Mentor', default: null },
   },
   { timestamps: true }
 );

@@ -203,6 +203,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             >
               I am a Candidate / Learner
             </button>
+            {/* Mentors now use the dedicated portal — commenting out advisor tab */}
+            {/*
             <button
               type="button"
               onClick={() => setUserRole('mentor')}
@@ -212,6 +214,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             >
               I am an Advisor / Expert
             </button>
+            */}
           </div>
 </>)}
 

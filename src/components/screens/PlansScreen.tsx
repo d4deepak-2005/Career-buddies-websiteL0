@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePlans, useWebinarOffer } from '../../hooks/useCmsCatalog';
 import { OnlineCheckoutModal } from '../modals/OnlineCheckoutModal';
 import { PlanItem, PageView } from '../../types';
+import { PendingCheckout } from '../../utils/checkoutIntent';
 import { 
   Check, 
   X, 
@@ -23,18 +24,36 @@ interface PlansScreenProps {
   onSelectPlan: (plan: PlanItem) => void;
   onOpenCounselling?: () => void;
   setActivePage?: (page: PageView) => void;
+  // Returns true when signed in (caller opens checkout); otherwise shows the
+  // auth popup and the checkout reopens automatically after login.
+  onRequireAuth: (intent: PendingCheckout) => boolean;
+  // Checkout waiting for a just-completed sign-in (social redirect flow).
+  restoredCheckout?: PendingCheckout | null;
+  onRestoredCheckoutHandled?: () => void;
 }
 
 export const PlansScreen: React.FC<PlansScreenProps> = ({
   onSelectPlan,
   onOpenCounselling,
-  setActivePage
+  setActivePage,
+  onRequireAuth,
+  restoredCheckout,
+  onRestoredCheckoutHandled
 }) => {
   const CAREER_PLANS = usePlans();
   const plansLoading = usePublicLoading('/api/plans');
   const { hasLive } = useWebinarOffer();
   const [payPlan, setPayPlan] = useState<PlanItem | null>(null);
   const owned = useOwnedPurchases();
+
+  // Reopen a checkout that was waiting for a sign-in to finish (social redirect
+  // flow hands the item back through App).
+  useEffect(() => {
+    if (restoredCheckout?.type === 'plan') {
+      setPayPlan(restoredCheckout.item);
+      onRestoredCheckoutHandled?.();
+    }
+  }, [restoredCheckout, onRestoredCheckoutHandled]);
 
   if (plansLoading && CAREER_PLANS.length === 0) return <PageSkeleton />;
 
@@ -186,7 +205,10 @@ export const PlansScreen: React.FC<PlansScreenProps> = ({
                     </p>
                     ) : (
                     <button
-                      onClick={() => setPayPlan(plan)}
+                      onClick={() => {
+                        if (!onRequireAuth({ type: 'plan', item: plan })) return;
+                        setPayPlan(plan);
+                      }}
                       className="w-full mt-2 py-2.5 rounded-xl font-black text-xs bg-white border border-[#006e29] text-[#006e29] hover:bg-[#f0faf3] transition-all cursor-pointer"
                     >
                       Pay online securely

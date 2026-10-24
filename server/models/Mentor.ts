@@ -17,6 +17,7 @@ const reviewSchema = new mongoose.Schema(
 const mentorSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    email: { type: String, default: '', trim: true, lowercase: true },
     photoUrl: { type: String, default: '' },
     designation: { type: String, default: '', trim: true },
     company: { type: String, default: '', trim: true },
@@ -44,5 +45,8 @@ const mentorSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const Mentor: mongoose.Model<any> =
-  mongoose.models.Mentor || mongoose.model('Mentor', mentorSchema);
+if (mongoose.models.Mentor) {
+  delete (mongoose.models as any).Mentor;
+}
+
+export const Mentor: mongoose.Model<any> = mongoose.model('Mentor', mentorSchema);

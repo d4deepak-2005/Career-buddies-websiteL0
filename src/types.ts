@@ -160,10 +160,15 @@ export interface Lead {
   requirement: string;
   planInterest?: string;
   source: string;
-  status: 'new' | 'contacted' | 'scheduled' | 'converted';
+  status: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled';
   notes?: LeadNote[];
   sheetSynced?: boolean;
   whatsAppNotified?: boolean;
+  mentorId?: string;
+  mentorName?: string;
+  bookingDate?: string;
+  bookingSlot?: string;
+  bookingTopic?: string;
 }
 
 export interface BookedSession {
@@ -216,6 +221,7 @@ export interface WebinarItem {
   id: string;
   title: string;
   tagline: string;
+  bannerText?: string; // promo strip on card + detail modal; empty/absent = no banner
   category: string;
   speaker: {
     name: string;

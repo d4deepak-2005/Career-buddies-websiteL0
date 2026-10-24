@@ -15,7 +15,8 @@ import {
   ChevronDown, 
   ChevronUp,
   ShieldCheck,
-  Home
+  Home,
+  Flame
 } from 'lucide-react';
 import { PageNavigationControls } from '../common/PageNavigationControls';
 import { SectionHeading } from '../common/SectionHeading';
@@ -190,6 +191,12 @@ export const WebinarsScreen: React.FC<WebinarsScreenProps> = ({
                 key={webinar.id}
                 className="bg-white rounded-3xl border border-[#cbdaff] hover:border-[#002869] transition-all duration-200 hover:shadow-lg flex flex-col justify-between overflow-hidden group"
               >
+                {webinar.bannerText && (
+                  <div className="px-5 py-1.5 bg-amber-400 text-amber-950 text-[11px] font-extrabold tracking-wide flex items-center justify-center gap-1.5">
+                    <Flame className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{webinar.bannerText}</span>
+                  </div>
+                )}
                 <div>
                   {/* Category & Pass Badge Header */}
                   <div className="p-5 pb-3 flex items-center justify-between border-b border-gray-100 bg-[#f9f9ff]">

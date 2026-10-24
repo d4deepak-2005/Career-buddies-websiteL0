@@ -19,9 +19,11 @@ import { CardGridSkeleton } from '../../common/Skeleton';
 export interface FieldConfig {
   key: string;
   label: string;
-  type?: 'text' | 'textarea' | 'tags' | 'number' | 'select' | 'checkbox' | 'json' | 'image';
+  type?: 'text' | 'textarea' | 'tags' | 'number' | 'select' | 'checkbox' | 'json' | 'image' | 'mentor-select';
   options?: string[];
   placeholder?: string;
+  // For mentor-select: map mentor fields -> form fields to auto-fill
+  autoFill?: Record<string, string>; // e.g. { photoUrl: 'speakerPhotoUrl', name: 'speakerName' }
 }
 
 interface RecordListEditorProps {
@@ -39,6 +41,8 @@ interface RecordListEditorProps {
   imageField?: string;
   // Callback when items are loaded or modified
   onItemsChange?: (items: Record<string, any>[]) => void;
+  // Optional extra content or action buttons rendered per row (e.g. portal status & invite)
+  renderItemExtra?: (item: Record<string, any>, refresh: () => void) => React.ReactNode;
 }
 
 const inputClass = 'w-full px-3';
@@ -65,6 +69,7 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
   filter,
   imageField,
   onItemsChange,
+  renderItemExtra,
 }) => {
   const [items, setItems] = useState<Record<string, any>[]>([]);
 
@@ -78,6 +83,17 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
   const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [savedFlash, setSavedFlash] = useState(false);
+  // Mentor options for mentor-select fields
+  const [mentorOptions, setMentorOptions] = useState<Record<string, any>[]>([]);
+
+  const hasMentorSelect = fields.some((f) => f.type === 'mentor-select');
+  useEffect(() => {
+    if (!hasMentorSelect) return;
+    adminFetch('/api/mentors/admin')
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setMentorOptions(d.items || []); })
+      .catch(() => {});
+  }, [hasMentorSelect]);
 
   const jsonFieldKeys = fields.filter((f) => f.type === 'json').map((f) => f.key);
 
@@ -150,6 +166,11 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
     setError('');
 
     const payload = { ...form };
+    delete payload._id;
+    delete payload.portalStatus;
+    delete payload.createdAt;
+    delete payload.updatedAt;
+    delete payload.__v;
     for (const key of jsonFieldKeys) {
       try {
         payload[key] = JSON.parse(jsonDrafts[key] || '[]');
@@ -345,6 +366,74 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
                   </div>
                 );
               }
+              if (field.type === 'mentor-select') {
+                const selectedMentor = mentorOptions.find(
+                  (m) => String(m._id) === String(form[field.key])
+                );
+                return (
+                  <div key={field.key}>
+                    <label htmlFor={`rle-${field.key}`} className={labelClass}>
+                      {field.label}
+                    </label>
+                    <select
+                      id={`rle-${field.key}`}
+                      value={form[field.key] || ''}
+                      onChange={(e) => {
+                        const mentorId = e.target.value;
+                        updateField(field.key, mentorId);
+                        // Auto-fill mapped fields when a mentor is selected
+                        if (mentorId && field.autoFill) {
+                          const mentor = mentorOptions.find((m) => String(m._id) === mentorId);
+                          if (mentor) {
+                            Object.entries(field.autoFill).forEach(([mentorField, formField]) => {
+                              updateField(formField, mentor[mentorField] ?? '');
+                            });
+                          }
+                        }
+                      }}
+                      className={inputClass}
+                      style={{ backgroundImage: 'none' }}
+                    >
+                      <option value="">— No mentor linked —</option>
+                      {mentorOptions.map((m) => (
+                        <option key={m._id} value={m._id}>
+                          {m.name}{m.designation ? ` · ${m.designation}` : ''}{m.company ? ` @ ${m.company}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedMentor && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        background: 'rgba(0,40,105,0.06)',
+                        borderRadius: '10px',
+                        border: '1px solid rgba(0,40,105,0.12)',
+                      }}>
+                        {selectedMentor.photoUrl && (
+                          <img
+                            src={selectedMentor.photoUrl}
+                            alt={selectedMentor.name}
+                            style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                          />
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#002869', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {selectedMentor.name}
+                          </div>
+                          {selectedMentor.designation && (
+                            <div style={{ fontSize: 11, color: '#666a76', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {selectedMentor.designation}{selectedMentor.company ? ` @ ${selectedMentor.company}` : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
               if (field.type === 'select') {
                 return (
                   <div key={field.key}>
@@ -431,8 +520,10 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
                 <p className="text-[12px] text-[var(--admin-muted)] truncate">
                   {[
                     subtitleField && item[subtitleField],
+                    item.email ? item.email : null,
                     typeof item.priceINR === 'number' && item.priceINR > 0 ? `₹${item.priceINR}` : null,
                     typeof item.feeINR === 'number' && item.feeINR > 0 ? `₹${item.feeINR}` : null,
+                    typeof item.hourlyRate === 'number' && item.hourlyRate > 0 ? `₹${item.hourlyRate}/session` : null,
                     item.status,
                   ]
                     .filter(Boolean)
@@ -444,6 +535,11 @@ export const RecordListEditor: React.FC<RecordListEditorProps> = ({
               }`}>
                 {item.visible === false ? 'Hidden' : 'Visible'}
               </span>
+              {renderItemExtra && (
+                <div className="shrink-0 flex items-center">
+                  {renderItemExtra(item, fetchItems)}
+                </div>
+              )}
               <div className="flex items-center gap-0.5 shrink-0">
                 <button
                   type="button"

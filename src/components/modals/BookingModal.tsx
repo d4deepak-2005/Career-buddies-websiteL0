@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mentor, BookedSession } from '../../types';
 import { 
   X, 
@@ -69,6 +69,39 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdSession, setCreatedSession] = useState<BookedSession | null>(null);
+
+  // Booked slots tracking
+  const [bookedSlots, setBookedSlots] = useState<{ date: string; slot: string }[]>([]);
+
+  useEffect(() => {
+    if (!isOpen || !mentor) return;
+    const mId = mentor.id || (mentor as any)._id;
+    if (!mId) return;
+
+    fetch(`/api/mentors/${mId}/booked-slots`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.bookedSlots)) {
+          setBookedSlots(d.bookedSlots);
+        }
+      })
+      .catch(() => {});
+  }, [isOpen, mentor]);
+
+  // If current selected slot becomes booked on the selected day, switch to an available slot
+  useEffect(() => {
+    const isCurrentBooked = bookedSlots.some(
+      (b) => b.date === selectedDay && b.slot === selectedSlot
+    );
+    if (isCurrentBooked) {
+      const firstAvailable = TIME_SLOTS.find(
+        (slot) => !bookedSlots.some((b) => b.date === selectedDay && b.slot === slot)
+      );
+      if (firstAvailable) {
+        setSelectedSlot(firstAvailable);
+      }
+    }
+  }, [selectedDay, bookedSlots, selectedSlot]);
 
   if (!isOpen || !mentor) return null;
 
@@ -141,6 +174,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
 
+    // Check if selected slot is already booked
+    const isTaken = bookedSlots.some((b) => b.date === selectedDay && b.slot === selectedSlot);
+    if (isTaken) {
+      setGeneralError('This time slot is already booked. Please choose an available time slot.');
+      return;
+    }
+
     // The booking is only confirmed once the server has really stored the request.
     if (submitting) return;
     setSubmitting(true);
@@ -157,7 +197,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         notes: `Mentor Session: ${mentor.name} (${mentor.title} @ ${mentor.company}) | Slot: ${selectedDay}, ${selectedSlot} | Topic: ${topic || 'General Strategy'} | Notes: ${notes || 'None'}`,
         requirement: `1:1 Session with ${mentor.name}`,
         planInterest: `Mentor Booking - ${mentor.name}`,
-        source: 'Booking Modal'
+        source: 'Booking Modal',
+        mentorId: mentor.id || (mentor as any)._id,
+        mentorName: mentor.name,
+        bookingDate: selectedDay,
+        bookingSlot: selectedSlot,
+        bookingTopic: topic || mentor.topics?.[0] || '1:1 Career Strategy & Leveling',
       });
     setSubmitting(false);
     if (!result.ok) {
@@ -483,21 +528,41 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <span>Select Time Slot (Your Local Timezone)</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {TIME_SLOTS.map((slot) => (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`p-2 rounded-xl border text-center text-xs font-medium transition-all cursor-pointer ${
-                      selectedSlot === slot
-                        ? 'border-[#002869] bg-[#002869] text-white font-bold'
-                        : 'border-[#cbdaff] hover:bg-[#f9f9ff] text-[#061b3b]'
-                    }`}
-                  >
-                    {slot}
-                  </button>
-                ))}
+                {TIME_SLOTS.map((slot) => {
+                  const isBooked = bookedSlots.some((b) => b.date === selectedDay && b.slot === slot);
+                  const isSelected = selectedSlot === slot && !isBooked;
+
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      disabled={isBooked}
+                      onClick={() => {
+                        if (!isBooked) setSelectedSlot(slot);
+                      }}
+                      className={`p-2 rounded-xl border text-center text-xs font-medium transition-all ${
+                        isBooked
+                          ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed line-through flex items-center justify-center gap-1.5'
+                          : isSelected
+                          ? 'border-[#002869] bg-[#002869] text-white font-bold cursor-pointer shadow-xs'
+                          : 'border-[#cbdaff] hover:bg-[#f9f9ff] text-[#061b3b] cursor-pointer'
+                      }`}
+                    >
+                      <span>{slot}</span>
+                      {isBooked && (
+                        <span className="text-[10px] font-bold text-red-600 bg-red-100/80 px-1.5 py-0.2 rounded no-underline">
+                          Booked
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+              {TIME_SLOTS.every((slot) => bookedSlots.some((b) => b.date === selectedDay && b.slot === slot)) && (
+                <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs text-center font-medium">
+                  ⚠️ All slots on this date are currently booked. Please select another date.
+                </div>
+              )}
             </div>
 
             {/* Optional Fields */}

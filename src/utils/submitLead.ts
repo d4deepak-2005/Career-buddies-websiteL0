@@ -30,8 +30,8 @@ export async function submitLead(payload: Record<string, unknown>): Promise<Subm
       return { ok: false, error: (data && data.error) || 'Too many submissions. Please wait a few minutes and try again.' };
     }
 
-    // Validation messages come from the server and are safe to show.
-    if (res.status === 400 && data && typeof data.error === 'string') {
+    // Validation or conflict messages come from the server and are safe to show.
+    if ((res.status === 400 || res.status === 409) && data && typeof data.error === 'string') {
       return { ok: false, error: data.error };
     }
 

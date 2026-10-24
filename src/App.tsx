@@ -60,6 +60,12 @@ import {
   getCandidateToken,
   setCandidateToken
 } from './utils/candidateAuth';
+import {
+  PendingCheckout,
+  clearPendingCheckout,
+  loadPendingCheckout,
+  savePendingCheckout
+} from './utils/checkoutIntent';
 const CounsellingModal = lazyNamed(() => import('./components/modals/CounsellingModal'), 'CounsellingModal');
 const ServiceDetailModal = lazyNamed(() => import('./components/modals/ServiceDetailModal'), 'ServiceDetailModal');
 const ArticleReaderModal = lazyNamed(() => import('./components/modals/ArticleReaderModal'), 'ArticleReaderModal');
@@ -319,6 +325,14 @@ export default function App() {
   const [socialAuthMessage, setSocialAuthMessage] = useState<string | null>(null);
   const [linkCode, setLinkCode] = useState<string | null>(null);
 
+  // ---- Checkout gated behind login: when a visitor clicks Enroll/Register without
+  // a session, we remember the item, show the auth popup, and reopen the checkout
+  // modal once they are signed in. ----
+  const [restoredCheckout, setRestoredCheckout] = useState<PendingCheckout | null>(null);
+  // Set by handleAuthenticate on success so the popup's onClose knows not to
+  // cancel the pending checkout resume.
+  const authSucceededRef = useRef(false);
+
   useEffect(() => {
     const cleanUrl = () =>
       window.history.replaceState(window.history.state, '', window.location.pathname);
@@ -347,8 +361,16 @@ export default function App() {
           if (!res.ok || !body.success) throw new Error(body.error || 'Sign-in failed. Please try again.');
           setCandidateToken(body.token, body.expiresAt);
           setCandidate(body.candidate);
-          setActivePage(homePageFor(body.candidate));
-          window.scrollTo({ top: 0 });
+          // A checkout was waiting for this sign-in (provider redirect reloads
+          // the page at the site root, so sessionStorage carries the intent).
+          const pending = loadPendingCheckout();
+          if (pending) {
+            clearPendingCheckout();
+            resumeCheckout(pending, true);
+          } else {
+            setActivePage(homePageFor(body.candidate));
+            window.scrollTo({ top: 0 });
+          }
           if (body.notice === 'linked_password_cleared') {
             window.alert('Your social account is now linked to your existing CareerBuddies account. For security, your previous password was cleared - please keep signing in with this provider.');
           }
@@ -388,22 +410,58 @@ export default function App() {
   }, []);
 
   // ---- Password reset link (/reset-password?token=...) ----
-  const [resetToken, setResetToken] = useState<string | null>(null);
+  // Read the token at state-init time — before any useLayoutEffect clears the path.
+  const [resetToken, setResetToken] = useState<string | null>(() => {
+    if (window.location.pathname === '/reset-password') {
+      return new URLSearchParams(window.location.search).get('token');
+    }
+    return null;
+  });
   const [startInForgot, setStartInForgot] = useState(false);
 
-  useEffect(() => {
-    if (window.location.pathname === '/reset-password') {
-      const token = new URLSearchParams(window.location.search).get('token');
-      // Take the token out of the address bar straight away.
-      window.history.replaceState(window.history.state, '', '/');
-      if (token) setResetToken(token);
-    }
-  }, []);
 
   // Where an account lands after signing in: mentors go to the Mentor Portal, everyone
   // else (candidates) to the Candidate Area exactly as before.
   const homePageFor = (profile?: CandidateProfile | null): PageView =>
     profile?.accountType === 'mentor' ? 'mentor-portal' : 'dashboard';
+
+  // Enroll/Register/Pay entry points call this first. Signed-in visitors proceed
+  // immediately; anonymous ones get the auth popup and the checkout reopens
+  // automatically after they log in or sign up.
+  const requireAuthForCheckout = (intent: PendingCheckout): boolean => {
+    if (getCandidateToken()) return true;
+    savePendingCheckout(intent);
+    setStartInForgot(false);
+    setSocialAuthMessage(null);
+    setAuthMode('login');
+    setIsAuthOpen(true);
+    return false;
+  };
+
+  // Reopens a checkout that was waiting for a sign-in. Webinars render their
+  // checkout at App level; programmes/plans render it inside their screen, so
+  // the item is handed down via `restoredCheckout`. `navigate` is used only on
+  // the social-login return (the redirect loses the page the visitor was on).
+  const resumeCheckout = (pending: PendingCheckout, navigate: boolean) => {
+    if (pending.type === 'webinar') {
+      setWebinarToCheckout(pending.item);
+      return;
+    }
+    if (navigate) setActivePage(pending.type === 'programme' ? 'programmes' : 'plans');
+    setRestoredCheckout(pending);
+  };
+
+  // Email/password sign-in success resumes a gated checkout in-page (the popup
+  // closes itself right after onAuthenticate resolves, so onClose must not
+  // treat it as a dismissal — authSucceededRef guards that).
+  useEffect(() => {
+    if (!candidate) return;
+    const pending = loadPendingCheckout();
+    if (!pending) return;
+    clearPendingCheckout();
+    resumeCheckout(pending, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidate]);
 
   // Mentor Portal sign-out: same server logout as candidates, but stays on the mentor sign-in.
   const handleMentorLogout = async () => {
@@ -434,8 +492,14 @@ export default function App() {
       }
       setCandidateToken(body.token, body.expiresAt);
       setCandidate(body.candidate);
-      setActivePage(homePageFor(body.candidate));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      authSucceededRef.current = true;
+      // A gated checkout is waiting to resume — stay on this page so the
+      // checkout modal opens where the visitor clicked. Normal logins still
+      // land on the candidate dashboard.
+      if (!loadPendingCheckout()) {
+        setActivePage(homePageFor(body.candidate));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       return null;
     } catch {
       return 'Could not reach the server. Please check your connection and try again.';
@@ -511,6 +575,7 @@ export default function App() {
 
   const handleRegisterWebinar = (webinar: WebinarItem) => {
     setSelectedWebinarForDetail(null);
+    if (!requireAuthForCheckout({ type: 'webinar', item: webinar })) return;
     setWebinarToCheckout(webinar);
   };
 
@@ -595,6 +660,9 @@ export default function App() {
             onOpenLiveWebinar={handleOpenLiveWebinar}
             onSelectLeader={handleSelectLeader}
             siteSettings={siteSettings}
+            onRequireAuth={requireAuthForCheckout}
+            restoredCheckout={restoredCheckout}
+            onRestoredCheckoutHandled={() => setRestoredCheckout(null)}
           />
         )}
 
@@ -603,6 +671,9 @@ export default function App() {
           <ProgrammesScreen
             onNavigate={setActivePage}
             onOpenCounselling={(interest) => handleOpenCounsellingWithPlan(interest || 'Specialised Programme Cohort')}
+            onRequireAuth={requireAuthForCheckout}
+            restoredCheckout={restoredCheckout}
+            onRestoredCheckoutHandled={() => setRestoredCheckout(null)}
           />
         )}
 
@@ -671,6 +742,9 @@ export default function App() {
             onSelectPlan={handleSelectPlan}
             onOpenCounselling={() => handleOpenCounsellingWithPlan()}
             setActivePage={setActivePage}
+            onRequireAuth={requireAuthForCheckout}
+            restoredCheckout={restoredCheckout}
+            onRestoredCheckoutHandled={() => setRestoredCheckout(null)}
           />
         )}
 
@@ -959,6 +1033,10 @@ export default function App() {
           setIsAuthOpen(false);
           setSocialAuthMessage(null);
           setStartInForgot(false);
+          // Closing the popup without signing in cancels a saved checkout;
+          // after a successful login the resume effect consumes it instead.
+          if (!authSucceededRef.current) clearPendingCheckout();
+          authSucceededRef.current = false;
         }}
         externalError={socialAuthMessage}
         startInForgot={startInForgot}
@@ -984,11 +1062,17 @@ export default function App() {
         <ResetPasswordModal
           token={resetToken}
           onClose={() => setResetToken(null)}
-          onSignIn={() => {
+          onSignIn={(accountType) => {
             setResetToken(null);
-            setStartInForgot(false);
-            setAuthMode('login');
-            setIsAuthOpen(true);
+            if (accountType === 'mentor') {
+              // Mentor just set their password — take them straight to the mentor sign-in.
+              setActivePage('mentor-portal');
+              window.scrollTo({ top: 0 });
+            } else {
+              setStartInForgot(false);
+              setAuthMode('login');
+              setIsAuthOpen(true);
+            }
           }}
           onRequestNewLink={() => {
             setResetToken(null);
@@ -998,6 +1082,7 @@ export default function App() {
           }}
         />
       )}
+
 
       </Suspense>
       </LazyBoundary>

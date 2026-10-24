@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BookOpen, 
   Clock, 
@@ -68,15 +68,25 @@ import { numberWord, plansHeading } from '../../utils/countCopy';
 import { useOwnedPurchases } from '../../hooks/useOwnedPurchases';
 import { usePublicLoading } from '../../hooks/usePublicCollection';
 import { PageSkeleton } from '../common/Skeleton';
+import { PendingCheckout } from '../../utils/checkoutIntent';
 
 interface ProgrammesScreenProps {
   onNavigate: (page: PageView) => void;
   onOpenCounselling: (interest?: string) => void;
+  // Returns true when signed in (caller opens checkout); otherwise shows the
+  // auth popup and the checkout reopens automatically after login.
+  onRequireAuth: (intent: PendingCheckout) => boolean;
+  // Checkout waiting for a just-completed sign-in (social redirect flow).
+  restoredCheckout?: PendingCheckout | null;
+  onRestoredCheckoutHandled?: () => void;
 }
 
 export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
   onNavigate,
-  onOpenCounselling
+  onOpenCounselling,
+  onRequireAuth,
+  restoredCheckout,
+  onRestoredCheckoutHandled
 }) => {
   const { hasLive, priceINR: entryPrice } = useWebinarOffer();
   const PROGRAMMES_CATALOGUE = useProgrammes();
@@ -93,11 +103,25 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
       onOpenCounselling(`${plan.name} — pricing details`);
       return;
     }
+    if (!onRequireAuth({ type: 'plan', item: plan })) return;
     setPayPlan(plan);
   };
   const owned = useOwnedPurchases();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [expandedCurriculumId, setExpandedCurriculumId] = useState<string | null>(null);
+
+  // Reopen a checkout that was waiting for a sign-in to finish (social redirect
+  // flow hands the item back through App).
+  useEffect(() => {
+    if (!restoredCheckout) return;
+    if (restoredCheckout.type === 'programme') {
+      setPayProgramme(restoredCheckout.item);
+      onRestoredCheckoutHandled?.();
+    } else if (restoredCheckout.type === 'plan') {
+      setPayPlan(restoredCheckout.item);
+      onRestoredCheckoutHandled?.();
+    }
+  }, [restoredCheckout, onRestoredCheckoutHandled]);
 
   const categories = ['All', ...Array.from(new Set(PROGRAMMES_CATALOGUE.map((p) => p.category).filter(Boolean)))];
 
@@ -431,7 +455,10 @@ export const ProgrammesScreen: React.FC<ProgrammesScreenProps> = ({
                   ) : programmeCanPay(programme.feeINR, programme.onlinePayment) ? (
                     <button
                       type="button"
-                      onClick={() => setPayProgramme(programme)}
+                      onClick={() => {
+                        if (!onRequireAuth({ type: 'programme', item: programme })) return;
+                        setPayProgramme(programme);
+                      }}
                       className="px-6 py-3 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                     >
                       <span>Enroll Now</span>

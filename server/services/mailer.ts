@@ -139,3 +139,21 @@ Reference: <span style="font-family:monospace">${esc(opts.orderRef)}</span>
   const text = `Payment successful\n\nHi ${greeting},\n\nCongratulations — your payment was successful for ${opts.itemName || kind}.\nAmount (incl. 18% GST): ${opts.amountLabel}\nReference: ${opts.orderRef}\n\nView Payment History: ${history}\n`;
   return { subject: `Payment successful — ${opts.itemName || 'CareerBuddies'}`, html, text };
 }
+
+export function mentorInviteEmail(baseUrl: string, opts: { name: string; link: string; ttlMinutes: number }) {
+  const greeting = opts.name.trim() || 'there';
+  const portalUrl = `${baseUrl}/#mentor`;
+  const html = layout(
+    baseUrl,
+    `You've been invited as a CareerBuddies Mentor`,
+    `<p style="line-height:1.6;margin:0 0 14px">Hi ${esc(greeting)},</p>
+<p style="line-height:1.6;margin:0 0 14px">The CareerBuddies team has added you as a mentor on the platform. Click the button below to set your password and activate your account.</p>
+<p style="margin:0 0 20px"><a href="${esc(opts.link)}" style="background:#002869;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:10px;display:inline-block">Set Password &amp; Activate Account</a></p>
+<p style="line-height:1.6;margin:0 0 12px;font-size:14px">This link works <strong>once</strong> and expires in <strong>${opts.ttlMinutes} minutes</strong>.</p>
+<p style="line-height:1.6;margin:0 0 12px;font-size:13px;color:#434652">Once activated, sign in to the Mentor Portal anytime at:<br><a href="${esc(portalUrl)}" style="color:#002869">${esc(portalUrl)}</a></p>
+<p style="line-height:1.6;margin:0 0 12px;font-size:13px;color:#434652">If the button does not work, copy this address into your browser:<br><span style="word-break:break-all">${esc(opts.link)}</span></p>
+<p style="line-height:1.6;margin:0;font-size:13px;color:#434652">If you did not expect this invitation, you can safely ignore this email.</p>`
+  );
+  const text = `You've been invited as a CareerBuddies Mentor\n\nHi ${greeting},\n\nThe CareerBuddies team has added you as a mentor. Set your password and activate your account (expires in ${opts.ttlMinutes} minutes):\n\n${opts.link}\n\nOnce activated, sign in at: ${portalUrl}\n\nIf you did not expect this, ignore this email.\n`;
+  return { subject: `You've been invited to CareerBuddies as a Mentor`, html, text };
+}

@@ -6,7 +6,8 @@ import { ModalA11y } from '../common/ModalA11y';
 interface ResetPasswordModalProps {
   token: string;
   onClose: () => void;
-  onSignIn: () => void;
+  // accountType is passed back so the caller can redirect mentors to /#mentor
+  onSignIn: (accountType?: string) => void;
   onRequestNewLink: () => void;
 }
 
@@ -24,6 +25,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [accountType, setAccountType] = useState<string>('mentee');
 
   useEffect(() => {
     let cancelled = false;
@@ -33,7 +35,15 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       body: JSON.stringify({ token })
     })
       .then((res) => res.json())
-      .then((body) => !cancelled && setStatus(body.valid ? 'ready' : 'invalid'))
+      .then((body) => {
+        if (cancelled) return;
+        if (body.valid) {
+          setAccountType(body.accountType || 'mentee');
+          setStatus('ready');
+        } else {
+          setStatus('invalid');
+        }
+      })
       .catch(() => !cancelled && setStatus('invalid'));
     return () => {
       cancelled = true;
@@ -99,7 +109,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           {status === 'invalid' && (
             <>
               <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl">
-                This reset link is invalid or has expired. Links work once and last 30 minutes.
+                This link is invalid or has expired. Password reset links work once and last 30 minutes; invite links last 48 hours.
               </div>
               <button
                 onClick={onRequestNewLink}
@@ -159,7 +169,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                 disabled={saving}
                 className="w-full py-3 bg-[#002869] hover:bg-[#0b3d91] text-white text-xs font-black rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
-                <span>{saving ? 'Saving...' : 'Reset Password'}</span>
+                <span>{saving ? 'Saving...' : 'Set Password'}</span>
                 {!saving && <ArrowRight className="w-3.5 h-3.5 text-[#79fd8d]" />}
               </button>
             </form>
@@ -169,13 +179,13 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
             <>
               <div className="p-4 bg-[#e8f5e9] border border-[#a5d6a7] text-[#1b5e20] text-xs font-bold rounded-xl flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Your password has been reset successfully.</span>
+                <span>Your password has been set successfully.</span>
               </div>
               <button
-                onClick={onSignIn}
+                onClick={() => onSignIn(accountType)}
                 className="w-full py-3 bg-[#006e29] hover:bg-[#00531d] text-white text-xs font-black rounded-xl cursor-pointer"
               >
-                Sign In
+                {accountType === 'mentor' ? 'Go to Mentor Portal' : 'Sign In'}
               </button>
             </>
           )}

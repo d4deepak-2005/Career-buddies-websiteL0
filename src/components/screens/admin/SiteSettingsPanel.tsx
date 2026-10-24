@@ -78,7 +78,13 @@ const EMPTY_SETTINGS: SiteSettingsData = {
     homeHtml: defaultHomeHtml(),
   },
   about: { title: '', mission: '', vision: '', values: [] },
-  footer: { description: '', socialLinks: [], copyrightText: '' },
+  footer: {
+    description: '',
+    socialLinks: [],
+    copyrightText: '',
+    statsMode: 'auto',
+    statsManual: { mentors: '', webinars: '', programmes: '', plans: '' },
+  },
   contact: {
     title: '',
     description: '',
@@ -904,7 +910,14 @@ function mergeSettings(raw: any): SiteSettingsData {
       homeHtml: { ...defaultHomeHtml(), ...rest.home?.homeHtml },
     },
     about: { ...EMPTY_SETTINGS.about, ...rest.about },
-    footer: { ...EMPTY_SETTINGS.footer, ...rest.footer },
+    footer: {
+      ...EMPTY_SETTINGS.footer,
+      ...rest.footer,
+      statsManual: {
+        ...EMPTY_SETTINGS.footer.statsManual,
+        ...(rest.footer?.statsManual || {}),
+      },
+    },
     contact: { ...EMPTY_SETTINGS.contact, ...rest.contact },
     seo: { ...EMPTY_SETTINGS.seo, ...rest.seo },
     maintenance: { ...EMPTY_SETTINGS.maintenance, ...rest.maintenance },
@@ -1796,7 +1809,141 @@ export const SiteSettingsPanel: React.FC = () => {
       )}
 
       {subTab === 'Footer' && (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6">
+          {/* Footer Statistics Bar (Mentors · Live Webinars · Programmes · Career Plans) */}
+          <div className="flex flex-col gap-5 pb-6 border-b border-[var(--admin-border)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--admin-border)]">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--admin-accent)]">Live Statistics Bar</span>
+                <h3 className="text-[17px] font-semibold text-[var(--admin-text)]">Footer Statistics Bar</h3>
+                <p className="text-[13px] text-[var(--admin-muted)] mt-0.5">
+                  Controls the 4 statistics displayed in the footer bar: Mentors, Live Webinars, Programmes, and Career Plans.
+                </p>
+              </div>
+
+              {/* Mode Switch Toggle */}
+              <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto bg-[var(--admin-soft)] px-3.5 py-2 rounded-xl border border-[var(--admin-border)]">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      settings.footer.statsMode === 'manual'
+                        ? 'bg-indigo-500 ring-2 ring-indigo-500/20'
+                        : 'bg-emerald-500 ring-2 ring-emerald-500/20'
+                    }`}
+                  />
+                  <div className="text-left">
+                    <span className="block text-[12px] font-semibold text-[var(--admin-text)] leading-tight">
+                      {settings.footer.statsMode === 'manual' ? 'Manual Entries' : 'Auto (Dynamic)'}
+                    </span>
+                    <span className="block text-[10px] text-[var(--admin-muted)] leading-tight">
+                      {settings.footer.statsMode === 'manual' ? 'Custom values active' : 'Live database counts'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.footer.statsMode === 'manual'}
+                  aria-label="Toggle between Auto dynamic counts and Manual entries"
+                  onClick={() =>
+                    updateSection('footer', {
+                      statsMode: settings.footer.statsMode === 'manual' ? 'auto' : 'manual',
+                    })
+                  }
+                  className={`relative w-11 h-6 rounded-full shrink-0 cursor-pointer transition-colors ${
+                    settings.footer.statsMode === 'manual' ? 'bg-[#007aff]' : 'bg-[#d1d1d6] dark:bg-gray-600'
+                  }`}
+                  title="Toggle between Auto (dynamic counts) and Manual entries"
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                      settings.footer.statsMode === 'manual' ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {settings.footer.statsMode === 'manual' ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[var(--admin-soft)] border border-[var(--admin-border)] text-[var(--admin-text)] text-[12px]">
+                  <span className="text-[15px] leading-none">✍️</span>
+                  <div>
+                    <span className="font-semibold">Manual mode active: </span>
+                    <span className="text-[var(--admin-muted)]">
+                      Type custom values or formatted strings below (e.g.{' '}
+                      <code className="px-1.5 py-0.5 rounded bg-[var(--admin-sidebar)] border border-[var(--admin-border)] text-[var(--admin-text)]">50+</code>,{' '}
+                      <code className="px-1.5 py-0.5 rounded bg-[var(--admin-sidebar)] border border-[var(--admin-border)] text-[var(--admin-text)]">200+</code>,{' '}
+                      <code className="px-1.5 py-0.5 rounded bg-[var(--admin-sidebar)] border border-[var(--admin-border)] text-[var(--admin-text)]">5,000+</code>).
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Field
+                    label="Mentors"
+                    value={settings.footer.statsManual?.mentors || ''}
+                    placeholder="e.g. 50+ or 2"
+                    onChange={(v) =>
+                      updateSection('footer', {
+                        statsManual: {
+                          ...(settings.footer.statsManual || {}),
+                          mentors: v,
+                        },
+                      })
+                    }
+                  />
+                  <Field
+                    label="Live Webinars"
+                    value={settings.footer.statsManual?.webinars || ''}
+                    placeholder="e.g. 200+ or 1"
+                    onChange={(v) =>
+                      updateSection('footer', {
+                        statsManual: {
+                          ...(settings.footer.statsManual || {}),
+                          webinars: v,
+                        },
+                      })
+                    }
+                  />
+                  <Field
+                    label="Programmes"
+                    value={settings.footer.statsManual?.programmes || ''}
+                    placeholder="e.g. 25+ or 0"
+                    onChange={(v) =>
+                      updateSection('footer', {
+                        statsManual: {
+                          ...(settings.footer.statsManual || {}),
+                          programmes: v,
+                        },
+                      })
+                    }
+                  />
+                  <Field
+                    label="Career Plans"
+                    value={settings.footer.statsManual?.plans || ''}
+                    placeholder="e.g. 10+ or 3"
+                    onChange={(v) =>
+                      updateSection('footer', {
+                        statsManual: {
+                          ...(settings.footer.statsManual || {}),
+                          plans: v,
+                        },
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[var(--admin-soft)] border border-[var(--admin-border)] text-[var(--admin-muted)] text-[12px]">
+                <span className="text-[15px] leading-none">🔄</span>
+                <span>
+                  <strong className="text-[var(--admin-text)] font-semibold">Auto mode is active:</strong> The footer calculates and displays live counts directly from your active database records in real time.
+                </span>
+              </div>
+            )}
+          </div>
+
           <TextAreaField
             label="Footer Description"
             value={settings.footer.description}

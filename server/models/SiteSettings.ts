@@ -127,6 +127,13 @@ const siteSettingsSchema = new mongoose.Schema(
       description: { type: String, default: '' },
       socialLinks: { type: [socialLinkSchema], default: [] },
       copyrightText: { type: String, default: '' },
+      statsMode: { type: String, enum: ['auto', 'manual'], default: 'auto' },
+      statsManual: {
+        mentors: { type: String, default: '' },
+        webinars: { type: String, default: '' },
+        programmes: { type: String, default: '' },
+        plans: { type: String, default: '' },
+      },
     },
     contact: {
       title: { type: String, default: '' },

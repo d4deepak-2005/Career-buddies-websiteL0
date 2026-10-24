@@ -24,6 +24,7 @@ import { Service } from './server/models/Service.ts';
 import { Plan } from './server/models/Plan.ts';
 import { Resource } from './server/models/Resource.ts';
 import { paymentsRouter, paymentsWebhookHandler } from './server/routes/payments.ts';
+import { adminPaymentsRouter } from './server/routes/adminPayments.ts';
 import mediaRouter from './server/routes/media.ts';
 import candidateRouter from './server/routes/candidate.ts';
 import { aiChatHandler } from './server/ai/assistant.ts';
@@ -41,6 +42,8 @@ import { actorFromReq, recordAdminAudit } from './server/services/adminAudit.ts'
 import { listAdminLogs } from './server/routes/adminLogs.ts';
 import { getMailInboxMessage, getMailStatus, listMailInbox, listMailRecipients, listSentMail, sendAdminMail, sendBulkMail } from './server/routes/adminMail.ts';
 import { getAnalyticsReport, recordPageView } from './server/routes/analytics.ts';
+import { inviteMentor, listMentorAccounts, sendMentorInviteInternal } from './server/routes/adminMentorAccounts.ts';
+import { Candidate } from './server/models/Candidate.ts';
 import oauthRouter from './server/routes/oauth.ts';
 import { createRateLimiter } from './server/middleware/rateLimit.ts';
 import { getPublicBaseUrl } from './server/config/baseUrl.ts';
@@ -110,14 +113,14 @@ export interface ServerLead {
   requirement: string;
   planInterest?: string;
   source:
-    | 'Counselling Form'
-    | 'Contact Form'
-    | 'Plan Enquiry'
-    | 'Sign Up'
-    | 'Mentor Registration'
-    | 'Direct Consultation'
-    | string;
-  status: 'new' | 'contacted' | 'scheduled' | 'converted';
+  | 'Counselling Form'
+  | 'Contact Form'
+  | 'Plan Enquiry'
+  | 'Sign Up'
+  | 'Mentor Registration'
+  | 'Direct Consultation'
+  | string;
+  status: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled';
   notes?: {
     id: string;
     text: string;
@@ -126,6 +129,11 @@ export interface ServerLead {
   }[];
   sheetSynced?: boolean;
   whatsAppNotified?: boolean;
+  mentorId?: string;
+  mentorName?: string;
+  bookingDate?: string;
+  bookingSlot?: string;
+  bookingTopic?: string;
 }
 
 // Function to format a Date in Indian Standard Time (IST)
@@ -173,6 +181,11 @@ function serializeLead(doc: any, serialNumber: number): ServerLead {
     })),
     sheetSynced: true,
     whatsAppNotified: true,
+    mentorId: doc.mentorId ? doc.mentorId.toString() : undefined,
+    mentorName: doc.mentorName || undefined,
+    bookingDate: doc.bookingDate || undefined,
+    bookingSlot: doc.bookingSlot || undefined,
+    bookingTopic: doc.bookingTopic || undefined,
   };
 }
 
@@ -205,8 +218,7 @@ async function notifyWhatsAppAdmins(
     `*Current Role:* ${lead.currentRole || 'N/A'}\n` +
     `*Experience:* ${lead.experience || 'N/A'}\n` +
     `*Industry:* ${lead.industry || 'N/A'}\n` +
-    `*Plan Interest:* ${
-      lead.planInterest || 'General Counselling'
+    `*Plan Interest:* ${lead.planInterest || 'General Counselling'
     }\n` +
     `*Goal / Requirement:* ${lead.requirement}\n` +
     `*Source:* ${lead.source}\n` +
@@ -297,7 +309,7 @@ async function notifyWhatsAppAdmins(
 
 // ----------------- API ENDPOINTS -----------------
 
-const VALID_STATUSES = ['new', 'contacted', 'scheduled', 'converted'];
+const VALID_STATUSES = ['new', 'contacted', 'scheduled', 'converted', 'cancelled'];
 
 // 1. Health check - status only; no business or database counts are exposed publicly.
 app.get(
@@ -404,6 +416,47 @@ app.post(
       });
     }
 
+    // Duplicate & slot collision check for 1:1 mentor bookings
+    if (input.mentorId && input.bookingDate && input.bookingSlot) {
+      // 1. Time slot collision check: has this mentor already been booked for this slot?
+      const slotConflict = await Lead.findOne({
+        mentorId: input.mentorId,
+        bookingDate: input.bookingDate,
+        bookingSlot: input.bookingSlot,
+        status: { $ne: 'cancelled' },
+      });
+
+      if (slotConflict) {
+        res.status(409).json({
+          success: false,
+          error: 'This time slot is already booked for this mentor. Please choose another slot.',
+        });
+        return;
+      }
+
+      // 2. Same-user duplicate check: does this candidate already have an active request on this date?
+      const userConditions: any[] = [];
+      if (input.email) userConditions.push({ email: input.email.toLowerCase() });
+      if (input.mobile) userConditions.push({ mobile: input.mobile });
+
+      if (userConditions.length > 0) {
+        const userDuplicate = await Lead.findOne({
+          mentorId: input.mentorId,
+          bookingDate: input.bookingDate,
+          $or: userConditions,
+          status: { $in: ['new', 'scheduled', 'contacted'] },
+        });
+
+        if (userDuplicate) {
+          res.status(409).json({
+            success: false,
+            error: 'You already have an active session booking with this mentor on this date.',
+          });
+          return;
+        }
+      }
+    }
+
     try {
       const doc = await Lead.create({
         firstName: input.firstName,
@@ -419,6 +472,11 @@ app.post(
         alternateNumber: input.alternateNumber,
         alternateEmail: input.alternateEmail,
         linkedinUrl: input.linkedinUrl,
+        mentorId: input.mentorId ? input.mentorId : undefined,
+        mentorName: input.mentorName || '',
+        bookingDate: input.bookingDate || '',
+        bookingSlot: input.bookingSlot || '',
+        bookingTopic: input.bookingTopic || '',
         status: 'new',
         notes: initialNotes,
       });
@@ -488,56 +546,55 @@ app.get(
   }
 );
 
-// 4. Update Lead Status (admin-only)
-app.patch(
-  '/api/leads/:id/status',
-  requireAdminAuth,
-  async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { status } = req.body;
+// 4. Update Lead Status (admin-only, supports both PATCH and PUT)
+const handleUpdateLeadStatus = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body;
 
-    if (!VALID_STATUSES.includes(status)) {
-      res.status(400).json({
+  if (!VALID_STATUSES.includes(status)) {
+    res.status(400).json({
+      success: false,
+      error: 'Invalid status value.',
+    });
+    return;
+  }
+
+  try {
+    const doc = await Lead.findByIdAndUpdate(
+      id,
+      { status },
+      { returnDocument: 'after' }
+    );
+
+    if (!doc) {
+      res.status(404).json({
         success: false,
-        error: 'Invalid status value.',
+        error: 'Lead not found.',
       });
       return;
     }
 
-    try {
-      const doc = await Lead.findByIdAndUpdate(
-        id,
-        { status },
-        { returnDocument: 'after' }
-      );
-
-      if (!doc) {
-        res.status(404).json({
-          success: false,
-          error: 'Lead not found.',
-        });
-        return;
-      }
-
-      recordAdminAudit(req, {
-        action: 'status',
-        entity: 'lead',
-        entityId: String(doc._id),
-        summary: `${actorFromReq(req).name} set lead status to ${status} for ${doc.firstName || 'lead'}`,
-      });
-      res.json({
-        success: true,
-        lead: serializeLead(doc, await computeSerialNumber(doc)),
-      });
-    } catch (error) {
-      console.error('Error updating lead status:', error);
-      res.status(400).json({
-        success: false,
-        error: 'Unable to update lead status.',
-      });
-    }
+    recordAdminAudit(req, {
+      action: 'status',
+      entity: 'lead',
+      entityId: String(doc._id),
+      summary: `${actorFromReq(req).name} set lead status to ${status} for ${doc.firstName || 'lead'}`,
+    });
+    res.json({
+      success: true,
+      lead: serializeLead(doc, await computeSerialNumber(doc)),
+    });
+  } catch (error) {
+    console.error('Error updating lead status:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Unable to update lead status.',
+    });
   }
-);
+};
+
+app.patch('/api/leads/:id/status', requireAdminAuth, handleUpdateLeadStatus);
+app.put('/api/leads/:id/status', requireAdminAuth, handleUpdateLeadStatus);
 
 // 4b. Generic lead update (admin-only) — status and/or a full notes-blob replace,
 // matching how the Leads Dashboard's notes textarea edits all notes as one field.
@@ -567,13 +624,13 @@ app.patch(
     if (notes !== undefined) {
       update.notes = notes.trim()
         ? [
-            {
-              id: `note-${Date.now()}`,
-              text: notes.trim(),
-              author: 'Team Member',
-              createdAt: new Date(),
-            },
-          ]
+          {
+            id: `note-${Date.now()}`,
+            text: notes.trim(),
+            author: 'Team Member',
+            createdAt: new Date(),
+          },
+        ]
         : [];
     }
 
@@ -675,6 +732,68 @@ app.post(
         success: false,
         error: 'Unable to add note.',
       });
+    }
+  }
+);
+
+// 6. Delete Lead / Booking (admin-only)
+app.delete(
+  '/api/leads/:id',
+  requireAdminAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const doc = await Lead.findByIdAndDelete(id);
+      if (!doc) {
+        res.status(404).json({ success: false, error: 'Booking not found.' });
+        return;
+      }
+      recordAdminAudit(req, {
+        action: 'delete',
+        entity: 'lead',
+        entityId: String(doc._id),
+        summary: `${actorFromReq(req).name} deleted booking / lead ${doc.firstName || ''}`.trim(),
+      });
+      res.json({ success: true, message: 'Booking removed successfully.' });
+    } catch (err: any) {
+      console.error('Error deleting lead:', err);
+      res.status(500).json({ success: false, error: 'Failed to delete booking.' });
+    }
+  }
+);
+
+// 7. Get Booked Slots for a Mentor (public - used to disable booked slots in BookingModal)
+app.get(
+  '/api/mentors/:mentorId/booked-slots',
+  async (req: Request, res: Response) => {
+    try {
+      const { mentorId } = req.params;
+      const mentorDoc = await Mentor.findById(mentorId).select('name');
+      const query: any = {
+        status: { $ne: 'cancelled' },
+        bookingDate: { $exists: true, $ne: '' },
+        bookingSlot: { $exists: true, $ne: '' },
+      };
+      if (mentorDoc?.name) {
+        query.$or = [
+          { mentorId },
+          { mentorName: mentorDoc.name },
+          { requirement: `1:1 Session with ${mentorDoc.name}` },
+          { planInterest: `Mentor Booking - ${mentorDoc.name}` }
+        ];
+      } else {
+        query.mentorId = mentorId;
+      }
+      const activeBookings = await Lead.find(query).select('bookingDate bookingSlot status');
+      const bookedSlots = activeBookings.map((b) => ({
+        date: b.bookingDate,
+        slot: b.bookingSlot,
+        status: b.status,
+      }));
+      res.json({ success: true, bookedSlots });
+    } catch (err: any) {
+      console.error('[Booked Slots Error]', err);
+      res.json({ success: true, bookedSlots: [] });
     }
   }
 );
@@ -823,9 +942,68 @@ app.use(
 // write and every "including hidden records" read goes through the same
 // requireAdminAuth middleware used by the leads admin routes.
 
+const mentorCrudOptions = {
+  afterCreate: async (item: any, req: Request) => {
+    if (item.email) {
+      console.log(`[MentorCrud] Sending portal invite on create for ${item.name} (${item.email})`);
+      await sendMentorInviteInternal({
+        name: item.name,
+        email: item.email,
+        req,
+      });
+    }
+  },
+  afterUpdate: async (item: any, req: Request) => {
+    if (item.email) {
+      const existing = await Candidate.findOne({ email: item.email.toLowerCase() });
+      if (!existing || !existing.hasPassword) {
+        console.log(`[MentorCrud] Sending portal invite on update for ${item.name} (${item.email})`);
+        await sendMentorInviteInternal({
+          name: item.name,
+          email: item.email,
+          req,
+        });
+      }
+    }
+  },
+  transformAdminItems: async (items: any[]) => {
+    const emails = items.map((i: any) => (i.email || '').toLowerCase()).filter(Boolean);
+
+    const candidates = emails.length
+      ? await Candidate.find({ email: { $in: emails }, accountType: 'mentor' })
+        .select('email hasPassword')
+        .lean()
+      : [];
+
+    const candidateMap = new Map<string, { activated: boolean }>();
+    for (const c of candidates) {
+      candidateMap.set(c.email.toLowerCase(), { activated: c.hasPassword === true });
+    }
+
+    return items.map((rawDoc: any) => {
+      const doc = typeof rawDoc?.toObject === 'function' ? rawDoc.toObject() : { ...rawDoc };
+      const email = (doc.email || '').toLowerCase();
+      if (!email) {
+        doc.portalStatus = { state: 'none', label: 'No email' };
+      } else {
+        const c = candidateMap.get(email);
+        if (c) {
+          doc.portalStatus = {
+            state: c.activated ? 'active' : 'pending',
+            label: c.activated ? 'Active' : 'Pending Invite',
+          };
+        } else {
+          doc.portalStatus = { state: 'uninvited', label: 'Not Invited' };
+        }
+      }
+      return doc;
+    });
+  },
+};
+
 app.use('/api/site-settings', siteSettingsRouter);
 app.use('/api/people', createCrudRouter(Person));
-app.use('/api/mentors', createCrudRouter(Mentor));
+app.use('/api/mentors', createCrudRouter(Mentor, mentorCrudOptions));
 app.use('/api/programmes', createCrudRouter(Programme));
 app.use('/api/webinars', createCrudRouter(Webinar));
 app.use('/api/testimonials', createCrudRouter(Testimonial));
@@ -838,6 +1016,8 @@ app.use('/api/media', mediaRouter);
 // general candidate router; the admin side lives under /api/admin and is admin-only.
 app.use('/api/candidate/items', candidateItemsRouter);
 app.use('/api/admin/candidate-items', adminCandidateItemsRouter);
+// Admin payment granting (mark-as-paid / manual grants for out-of-band payments). Admin-only.
+app.use('/api/admin/payments', adminPaymentsRouter);
 app.get('/api/admin/candidates', requireAdminAuth, listAdminCandidates);
 app.get('/api/admin/candidates/:id', requireAdminAuth, getAdminCandidate);
 app.get('/api/admin/me', requireAdminAuth, (req: Request, res: Response) => {
@@ -866,6 +1046,8 @@ app.get('/api/admin/team', requireAdminAuth, listAdminTeam);
 app.post('/api/admin/team', requireAdminAuth, createAdminTeamUser);
 app.put('/api/admin/team/:id', requireAdminAuth, updateAdminTeamUser);
 app.delete('/api/admin/team/:id', requireAdminAuth, deleteAdminTeamUser);
+app.get('/api/admin/mentor-accounts', requireAdminAuth, listMentorAccounts);
+app.post('/api/admin/mentor-accounts/invite', requireAdminAuth, inviteMentor);
 app.use('/api/candidate', candidateRouter);
 app.use('/api/auth', oauthRouter);
 
@@ -915,8 +1097,8 @@ async function startServer() {
           hmr: isHmrDisabled
             ? false
             : {
-                server: httpServer,
-              },
+              server: httpServer,
+            },
           watch: isHmrDisabled
             ? null
             : {},
@@ -987,9 +1169,9 @@ async function startServer() {
         .type('application/xml')
         .send(
           '<?xml version="1.0" encoding="UTF-8"?>\n' +
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-            urls + '\n' +
-            '</urlset>\n'
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+          urls + '\n' +
+          '</urlset>\n'
         );
     });
 
@@ -999,11 +1181,11 @@ async function startServer() {
       const canonicalPath = reqPath === '/' ? '' : reqPath.replace(/\/+$/, '');
       const tags = base
         ? [
-            `<link rel="canonical" href="${base}${canonicalPath}" />`,
-            `<meta property="og:url" content="${base}${canonicalPath}" />`,
-            `<meta property="og:image" content="${base}/logo.png" />`,
-            `<meta name="twitter:image" content="${base}/logo.png" />`,
-          ].join('\n    ')
+          `<link rel="canonical" href="${base}${canonicalPath}" />`,
+          `<meta property="og:url" content="${base}${canonicalPath}" />`,
+          `<meta property="og:image" content="${base}/logo.png" />`,
+          `<meta name="twitter:image" content="${base}/logo.png" />`,
+        ].join('\n    ')
         : '';
       return indexTemplate.replace('<!--SEO_BASE-->', tags);
     };

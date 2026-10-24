@@ -102,6 +102,23 @@ export const Footer: React.FC<FooterProps> = ({
   const webinarCount = useWebinars().length;
   const programmeCount = useProgrammes().length;
   const planCount = usePlans().length;
+
+  const isManualStats = siteSettings?.footer?.statsMode === 'manual';
+  const manualStats = siteSettings?.footer?.statsManual || {};
+
+  const displayMentors = (isManualStats && manualStats.mentors != null && manualStats.mentors !== '')
+    ? manualStats.mentors
+    : mentorCount;
+  const displayWebinars = (isManualStats && manualStats.webinars != null && manualStats.webinars !== '')
+    ? manualStats.webinars
+    : webinarCount;
+  const displayProgrammes = (isManualStats && manualStats.programmes != null && manualStats.programmes !== '')
+    ? manualStats.programmes
+    : programmeCount;
+  const displayPlans = (isManualStats && manualStats.plans != null && manualStats.plans !== '')
+    ? manualStats.plans
+    : planCount;
+
   const WHATSAPP_MESSAGE = `Hello CareerBuddies,
 
 I visited the CareerBuddies website and would like to know more about your programmes and career guidance services.
@@ -607,7 +624,7 @@ Thank you!`;
                   <Users className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-base sm:text-lg font-black text-[#002869] tracking-tight group-hover:text-[#0a3578] transition-colors duration-150">
-                  {mentorCount}
+                  {displayMentors}
                 </span>
                 <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
                   Mentors
@@ -620,7 +637,7 @@ Thank you!`;
                   <Video className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-base sm:text-lg font-black text-[#006e29] tracking-tight group-hover:text-[#00531d] transition-colors duration-150">
-                  {webinarCount}
+                  {displayWebinars}
                 </span>
                 <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
                   Live Webinars
@@ -633,7 +650,7 @@ Thank you!`;
                   <TrendingUp className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-base sm:text-lg font-black text-[#002869] tracking-tight group-hover:text-[#0a3578] transition-colors duration-150">
-                  {programmeCount}
+                  {displayProgrammes}
                 </span>
                 <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
                   Programmes
@@ -646,7 +663,7 @@ Thank you!`;
                   <Map className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-base sm:text-lg font-black text-[#006e29] tracking-tight group-hover:text-[#00531d] transition-colors duration-150">
-                  {planCount}
+                  {displayPlans}
                 </span>
                 <span className="text-[11px] text-[#434652] font-bold leading-tight mt-0.5">
                   Career Plans

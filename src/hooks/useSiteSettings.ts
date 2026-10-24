@@ -84,6 +84,13 @@ export interface SiteSettingsData {
     description: string;
     socialLinks: { platform: string; url: string }[];
     copyrightText: string;
+    statsMode?: 'auto' | 'manual';
+    statsManual?: {
+      mentors?: string;
+      webinars?: string;
+      programmes?: string;
+      plans?: string;
+    };
   };
   contact: {
     title: string;

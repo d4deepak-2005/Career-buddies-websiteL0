@@ -21,11 +21,10 @@ interface MentorLoginScreenProps {
   onPreview?: () => void;
 }
 
-type Mode = 'login' | 'signup' | 'forgot';
+type Mode = 'login' | 'forgot';
 
 export const MentorLoginScreen: React.FC<MentorLoginScreenProps> = ({ onSignedIn, onOpenCandidateLogin, onExitToSite, onPreview }) => {
   const [mode, setMode] = useState<Mode>('login');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -59,13 +58,11 @@ export const MentorLoginScreen: React.FC<MentorLoginScreenProps> = ({ onSignedIn
       const res = await fetch(`/api/candidate/${mode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mode === 'signup' ? { name, email, password, accountType: 'mentor' } : { email, password }),
+        body: JSON.stringify({ email, password }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.success) throw new Error(body.error || 'Something went wrong. Please try again.');
       if (body.candidate?.accountType !== 'mentor') {
-        // Valid credentials, but a candidate account: keep the user out of the portal and
-        // do not store the session here.
         setError('This is a candidate account, not a mentor account. Please use the candidate login on the main site.');
         return;
       }
@@ -78,13 +75,11 @@ export const MentorLoginScreen: React.FC<MentorLoginScreenProps> = ({ onSignedIn
     }
   };
 
-  const heading = mode === 'login' ? 'Mentor sign in' : mode === 'signup' ? 'Create a mentor account' : 'Reset your password';
+  const heading = mode === 'login' ? 'Mentor sign in' : 'Reset your password';
   const sub =
     mode === 'login'
       ? 'Sign in to see your assigned candidates, sessions and follow-ups.'
-      : mode === 'signup'
-        ? 'For Career Buddies mentors and advisors. Your sessions appear once candidates are assigned to you.'
-        : 'Enter the email you use for Career Buddies and we will send you a reset link.';
+      : 'Enter the email you use for Career Buddies and we will send you a reset link.';
 
   return (
     <div className="admin-console admin-theme-light w-full min-h-screen flex flex-col">
@@ -116,14 +111,6 @@ export const MentorLoginScreen: React.FC<MentorLoginScreenProps> = ({ onSignedIn
             </div>
             <p className="text-[13px] text-[var(--admin-muted)] -mt-1">{sub}</p>
 
-            {mode === 'signup' && (
-              <div>
-                <label htmlFor="mentor-name" className="block text-[12px] font-medium text-[var(--admin-text)] mb-1.5">
-                  Full name
-                </label>
-                <input id="mentor-name" type="text" required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" placeholder="Your full name" />
-              </div>
-            )}
 
             <div>
               <label htmlFor="mentor-email" className="block text-[12px] font-medium text-[var(--admin-text)] mb-1.5">
@@ -158,13 +145,11 @@ export const MentorLoginScreen: React.FC<MentorLoginScreenProps> = ({ onSignedIn
                     id="mentor-password"
                     type={showPassword ? 'text' : 'password'}
                     required
-                    minLength={mode === 'signup' ? 8 : undefined}
-                    autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full"
                     placeholder="••••••••"
-                    ref={(el) => el?.style.setProperty('padding-right', '2.5rem', 'important')}
                   />
                   <button
                     type="button"
@@ -190,20 +175,16 @@ export const MentorLoginScreen: React.FC<MentorLoginScreenProps> = ({ onSignedIn
             )}
 
             <button type="submit" disabled={busy} className="admin-btn-primary w-full">
-              {busy ? 'Please wait...' : mode === 'login' ? 'Sign in to Mentor Portal' : mode === 'signup' ? 'Create mentor account' : 'Send reset link'}
+              {busy ? 'Please wait...' : mode === 'login' ? 'Sign in to Mentor Portal' : 'Send reset link'}
             </button>
-
             <div className="pt-3 border-t border-[var(--admin-border)] text-[12px] text-[var(--admin-muted)] text-center">
-              {mode === 'login' ? (
-                <>
-                  New mentor?{' '}
-                  <button type="button" onClick={() => switchMode('signup')} className="text-[var(--admin-accent)] font-medium hover:underline cursor-pointer">
-                    Create a mentor account
-                  </button>
-                </>
-              ) : (
+              {mode !== 'login' ? (
                 <button type="button" onClick={() => switchMode('login')} className="text-[var(--admin-accent)] font-medium hover:underline cursor-pointer">
                   Back to mentor sign in
+                </button>
+              ) : (
+                <button type="button" onClick={() => switchMode('forgot')} className="text-[var(--admin-accent)] font-medium hover:underline cursor-pointer">
+                  Forgot your password?
                 </button>
               )}
             </div>

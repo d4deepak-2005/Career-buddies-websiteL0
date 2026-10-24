@@ -568,19 +568,19 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
   const renderProfile = () => {
     const fields: [string, string][] = account
       ? [
-          ['Name', mentorName],
-          ['Email', account.email],
-          ['Designation', account.currentDesignation || '—'],
-          ['Experience', account.totalExperience || '—'],
-          ['LinkedIn', account.linkedinUrl || '—'],
-          ['Member since', account.joinedAt ? formatSessionDate(account.joinedAt) : '—'],
-        ]
+        ['Name', mentorName],
+        ['Email', account.email],
+        ['Designation', account.currentDesignation || '—'],
+        ['Experience', account.totalExperience || '—'],
+        ['LinkedIn', account.linkedinUrl || '—'],
+        ['Member since', account.joinedAt ? formatSessionDate(account.joinedAt) : '—'],
+      ]
       : [
-          ['Name', data?.mentor.name || ''],
-          ['Email', data?.mentor.email || ''],
-          ['Designation', data?.mentor.title || ''],
-          ['Expertise', (data?.mentor.expertise || []).join(', ')],
-        ];
+        ['Name', data?.mentor.name || ''],
+        ['Email', data?.mentor.email || ''],
+        ['Designation', data?.mentor.title || ''],
+        ['Expertise', (data?.mentor.expertise || []).join(', ')],
+      ];
     return (
       <Panel title="My Profile">
         <div className="p-5 flex flex-col gap-5">
@@ -636,9 +636,8 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
 
   const renderSidebar = (collapsed: boolean, allowCollapse: boolean) => (
     <aside
-      className={`h-full bg-[var(--admin-sidebar)] text-[var(--admin-text)] flex flex-col shrink-0 border-r border-[var(--admin-border)] transition-[width] duration-200 ${
-        collapsed ? 'w-[72px]' : 'w-[248px]'
-      }`}
+      className={`h-full bg-[var(--admin-sidebar)] text-[var(--admin-text)] flex flex-col shrink-0 border-r border-[var(--admin-border)] transition-[width] duration-200 ${collapsed ? 'w-[72px]' : 'w-[248px]'
+        }`}
     >
       <div className={`border-b border-[var(--admin-border)] ${collapsed ? 'px-2 py-4' : 'px-4 py-4'}`}>
         <div className={`flex items-center ${collapsed ? 'flex-col gap-3' : 'gap-2.5'}`}>
@@ -680,22 +679,19 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
                 title={collapsed ? item.label : undefined}
                 aria-label={item.label}
                 aria-current={on ? 'page' : undefined}
-                className={`relative w-full flex items-center rounded-md text-[13px] cursor-pointer ${
-                  collapsed ? 'justify-center h-9' : 'gap-2.5 px-2.5 h-9 text-left'
-                } ${
-                  on
+                className={`relative w-full flex items-center rounded-md text-[13px] cursor-pointer ${collapsed ? 'justify-center h-9' : 'gap-2.5 px-2.5 h-9 text-left'
+                  } ${on
                     ? 'bg-[var(--admin-active)] text-[var(--admin-text)]'
                     : 'text-[var(--admin-muted)] hover:bg-[var(--admin-hover)] hover:text-[var(--admin-text)]'
-                }`}
+                  }`}
               >
                 {on && !collapsed && <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-[var(--admin-accent)]" />}
                 <Icon className={`w-[16px] h-[16px] shrink-0 ${on ? 'text-[var(--admin-accent)]' : 'text-[var(--admin-muted)]'}`} />
                 {!collapsed && <span className="flex-1 font-medium">{item.label}</span>}
                 {!collapsed && typeof item.badge === 'number' && (
                   <span
-                    className={`min-w-[20px] px-1.5 py-0.5 rounded text-[10px] font-medium text-center bg-[var(--admin-soft)] ${
-                      on ? 'text-[var(--admin-accent)]' : 'text-[var(--admin-muted)]'
-                    }`}
+                    className={`min-w-[20px] px-1.5 py-0.5 rounded text-[10px] font-medium text-center bg-[var(--admin-soft)] ${on ? 'text-[var(--admin-accent)]' : 'text-[var(--admin-muted)]'
+                      }`}
                   >
                     {item.badge}
                   </span>
@@ -709,9 +705,8 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
         {accountOpen && (
           <div
             role="menu"
-            className={`absolute z-30 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-sidebar)] shadow-[0_12px_40px_rgba(0,0,0,0.12)] py-1.5 ${
-              collapsed ? 'left-full bottom-3 ml-2 w-48' : 'left-3 right-3 bottom-full mb-2'
-            }`}
+            className={`absolute z-30 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-sidebar)] shadow-[0_12px_40px_rgba(0,0,0,0.12)] py-1.5 ${collapsed ? 'left-full bottom-3 ml-2 w-48' : 'left-3 right-3 bottom-full mb-2'
+              }`}
           >
             {accountActions.map(({ label, icon: Icon, onClick }) => (
               <button
@@ -736,9 +731,8 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
           aria-expanded={accountOpen}
           aria-haspopup="menu"
           title={mentorName}
-          className={`w-full flex items-center rounded-xl bg-[var(--admin-soft)] hover:bg-[var(--admin-hover)] cursor-pointer ${
-            collapsed ? 'justify-center h-10' : 'gap-2.5 px-2.5 h-12'
-          }`}
+          className={`w-full flex items-center rounded-xl bg-[var(--admin-soft)] hover:bg-[var(--admin-hover)] cursor-pointer ${collapsed ? 'justify-center h-10' : 'gap-2.5 px-2.5 h-12'
+            }`}
         >
           <div className="w-8 h-8 rounded-full bg-[var(--admin-page)] text-[var(--admin-text)] text-[11px] font-semibold flex items-center justify-center shrink-0">
             {initials(mentorName)}
@@ -796,9 +790,8 @@ export const MentorDashboardScreen: React.FC<MentorDashboardScreenProps> = ({ ac
                   onClick={() => setTheme(t)}
                   aria-pressed={theme === t}
                   aria-label={t === 'light' ? 'Light theme' : 'Dark theme'}
-                  className={`p-1.5 rounded-md cursor-pointer ${
-                    theme === t ? 'bg-[var(--admin-sidebar)] text-[var(--admin-text)] shadow-xs' : 'text-[var(--admin-muted)]'
-                  }`}
+                  className={`p-1.5 rounded-md cursor-pointer ${theme === t ? 'bg-[var(--admin-sidebar)] text-[var(--admin-text)] shadow-xs' : 'text-[var(--admin-muted)]'
+                    }`}
                 >
                   {t === 'light' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
                 </button>

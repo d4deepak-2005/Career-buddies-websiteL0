@@ -322,7 +322,8 @@ async function findByResetToken(token: unknown) {
 
 router.post('/reset-password/check', async (req: Request, res: Response) => {
   if (resetRateLimited(req, res, 30)) return;
-  res.json({ success: true, valid: !!(await findByResetToken(req.body?.token)) });
+  const candidate = await findByResetToken(req.body?.token);
+  res.json({ success: true, valid: !!candidate, accountType: candidate?.accountType || null });
 });
 
 router.post('/reset-password', async (req: Request, res: Response) => {

@@ -19,6 +19,12 @@ const leadSchema = new mongoose.Schema(
     email: { type: String, default: '', trim: true, lowercase: true, index: true },
     // Set when the enquiry was created by a logged-in candidate (used to show them their own history).
     candidateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate', index: true },
+    // Set when the lead is a 1:1 mentor personal session booking
+    mentorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Mentor', index: true, default: null },
+    mentorName: { type: String, trim: true, default: '' },
+    bookingDate: { type: String, trim: true, default: '' },
+    bookingSlot: { type: String, trim: true, default: '' },
+    bookingTopic: { type: String, trim: true, default: '' },
     currentRole: { type: String, default: 'Professional', trim: true },
     experience: { type: String, default: 'Not specified', trim: true },
     industry: { type: String, default: 'Technology', trim: true },
@@ -31,7 +37,7 @@ const leadSchema = new mongoose.Schema(
     linkedinUrl: { type: String, trim: true },
     status: {
       type: String,
-      enum: ['new', 'contacted', 'scheduled', 'converted'],
+      enum: ['new', 'contacted', 'scheduled', 'converted', 'cancelled'],
       default: 'new'
     }
   },

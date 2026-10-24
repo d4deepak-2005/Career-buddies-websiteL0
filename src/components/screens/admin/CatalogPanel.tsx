@@ -37,11 +37,28 @@ export const PROGRAMME_FIELDS: FieldConfig[] = [
 ];
 
 export const WEBINAR_FIELDS: FieldConfig[] = [
+  {
+    key: 'mentorId',
+    label: 'Linked Mentor (auto-fills speaker details below)',
+    type: 'mentor-select',
+    autoFill: {
+      name: 'speakerName',
+      designation: 'speakerDesignation',
+      company: 'speakerCompany',
+      photoUrl: 'speakerPhotoUrl',
+      bio: 'speakerBio',
+    },
+  },
   { key: 'title', label: 'Title' },
   { key: 'priceINR', label: 'Entry price (₹)', type: 'number', placeholder: 'e.g. 299' },
   { key: 'originalPriceINR', label: 'Original price (₹, optional strikethrough)', type: 'number', placeholder: 'e.g. 499' },
   { key: 'category', label: 'Category (drives public filter)' },
   { key: 'tagline', label: 'Tagline', type: 'textarea' },
+  {
+    key: 'bannerText',
+    label: 'Banner text (small strip on card + detail page — leave blank for none)',
+    placeholder: 'e.g. Limited seats available',
+  },
   { key: 'description', label: 'Description', type: 'textarea' },
   { key: 'speakerName', label: 'Speaker Name' },
   { key: 'speakerDesignation', label: 'Speaker Designation' },

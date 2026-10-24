@@ -50,6 +50,7 @@ export function useWebinars(): WebinarItem[] {
       id: w._id,
       title: w.title || '',
       tagline: w.tagline || w.description || '',
+      bannerText: w.bannerText || '',
       category: w.category || '',
       speaker: {
         name: w.speakerName || '',

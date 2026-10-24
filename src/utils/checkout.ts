@@ -26,22 +26,46 @@ declare global {
   }
 }
 
+const RAZORPAY_CHECKOUT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
+let razorpayScriptPromise: Promise<void> | null = null;
+
 function loadRazorpayScript(): Promise<void> {
   if (window.Razorpay) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
-    if (existing) {
-      existing.addEventListener('load', () => resolve());
-      existing.addEventListener('error', () => reject(new Error('Unable to load Razorpay.')));
-      return;
-    }
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+
+  // A previous attempt can leave a loaded (or failed) script element behind.
+  // Listening for its `load` event again would wait forever on Safari because
+  // that event has already fired. Replace it with a fresh, observable request.
+  document.querySelector(`script[src="${RAZORPAY_CHECKOUT_URL}"]`)?.remove();
+
+  razorpayScriptPromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    const timeout = window.setTimeout(() => {
+      script.remove();
+      reject(new Error('Timed out while loading Razorpay.'));
+    }, 15_000);
+
+    const finish = () => {
+      window.clearTimeout(timeout);
+      resolve();
+    };
+    const fail = () => {
+      window.clearTimeout(timeout);
+      script.remove();
+      reject(new Error('Unable to load Razorpay.'));
+    };
+
+    script.src = RAZORPAY_CHECKOUT_URL;
     script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Unable to load Razorpay.'));
+    script.onload = () => window.Razorpay ? finish() : fail();
+    script.onerror = fail;
     document.body.appendChild(script);
+  }).catch((error) => {
+    razorpayScriptPromise = null;
+    throw error;
   });
+
+  return razorpayScriptPromise;
 }
 
 export async function getCheckoutQuote(

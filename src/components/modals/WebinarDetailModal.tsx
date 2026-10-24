@@ -14,7 +14,8 @@ import {
   ArrowRight, 
   ArrowLeft,
   ShieldCheck,
-  Home
+  Home,
+  Flame
 } from 'lucide-react';
 import { HandshakeIcon } from '../common/HandshakeIcon';
 import { ModalA11y } from '../common/ModalA11y';
@@ -93,6 +94,12 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-white">
+              {webinar.bannerText && (
+                <div className="flex items-center gap-1.5 bg-amber-400/20 text-amber-300 px-3 py-1.5 rounded-xl font-bold border border-amber-300/30">
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>{webinar.bannerText}</span>
+                </div>
+              )}
               <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl">
                 <Calendar className="w-3.5 h-3.5 text-[#79fd8d]" />
                 <span className="font-semibold">{webinar.date}</span>
@@ -136,9 +143,9 @@ export const WebinarDetailModal: React.FC<WebinarDetailModalProps> = ({
 
           {/* Key Learnings & Takeaways */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#002869]">
+            {/* <h3 className="text-xs font-black uppercase tracking-wider text-[#002869]">
               What You Will Master in this 90-Min Session:
-            </h3>
+            </h3> */}
             <div className="grid grid-cols-1 gap-2.5">
               {(webinar.whatYouWillLearn || []).map((takeaway, idx) => (
                 <div key={idx} className="flex items-start gap-2.5 text-xs text-[#061b3b] bg-[#f9f9ff] p-3 rounded-xl border border-gray-100">

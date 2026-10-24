@@ -26,10 +26,18 @@ function toPublic(doc: any) {
     obj.onlinePayment = cmsHasPrice(obj);
     delete obj.dodoProductId;
   }
+  // Strip private mentor/admin emails from public client payload
+  delete obj.email;
   return obj;
 }
 
-export function createCrudRouter(model: Model<any>): Router {
+export interface CrudOptions {
+  afterCreate?: (item: any, req: express.Request) => Promise<void> | void;
+  afterUpdate?: (item: any, req: express.Request) => Promise<void> | void;
+  transformAdminItems?: (items: any[]) => Promise<any[]> | any[];
+}
+
+export function createCrudRouter(model: Model<any>, options?: CrudOptions): Router {
   const router = express.Router();
 
   router.get('/', async (req, res) => {
@@ -52,7 +60,10 @@ export function createCrudRouter(model: Model<any>): Router {
       const items = await model
         .find()
         .sort({ displayOrder: 1, createdAt: 1 });
-      res.json({ success: true, items });
+      const finalItems = options?.transformAdminItems
+        ? await options.transformAdminItems(items)
+        : items;
+      res.json({ success: true, items: finalItems });
     } catch (error) {
       console.error(`Error fetching ${model.modelName} records:`, error);
       res.status(500).json({
@@ -64,7 +75,10 @@ export function createCrudRouter(model: Model<any>): Router {
 
   router.post('/admin', requireAdminAuth, async (req, res) => {
     try {
-      const item = await model.create(req.body);
+      const createData = { ...req.body };
+      delete createData._id;
+      delete createData.portalStatus;
+      const item = await model.create(createData);
       const who = actorFromReq(req).name;
       recordAdminAudit(req, {
         action: 'create',
@@ -73,6 +87,15 @@ export function createCrudRouter(model: Model<any>): Router {
         summary: `${who} created ${model.modelName} "${itemLabel(item, model.modelName)}"`,
         details: safeDetails(req.body),
       });
+
+      if (options?.afterCreate) {
+        try {
+          await options.afterCreate(item, req);
+        } catch (hookErr) {
+          console.error(`[crudFactory] afterCreate hook error for ${model.modelName}:`, hookErr);
+        }
+      }
+
       res.status(201).json({ success: true, item });
     } catch (error) {
       console.error(`Error creating ${model.modelName} record:`, error);
@@ -85,7 +108,15 @@ export function createCrudRouter(model: Model<any>): Router {
 
   router.put('/admin/:id', requireAdminAuth, async (req, res) => {
     try {
-      const item = await model.findByIdAndUpdate(req.params.id, req.body, {
+      const updateData = { ...req.body };
+      delete updateData._id;
+      delete updateData.id;
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      delete updateData.__v;
+      delete updateData.portalStatus;
+
+      const item = await model.findByIdAndUpdate(req.params.id, updateData, {
         returnDocument: 'after',
         runValidators: true,
       });
@@ -106,6 +137,15 @@ export function createCrudRouter(model: Model<any>): Router {
         summary: `${who} updated ${model.modelName} "${itemLabel(item, model.modelName)}"`,
         details: safeDetails(req.body),
       });
+
+      if (options?.afterUpdate) {
+        try {
+          await options.afterUpdate(item, req);
+        } catch (hookErr) {
+          console.error(`[crudFactory] afterUpdate hook error for ${model.modelName}:`, hookErr);
+        }
+      }
+
       res.json({ success: true, item });
     } catch (error) {
       console.error(`Error updating ${model.modelName} record:`, error);

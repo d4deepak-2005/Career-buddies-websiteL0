@@ -12,8 +12,13 @@ import type { Request } from 'express';
 // must fail safely instead of guessing.
 function normalise(value: string | undefined): string | null {
   if (!value || !value.trim()) return null;
+  let str = value.trim();
+  if (str.includes('=')) {
+    str = str.split('=').pop()!.trim();
+  }
+  str = str.replace(/^["']|["']$/g, '').trim();
   try {
-    const u = new URL(value.trim());
+    const u = new URL(str);
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
     return u.origin;
   } catch {
